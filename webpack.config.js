@@ -1,0 +1,59 @@
+const config = require('./version.json');
+const path = require('path');
+const TsConfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const fs = require('fs');
+
+module.exports = {
+  mode: 'development',
+  entry: './src/index.ts',
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: [
+          {
+            loader: 'string-replace-loader',
+            options: {
+              search: '_VERSION_',
+              replace: '' + config.version,
+              flags: 'g'
+            }
+          },
+          {
+            loader: 'ts-loader',
+          },
+        ],
+        exclude: /node_modules/,
+      },
+      {
+        test: /\.png$/,
+        loader: "url-loader",
+      }
+    ],
+  },
+  resolve: {
+    plugins: [new TsConfigPathsPlugin({})],
+    extensions: ['.tsx', '.ts', '.js'],
+    symlinks: true
+  },
+  devtool: 'eval-source-map',
+  devServer: {
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+  },
+  output: {
+    filename: 'bundle.js',
+    path: path.resolve(__dirname, 'dist')
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: 'src/index.html',
+      inject: false,
+      templateParameters: {
+        version: config.version
+      }
+    })
+  ]
+};

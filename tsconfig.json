@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "strict": true,
+    "lib": ["dom"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "strictNullChecks": true,
+    "sourceMap": true,
+    "baseUrl": "."
+  },
+  "include": [
+    "src/**/*"
+, "typings.d.ts"  ],
+  "exclude": [
+    "node_modules",
+    "**/__tests__/*"
+  ]
+}
