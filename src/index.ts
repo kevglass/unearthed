@@ -192,6 +192,7 @@ document.addEventListener("keydown", (event: KeyboardEvent) => {
     if (event.key === 'r') {
         if (confirm("Reset Map?") && hosting) {
             localStorage.removeItem("map");
+            localStorage.removeItem("mapbg");
             location.reload();
         }
     }
