@@ -301,6 +301,7 @@ export class Mob {
         
         if (this.hittingHead() && this.vy < 0) {
             this.vy = 0;
+            this.y = (Math.floor((this.y) / TILE_SIZE) * TILE_SIZE) + this.height;
         } 
         
         if (!this.standingOnSomething()) {
