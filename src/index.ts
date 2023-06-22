@@ -190,7 +190,7 @@ document.addEventListener("keydown", (event: KeyboardEvent) => {
         player.itemHeld = INVENTORY[index];
     }
     if (event.key === 'r') {
-        if (confirm("Reset Map?")) {
+        if (confirm("Reset Map?") && hosting) {
             localStorage.removeItem("map");
             location.reload();
         }
