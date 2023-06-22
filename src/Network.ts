@@ -25,7 +25,7 @@ export function updatePlayerList(mobs: Mob[]): void {
 
     for (const mob of mobs) {
         const div = document.createElement("div");
-        div.innerHTML = mob.name;
+        div.innerHTML = mob.name.substring(0, 12);
         div.classList.add("nametag");
         listDiv.appendChild(div);
     }
@@ -68,6 +68,9 @@ export async function startNetwork(token: string, hosting: boolean) {
                 sendMapUpdate(participant.sid);
             }
         }
+        if (message.type === "chatMessage") {
+            addChat(message.who, message.message);
+        }
         if (message.type === "iAmHost" && !hosting) {
             host = participant!;
         }
@@ -76,10 +79,10 @@ export async function startNetwork(token: string, hosting: boolean) {
             hadMap = true;
         }
         if (message.type === "tileChange") {
-            setTile(message.x, message.y, message.tile);
+            setTile(message.x, message.y, message.tile, message.layer);
             refreshSpriteTile(message.x, message.y);
             if (hostingServer) {
-                sendNetworkTile(message.x, message.y, message.tile);
+                sendNetworkTile(message.x, message.y, message.tile, message.layer);
             }
         }
         if (message.type === "remove") {
@@ -122,19 +125,54 @@ export async function startNetwork(token: string, hosting: boolean) {
     connected = true;
 }
 
-export function sendMapUpdate(target: string) {
-    const mapData = JSON.stringify({ type: "mapData", data: getMapData() });
-    room.localParticipant.publishData(encoder.encode(mapData), DataPacket_Kind.RELIABLE, target ? [target] : undefined)
+export function addChat(who: string, message: string): void {
+    const list = document.getElementById("chatList") as HTMLDivElement;
+
+    while (list.childElementCount > 4) {
+        if (list.firstChild) {
+            list.firstChild.parentNode?.removeChild(list.firstChild);
+        }
+    }
+
+    const line = document.createElement("div");
+    line.classList.add("chatline");
+    const name = document.createElement("div");
+    name.classList.add("chatname");
+    name.innerHTML = who.substring(0, 12);
+    const msg = document.createElement("div");
+    msg.classList.add("chattext");
+    msg.innerHTML = message.substring(0, 100);
+    line.appendChild(name);
+    line.appendChild(msg);
+
+    list.appendChild(line);
 }
 
-export function sendNetworkTile(x: number, y: number, tile: number) {
+export function sendMapUpdate(target: string) {
+    const mapData = JSON.stringify({ type: "mapData", data: getMapData() });
+    room.localParticipant.publishData(encoder.encode(mapData), DataPacket_Kind.RELIABLE)
+}
+
+export function sendNetworkTile(x: number, y: number, tile: number, layer: number) {
     if (hostingServer) {
-        const data = JSON.stringify({ type: "tileChange", x, y, tile });
+        const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
         room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE);
     } else if (host) {
-        const data = JSON.stringify({ type: "tileChange", x, y, tile });
+        const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
         room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE, [host.sid]);
     }
+}
+
+export function sendChatMessage(who: string, message: string) {
+    message = message.trim();
+    if (message.length === 0) {
+        return;
+    }
+    
+    const data = JSON.stringify({ type: "chatMessage", who, message });
+    room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE);
+
+    addChat(who, message);
 }
 
 export function networkUpdate(player: Mob, players: Mob[]) {

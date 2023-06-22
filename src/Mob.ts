@@ -1,6 +1,6 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone, updateBones, renderLayeredBones } from "./Bones";
-import { getTile, refreshSpriteTile, setTile, TILE_SIZE } from "./Map";
+import { getTile, isBlocked, isLadder, refreshSpriteTile, setTile, TILE_SIZE } from "./Map";
 import { sendNetworkTile } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
 
@@ -16,6 +16,7 @@ export const INVENTORY: InventItem[] = [
     { sprite: "tile.brick_red", place: 4 },
     { sprite: "tile.sand_tile", place: 6 },
     { sprite: "tile.wood_tile", place: 7 },
+    { sprite: "tile.ladder_tile", place: 8 },
 ];
 
 export interface Controls {
@@ -48,6 +49,8 @@ export class Mob {
     sid: string = "";
     lastUpdateSeq: number = 0;
     itemHeld?: InventItem;
+    head: string = "male";
+    body: string = "male";
 
     controls: Controls = {
         left: false,
@@ -96,6 +99,8 @@ export class Mob {
         this.working = state.working;
         this.name = state.name;
         this.itemHeld = state.itemHeld;
+        this.head = state.head;
+        this.body = state.body;
     }
 
     getNetworkState(): any {
@@ -113,7 +118,9 @@ export class Mob {
             overX: this.overX,
             overY: this.overY,
             name: this.name,
-            item: this.itemHeld
+            itemHeld: this.itemHeld,
+            head: this.head,
+            body: this.body
         };
     }
 
@@ -126,7 +133,7 @@ export class Mob {
         let count = 0;
         for (let s=0;s<(this.height * 2);s+=stepSize) {
             count++;
-            if (getTile((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE) !== 0) {
+            if (isBlocked((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -139,7 +146,7 @@ export class Mob {
         let count = 0;
         for (let s=0;s<(this.height * 2);s+=stepSize) {
             count++;
-            if (getTile((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE) !== 0) {
+            if (isBlocked((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -156,7 +163,7 @@ export class Mob {
 
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (getTile((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE) !== 0) {
+            if (isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -173,7 +180,7 @@ export class Mob {
 
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (getTile((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE) !== 0) {
+            if (isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -199,9 +206,11 @@ export class Mob {
     }
 
     jump(): void {
-        if (this.vy === 0 && this.standingOnSomething()) {
+        if (isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+            this.vy = -10;
+        } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
-        }
+        } 
     }
 
     moveLeft(): void {
@@ -215,11 +224,22 @@ export class Mob {
         this.lastUpdate = Date.now();
     }
 
-    update(animTime: number): void {
-        const hand = this.allBones.find(b => b.name === "held");
-        if (hand) {
-            hand.sprite = this.itemHeld?.sprite;
+    update(animTime: number, backPlace: boolean): void {
+        for (const bone of this.allBones) {
+            if (bone.name === "held") {
+                bone.sprite = this.itemHeld?.sprite;
+            }
+            if (bone.name === "head") {
+                bone.sprite = this.head + ".head";
+            }
+            if (bone.name === "leftarm" || bone.name === "rightarm") {
+                bone.sprite = this.body + ".arm";
+            }
+            if (bone.name === "body") {
+                bone.sprite = this.body + ".body";
+            }
         }
+
 
         this.seq++;
         const px = Math.floor(this.x / TILE_SIZE);
@@ -238,13 +258,15 @@ export class Mob {
         }
 
         if (this.itemHeld) {
-            if (this.controls.mouse && this.itemHeld?.place === 0 && getTile(this.overX, this.overY) !== 0) {
+            const layer = backPlace ? 1 : 0;
+
+            if (this.controls.mouse && this.itemHeld?.place === 0 && getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
                 this.damage++;
 
-                if (this.damage >= 90) {
-                    setTile(this.overX, this.overY, 0);
-                    sendNetworkTile(this.overX, this.overY, 0);
+                if (this.damage >= 60) {
+                    setTile(this.overX, this.overY, 0, layer);
+                    sendNetworkTile(this.overX, this.overY, 0, layer);
                     this.damage = 0;
                 } else {
                     if (Date.now() - this.lastParticleCreated > 100) {
@@ -260,9 +282,9 @@ export class Mob {
                     this.headTilt = -0.2;
                 }
             }
-            if (this.controls.mouse && this.itemHeld.place !== 0 && getTile(this.overX, this.overY) === 0) {
-                setTile(this.overX, this.overY, this.itemHeld.place);
-                sendNetworkTile(this.overX, this.overY, this.itemHeld.place);
+            if (this.controls.mouse && this.itemHeld.place !== 0 && getTile(this.overX, this.overY, layer) === 0) {
+                setTile(this.overX, this.overY, this.itemHeld.place, layer);
+                sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                 
                 refreshSpriteTile(this.overX, this.overY);
                 for (let i=0;i<5;i++) {

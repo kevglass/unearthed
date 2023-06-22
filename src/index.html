@@ -20,15 +20,17 @@
         }
 
         #serverLink {
-            position: absolute;
-            top: 5px;
-            left: 50%;
-            transform: translate(-50%, 0);
             background: rgba(0, 0, 0, 0.5);
             padding: 5px;
             color: white;
             font-size: 20px;
             border-radius: 10px;
+        }
+
+        #settingsPanel {
+            width: 400px;
+            height: 300px;
+            display: none;
         }
 
         .panel {
@@ -63,6 +65,11 @@
             border-bottom: 2px solid #616374;
         }
 
+        #closeButton:active {
+            margin-top: 23px;
+            border-bottom: 2px solid #616374;
+        }
+
         #startGame {
             top: 20px;
         }
@@ -75,6 +82,25 @@
             top: 140px;
         }
         
+        #closeButton {
+            outline: 4px solid black;
+            user-select: none;
+            color: white;
+            font-size: 28px;
+            line-height: 40px;
+            height: 40px;
+            background: #838796;
+            border-bottom: 5px solid #616374;
+            border-radius: 10px;
+            margin-left: 100px;
+            margin-bottom: 20px;
+            margin-top: 20px;
+            width: 200px;
+            -webkit-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+            -moz-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+            box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+        }
+
         .button {
             position: absolute;
             outline: 4px solid black;
@@ -94,6 +120,34 @@
             box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
         }
 
+        #chat {
+            border-radius: 10px;
+            color: white;
+            background: rgba(0, 200, 0, 1);
+            margin-bottom: 3px;
+            padding: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            cursor: pointer;
+        }
+
+        #settings {
+            border-radius: 10px;
+            color: white;
+            background: rgba(0, 200, 0, 1);
+            margin-bottom: 3px;
+            padding: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            cursor: pointer;
+        }
+
         .label {
             font-size: 28px;
         }
@@ -111,13 +165,16 @@
 
         #setup {
             display: none;
+            height: 300px;
         }
 
         #playerList {
             position: absolute;
             flex-direction: column;
-            top: 5px;
-            left: 5px;
+            top: 35px;
+            right: 5px;
+            display: flex;
+            align-items: end;
         }
 
         .nametag {
@@ -131,13 +188,85 @@
             max-width: fit-content;
             user-select: none;
         }
+
+        .option {
+            display: flex;
+            font-size: 30px;
+            width: 100%;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .configpanel {
+            width: 200px;
+            margin-left: 50px;
+            height: 100px;
+        }
+
+        #chatinput {
+            display: none;
+            border-radius: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            font-size: 30px;
+            position: absolute;
+            left: 50%;
+            bottom: 100px;
+            transform: translate(-50%, 0);
+            width: 80%;
+            max-width: 800px;
+            outline: none;
+        }
+
+        #chatList {
+            position: absolute;
+            flex-direction: column;
+            top: 35px;
+            left: 5px;
+            display: flex;
+            align-items: start;
+        }
+
+        .chatline {
+            display: flex;
+            margin-bottom: 2px;
+        }
+
+        .chatname {
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            width: 70px;
+            max-width: 70px;
+            overflow: hidden;
+            text-align: right;
+        }
+
+        .chattext {
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            margin-left: 2px;
+        }
     </style>
 </head>
 
 <body>
     <canvas id="game"></canvas>
-    <div id="serverLink"></div>
     <div id="playerList"></div>
+    <div id="settings">Settings</div>
+    <div id="chat">Chat</div>
+    <div id="chatList"></div>
     <div id="connect" class="panel">
         <div id="startGame" class="button">Start Game</div>
         <div id="joinGame" class="button">Join Game</div>
@@ -151,8 +280,31 @@
     <div id="setup" class="panel">
         <div class="label">Player Name</div>
         <input id="playerName" class="textfield"></input>
+        <div class="configpanel">
+            <div class="option">
+                <div class="optionLabel">Head</div>
+                <select class="optionSelect" id="headSelect">
+                    <option>male</option>
+                    <option>female</option>
+                </select>
+            </div>
+            <div class="option">
+                <div class="optionLabel">Body</div>
+                <select class="optionSelect" id="bodySelect">
+                    <option value="male">red</option>
+                    <option value="female">purple</option>
+                </select>
+            </div>
+        </div>
         <div id="doneButton" class="button">Save</div>
     </div>
+    <div id="settingsPanel" class="panel">
+        <div id="closeButton">Close</div>
+        <div class="label">Server Link</div>
+        <div id="serverLink"></div>
+    </div>
+    <input id="chatinput" type="text">
+    </input>
     <script src="bundle.js?v=<%= version %>"></script>
 </body>
 

@@ -2,7 +2,7 @@
 import { MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, getTile, refreshSpriteTile, refreshSpriteTileMap, renderMap, setTile, tiles } from "./Map";
 import { INVENTORY, Mob } from "./Mob";
 import { isMobile, isTablet } from "./MobileDetect";
-import { networkConnected, networkUpdate, startNetwork, updatePlayerList } from "./Network";
+import { networkConnected, networkUpdate, sendChatMessage, startNetwork, updatePlayerList } from "./Network";
 import { addParticle, createDirtParticle, renderAndUpdateParticles } from "./Particles";
 import { getSprite, resourcesLoaded } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
@@ -12,6 +12,7 @@ let serverId = localStorage.getItem("server");
 let hosting = true;
 let names = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
 let waitingForHost = false;
+const chatInput = document.getElementById("chatinput") as HTMLInputElement;
 
 if (!serverId) {
     serverId = uuidv4();
@@ -51,6 +52,8 @@ let lastWorkX = 0;
 let lastWorkY = 0;
 let mainAreaTouchId = 0;
 let controllerTouchId = 0;
+let frontPlace: boolean = true;
+let connecting: boolean = false;
 
 if (isMobile() || isTablet()) {
     document.getElementById("serverLink")!.style.display = "none";
@@ -65,6 +68,7 @@ document.getElementById("startGame")!.addEventListener("click", () => {
 
     document.getElementById("connect")!.style.display = "none";
     startNetwork(accessToken, hosting);
+    connecting = true;
     waitingForHost = true;
     document.getElementById("serverLink")!.innerHTML = location.href+"?server="+serverId;
 });
@@ -85,6 +89,26 @@ document.getElementById("doneButton")!.addEventListener("click", () => {
 
     updatePlayerList(mobs);
 });
+document.getElementById("settings")!.addEventListener("click", () => {
+    const panel = document.getElementById("settingsPanel")!;
+    if (panel.style.display === "block") {
+        panel.style.display = "none";
+    } else {
+        panel.style.display = "block";
+    }
+})
+document.getElementById("chat")!.addEventListener("click", () => {
+    if (networkConnected()) {
+        if (chatInput.style.display === "block") {
+            hideChat();
+        } else {
+            showChat();
+        }
+    }
+})
+document.getElementById("closeButton")!.addEventListener("click", () => {
+    document.getElementById("settingsPanel")!.style.display = "none";
+})
 
 document.getElementById("joinButton")!.addEventListener("click", () => {
     hosting = false;
@@ -100,14 +124,38 @@ document.getElementById("joinButton")!.addEventListener("click", () => {
 
     document.getElementById("join")!.style.display = "none";
     startNetwork(accessToken, hosting);
+    connecting = true;
     waitingForHost = true;
 });
 
 document.addEventListener("keyup", (event: KeyboardEvent) => {
     keys[event.key] = false;
 });
+chatInput!.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+        chatInput.value = "";
+        hideChat();
+    }
+    if (event.key === "Enter") {
+        sendChat(chatInput.value);
+        chatInput.value = "";
+        hideChat();
+    }
+});
+
 document.addEventListener("keydown", (event: KeyboardEvent) => {
+    if (document.activeElement === chatInput) {
+        return;
+    }
+
     keys[event.key] = true;
+
+
+    if (networkConnected()) {
+        if (event.key === "Enter") {
+            showChat();
+        }
+    }
 
     if (event.key === 'q') {
         let index = 0;
@@ -119,6 +167,10 @@ document.addEventListener("keydown", (event: KeyboardEvent) => {
         }
         player.itemHeld = INVENTORY[index];
     }
+    if (event.key === 'x') {
+        frontPlace = !frontPlace;
+    }
+
     if (event.key === 'e') {
         let index = 0;
         if (player.itemHeld) {
@@ -202,6 +254,10 @@ function mouseDown(x: number, y: number, touchId: number) {
         }
     } 
 
+    if (x > canvas.width - 810 && y > canvas.height - 140 && x < canvas.width - 810 + 126 && y < canvas.height - 140 + 125) {
+        frontPlace = !frontPlace;
+        foundInventButton = true;
+    }
     foundControlButton = evalControlArea(x, y, touchId);
 
     if (!foundInventButton && !foundControlButton && mainAreaTouchId === 0) {
@@ -271,6 +327,45 @@ function mouseMove(x: number, y: number, touchId: number) {
 refreshSpriteTileMap();
 
 const player = new Mob(uuidv4(), username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
+
+function showChat() {
+    if (networkConnected()) {
+        chatInput!.style.display = "block";
+        chatInput.focus();
+    }
+}
+
+function sendChat(message: string) {
+    if (networkConnected()) {
+        sendChatMessage(player.name, message);
+    }
+}
+
+function hideChat() {
+    chatInput!.style.display = "none";
+}
+
+if (localStorage.getItem("head")) {
+    player.head = localStorage.getItem("head")!;
+}
+if (localStorage.getItem("body")) {
+    player.body = localStorage.getItem("body")!;
+}
+
+const bodySelect = document.getElementById("bodySelect") as HTMLSelectElement;
+const headSelect = document.getElementById("headSelect") as HTMLSelectElement;
+bodySelect.value = player.body;
+headSelect.value = player.head;
+
+bodySelect.addEventListener("change", (event) => {
+    player.body = bodySelect.value;
+    localStorage.setItem("body", player.body);
+});
+headSelect.addEventListener("change", (event) => {
+    player.head = headSelect.value;
+    localStorage.setItem("head", player.head);
+});
+
 const mobs: Mob[] = [];
 mobs.push(player);
 updatePlayerList(mobs);
@@ -279,6 +374,7 @@ player.itemHeld = INVENTORY[0];
 requestAnimationFrame(() => { loop() });
 
 let lastFrame = Date.now();
+let focusTarget = canvas;
 
 function loop() {
     const delta = Date.now() - lastFrame;
@@ -293,7 +389,7 @@ function loop() {
 
     canvas.width = document.body.clientWidth * ZOOM;
     canvas.height = document.body.clientHeight * ZOOM;
-    canvas.focus();
+    focusTarget.focus();
 
     g.save();
 
@@ -307,6 +403,23 @@ function loop() {
         requestAnimationFrame(() => { loop() });
         const logo = getSprite("logo");
         g.drawImage(logo, (canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
+
+        if (resourcesLoaded() && !connecting) {
+            g.translate((canvas.width / 2) + 500, (canvas.height / 2) +  40);
+            g.scale(1.5,1.5);
+            player.still();
+            player.update(0, false)
+            player.x = 0;
+            player.flip = true;
+            player.y = 0;
+            player.draw(g, false);
+            player.x = 200;
+            player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+        } else {
+            g.font = "80px Helvetica";
+            g.textAlign = "center";
+            g.fillText("Connecting", canvas.width / 2, canvas.height / 2);
+        }
         return;
     }
 
@@ -345,7 +458,7 @@ function loop() {
         if ((lastWorkY !== player.overY) || (lastWorkX !== player.overX) || (!mouseButtons[0])) {
             player.damage = 0;
         }
-        if (mouseButtons[0] && canAct && getTile(player.overX, player.overY) !== 0) {
+        if (mouseButtons[0] && canAct && getTile(player.overX, player.overY, frontPlace ? 0 : 1) !== 0) {
             lastWorkX = player.overX;
             lastWorkY = player.overY;
         }
@@ -370,7 +483,7 @@ function loop() {
         }
 
         for (const mob of [...mobs]) {
-            mob.update(animTime);
+            mob.update(animTime, !frontPlace);
             mob.draw(g, SHOW_BOUNDS);
 
             if (Date.now() - mob.lastUpdate > 10000) {
@@ -402,6 +515,7 @@ function loop() {
             index++;
         }
     }
+    g.drawImage(getSprite(frontPlace ? "ui.front" : "ui.back"), canvas.width - 810, canvas.height - 140, 125, 125);
 
     if (isMobile()) {
         g.drawImage(getSprite("ui.left"), 20, canvas.height - 160, 140, 140);

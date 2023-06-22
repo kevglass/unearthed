@@ -115,7 +115,10 @@ export function renderBones(bone: Bone, g: CanvasRenderingContext2D, layer: numb
     g.scale(bone.scale, bone.scale);
 
     if (layer === bone.layer && bone.sprite) {
-        g.drawImage(getSprite(bone.sprite), bone.spritex!, bone.spritey!);
+        const sprite = getSprite(bone.sprite);
+        if (sprite) {
+            g.drawImage(sprite, bone.spritex!, bone.spritey!);
+        }
     }
 
     for (const child of bone.children) {
