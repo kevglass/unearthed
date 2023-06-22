@@ -41,6 +41,7 @@ const ZOOM: number = 2;
 let animTime = 0;
 const canvas: HTMLCanvasElement = document.getElementById("game") as HTMLCanvasElement;
 const g: CanvasRenderingContext2D = canvas.getContext("2d")!;
+let tooltipShown = 0;
 
 // Utilities
 
@@ -54,10 +55,17 @@ let mainAreaTouchId = 0;
 let controllerTouchId = 0;
 let frontPlace: boolean = true;
 let connecting: boolean = false;
+const tooltip = document.getElementById("tooltip") as HTMLDivElement
 
 if (isMobile() || isTablet()) {
     document.getElementById("serverLink")!.style.display = "none";
 };
+
+export function showTip(tip: string) {
+    tooltip.style.display = "block";
+    tooltip.innerHTML = tip;
+    tooltipShown = Date.now();
+}
 
 document.getElementById("startGame")!.addEventListener("click", () => {
     hosting = true;
@@ -181,9 +189,6 @@ document.addEventListener("keydown", (event: KeyboardEvent) => {
         }
         player.itemHeld = INVENTORY[index];
     }
-    if (event.key === 'b') {
-        SHOW_BOUNDS = !SHOW_BOUNDS;
-    }
     if (event.key === 'r') {
         if (confirm("Reset Map?")) {
             localStorage.removeItem("map");
@@ -257,6 +262,7 @@ function mouseDown(x: number, y: number, touchId: number) {
     if (x > canvas.width - 810 && y > canvas.height - 140 && x < canvas.width - 810 + 126 && y < canvas.height - 140 + 125) {
         frontPlace = !frontPlace;
         foundInventButton = true;
+        showTip("Placing Tiles on " + (frontPlace ? "Foreground" : "Background"));
     }
     foundControlButton = evalControlArea(x, y, touchId);
 
@@ -377,6 +383,10 @@ let lastFrame = Date.now();
 let focusTarget = canvas;
 
 function loop() {
+    if (Date.now() - tooltipShown > 5000) {
+        tooltip.style.display = "none";
+    }
+
     const delta = Date.now() - lastFrame;
     if (delta < 10) {
         requestAnimationFrame(() => { loop() });
@@ -403,6 +413,9 @@ function loop() {
         requestAnimationFrame(() => { loop() });
         const logo = getSprite("logo");
         g.drawImage(logo, (canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
+        g.font = "50px Helvetica";
+        g.textAlign = "center";
+        g.fillText("Version _VERSION_", canvas.width / 2, 250 + (logo.height * 2));
 
         if (resourcesLoaded() && !connecting) {
             g.translate((canvas.width / 2) + 500, (canvas.height / 2) +  40);

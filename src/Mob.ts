@@ -51,6 +51,7 @@ export class Mob {
     itemHeld?: InventItem;
     head: string = "male";
     body: string = "male";
+    local: boolean = false;
 
     controls: Controls = {
         left: false,
@@ -222,6 +223,7 @@ export class Mob {
     // local update
     localUpdate(): void {
         this.lastUpdate = Date.now();
+        this.local = true;
     }
 
     update(animTime: number, backPlace: boolean): void {
@@ -265,7 +267,9 @@ export class Mob {
                 this.damage++;
 
                 if (this.damage >= 60) {
-                    setTile(this.overX, this.overY, 0, layer);
+                    if (this.local) {
+                        setTile(this.overX, this.overY, 0, layer);
+                    }
                     sendNetworkTile(this.overX, this.overY, 0, layer);
                     this.damage = 0;
                 } else {
@@ -283,7 +287,9 @@ export class Mob {
                 }
             }
             if (this.controls.mouse && this.itemHeld.place !== 0 && getTile(this.overX, this.overY, layer) === 0) {
-                setTile(this.overX, this.overY, this.itemHeld.place, layer);
+                if (this.local) {
+                    setTile(this.overX, this.overY, this.itemHeld.place, layer);
+                }
                 sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                 
                 refreshSpriteTile(this.overX, this.overY);

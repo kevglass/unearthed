@@ -189,6 +189,22 @@
             user-select: none;
         }
 
+        #tooltip {
+            display: none;
+            border-radius: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            max-width: fit-content;
+            user-select: none;
+            position: absolute;
+            left: 50%;
+            bottom: 10px;
+            transform: translate(-50%, 0);
+        }
+
         .option {
             display: flex;
             font-size: 30px;
@@ -305,6 +321,7 @@
     </div>
     <input id="chatinput" type="text">
     </input>
+    <div id="tooltip">Test</div>
     <script src="bundle.js?v=<%= version %>"></script>
 </body>
 

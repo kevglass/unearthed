@@ -155,6 +155,7 @@ export function sendMapUpdate(target: string) {
 
 export function sendNetworkTile(x: number, y: number, tile: number, layer: number) {
     if (hostingServer) {
+        setTile(x, y, tile, layer);
         const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
         room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE);
     } else if (host) {
@@ -168,7 +169,7 @@ export function sendChatMessage(who: string, message: string) {
     if (message.length === 0) {
         return;
     }
-    
+
     const data = JSON.stringify({ type: "chatMessage", who, message });
     room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE);
 
