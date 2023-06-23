@@ -1,7 +1,7 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
-import { getMapData, refreshSpriteTile, setMapData, setTile } from './Map';
+import { MAP_DEPTH, MAP_WIDTH, getMapData, refreshSpriteTile, setMapData, setTile } from './Map';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -61,64 +61,71 @@ export async function startNetwork(token: string, hosting: boolean) {
     });
 
     room.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-        const strData = decoder.decode(payload);
-        const message = JSON.parse(strData);
-        if (message.type === "requestMap" && hosting) {
-            if (participant) {
-                sendMapUpdate(participant.sid);
-            }
-        }
-        if (message.type === "chatMessage") {
-            addChat(message.who, message.message);
-        }
-        if (message.type === "iAmHost" && !hosting) {
-            host = participant!;
-            if (message.version !== "_VERSION_") {
-                alert("Game Version Mismatch");
-                location.reload();
-            }
-        }
-        if (message.type === "mapData" && !hosting) {
-            setMapData(message.data);    
+        if (topic === "map") {
+            console.log(payload.length);
+            const fullArray: number[] = Array.from(payload);
+            const len: number = fullArray.length / 2;
+            setMapData({
+                f: fullArray.slice(0, len),
+                b: fullArray.slice(len)
+            });
             hadMap = true;
-        }
-        if (message.type === "tileChange") {
-            setTile(message.x, message.y, message.tile, message.layer);
-            refreshSpriteTile(message.x, message.y);
-            if (hostingServer) {
-                sendNetworkTile(message.x, message.y, message.tile, message.layer);
+        } else {
+            const strData = decoder.decode(payload);
+            const message = JSON.parse(strData);
+            if (message.type === "requestMap" && hosting) {
+                if (participant) {
+                    sendMapUpdate(participant.sid);
+                }
             }
-        }
-        if (message.type === "remove") {
-            const mob = localMobs.find(mob => mob.id === message.mobId);
-            if (mob) {
-                removed.push(mob.id);
-                localMobs.splice(localMobs.indexOf(mob), 1);
-                updatePlayerList(localMobs);
+            if (message.type === "chatMessage") {
+                addChat(message.who, message.message);
             }
-        }
-        if (message.type === "mobs") {
-            if (localMobs && localPlayer) {
-                if (message.host) {
-                    host = participant;
-                }  
-                for (const mobData of message.data) {
-                    if (mobData.id !== localPlayer.id) {
-                        if (removed.includes(mobData.id)) {
-                            continue;
-                        }
+            if (message.type === "iAmHost" && !hosting) {
+                host = participant!;
+                if (message.version !== "_VERSION_") {
+                    alert("Game Version Mismatch");
+                    location.reload();
+                }
+            }
+            if (message.type === "tileChange") {
+                setTile(message.x, message.y, message.tile, message.layer);
+                refreshSpriteTile(message.x, message.y);
+                if (hostingServer) {
+                    sendNetworkTile(message.x, message.y, message.tile, message.layer);
+                }
+            }
+            if (message.type === "remove") {
+                const mob = localMobs.find(mob => mob.id === message.mobId);
+                if (mob) {
+                    removed.push(mob.id);
+                    localMobs.splice(localMobs.indexOf(mob), 1);
+                    updatePlayerList(localMobs);
+                }
+            }
+            if (message.type === "mobs") {
+                if (localMobs && localPlayer) {
+                    if (message.host) {
+                        host = participant;
+                    }
+                    for (const mobData of message.data) {
+                        if (mobData.id !== localPlayer.id) {
+                            if (removed.includes(mobData.id)) {
+                                continue;
+                            }
 
-                        let targetMob = localMobs.find(mob => mob.id === mobData.id);
-                        if (!targetMob) {
-                            targetMob = new Mob(mobData.id, mobData.name, HUMAN_SKELETON, mobData.x, mobData.y);
-                            localMobs.push(targetMob);
-                            updatePlayerList(localMobs);
-                        }
+                            let targetMob = localMobs.find(mob => mob.id === mobData.id);
+                            if (!targetMob) {
+                                targetMob = new Mob(mobData.id, mobData.name, HUMAN_SKELETON, mobData.x, mobData.y);
+                                localMobs.push(targetMob);
+                                updatePlayerList(localMobs);
+                            }
 
-                        if (participant) {
-                            targetMob.sid = participant.sid;
+                            if (participant) {
+                                targetMob.sid = participant.sid;
+                            }
+                            targetMob.updateFromNetworkState(mobData);
                         }
-                        targetMob.updateFromNetworkState(mobData);
                     }
                 }
             }
@@ -153,8 +160,11 @@ export function addChat(who: string, message: string): void {
 }
 
 export function sendMapUpdate(target: string) {
-    const mapData = JSON.stringify({ type: "mapData", data: getMapData() });
-    room.localParticipant.publishData(encoder.encode(mapData), DataPacket_Kind.RELIABLE)
+    const data = getMapData();
+    const dataBlocks = new Uint8Array([...data.f, ...data.b]);
+    console.log(dataBlocks);
+    console.log(dataBlocks.length);
+    room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map" });
 }
 
 export function sendNetworkTile(x: number, y: number, tile: number, layer: number) {

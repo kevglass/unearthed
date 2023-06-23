@@ -1,4 +1,4 @@
-export const MAP_WIDTH: number = 40;
+export const MAP_WIDTH: number = 100;
 export const TILE_SIZE: number = 128;
 export const SKY_HEIGHT: number = 30;
 export const MAP_DEPTH: number = 300;
@@ -12,6 +12,18 @@ import leaves_tile from "./img/tiles/leaves.png";
 import sand_tile from "./img/tiles/sand.png";
 import wood_tile from "./img/tiles/wood.png";
 import ladder_tile from "./img/tiles/ladder.png";
+import { hosting } from ".";
+
+export const tiles: Record<number, Block> = {
+    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, ladder: false },
+    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, ladder: false },
+    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, ladder: false },
+    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, ladder: false },
+    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: true, ladder: false },
+    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, ladder: false },
+    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, ladder: false },
+    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, ladder: true },
+};
 
 const DEFAULT_MAP: number[] = [
 ];
@@ -28,8 +40,10 @@ for (let i=0;i<(MAP_DEPTH * MAP_WIDTH)-DEFAULT_MAP.length;i++) {
 
 let map: number[] = DEFAULT_MAP;
 let background: number[] = [];
+let discovered: boolean[] = [];
 for (let i=0;i<map.length;i++) {
     background.push(0);
+    discovered.push(false);
 }
 
 const existingMap = localStorage.getItem("map");
@@ -38,14 +52,17 @@ if (existingMap) {
     const savedMap = JSON.parse(existingMap);
     if (savedMap.length === DEFAULT_MAP.length) {
         map = savedMap;
+
+        if (existingBG) {
+            const savedMap = JSON.parse(existingBG);
+            if (savedMap.length === DEFAULT_MAP.length) {
+                background = savedMap;
+            }
+        }
     }
 }
-if (existingBG) {
-    const savedMap = JSON.parse(existingBG);
-    if (savedMap.length === DEFAULT_MAP.length) {
-        background = savedMap;
-    }
-}
+
+setDiscovered(0, 0);
 
 const spriteMap: HTMLImageElement[] = [
 ];
@@ -58,25 +75,22 @@ interface Block {
     ladder: boolean;
 }
 
-export const tiles: Record<number, Block> = {
-    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, ladder: false },
-    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, ladder: false },
-    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, ladder: false },
-    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, ladder: false },
-    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: true, ladder: false },
-    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, ladder: false },
-    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, ladder: false },
-    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, ladder: true },
-};
-
 export function getMapData(): { f: number[], b: number[] } {
     return { f: map, b: background };
 }
 
 export function setMapData(data:  { f: number[], b: number[] }) {
+    console.log(map);
     map = data.f;
     background = data.b;
     refreshSpriteTileMap();
+
+    discovered = [];
+    for (let i=0;i<map.length;i++) {
+        discovered.push(false);
+    }
+
+    setDiscovered(0, 0);
 }
 
 export function refreshSpriteTile(x: number, y: number) {
@@ -96,6 +110,47 @@ export function refreshSpriteTileMap(): void {
     }
 }
 
+export function isDiscovered(x: number, y: number): boolean {
+    x = Math.floor(x);
+    y = Math.floor(y);
+
+    if ((x < 0) || (x >= MAP_WIDTH)) {
+        return true;
+    }
+    if (y < 0) {
+        return true;
+    }
+
+    return discovered[x + (y * MAP_WIDTH)];
+}
+
+export function setDiscovered(x: number, y: number, force: boolean = false): void {
+    x = Math.floor(x);
+    y = Math.floor(y);
+
+    if ((x < 0) || (x >= MAP_WIDTH)) {
+        return;
+    }
+    if (y < 0) {
+        return;
+    }
+
+    if (!discovered[x + (y * MAP_WIDTH)] || force) {
+        discovered[x + (y * MAP_WIDTH)] = true;
+        const tile = tiles[getTile(x,y,0)];
+        if (!tile || !tile.blocks) {
+            setDiscovered(x-1, y);
+            setDiscovered(x-1, y-1);
+            setDiscovered(x+1, y);
+            setDiscovered(x+1, y-1);
+            setDiscovered(x, y+1);
+            setDiscovered(x-1, y+1);
+            setDiscovered(x+1, y+1);
+            setDiscovered(x, y-1);
+        }
+    }
+}
+
 export function setTile(x: number, y: number, tile: number, layer: number): void {
     x = Math.floor(x);
     y = Math.floor(y);
@@ -107,16 +162,25 @@ export function setTile(x: number, y: number, tile: number, layer: number): void
         return;
     }
 
-        if (layer === 0) {
+    if (layer === 0) {
         map[x + (y * MAP_WIDTH)] = tile;
         const sprite = tiles[tile]?.sprite;
         spriteMap[x + (y * MAP_WIDTH)] = sprite;
-        localStorage.setItem("map", JSON.stringify(map));
+
+        if (hosting) {
+            localStorage.setItem("map", JSON.stringify(map));
+        }
+
+        if (tile === 0) {
+            setDiscovered(x,y,true);
+        }
     } else if (layer === 1) {
         background[x + (y * MAP_WIDTH)] = tile;
         const sprite = tiles[tile]?.sprite;
         backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
-        localStorage.setItem("mapbg", JSON.stringify(background));
+        if (hosting) {
+            localStorage.setItem("mapbg", JSON.stringify(background));
+        }
     }
 }
 
@@ -154,6 +218,7 @@ export function getTile(x: number, y: number, layer: number): number {
 
 let backingTile: HTMLImageElement;
 let backingTopTile: HTMLImageElement;
+let undiscovered: HTMLImageElement[] = [];
 
 export function renderMap(g: CanvasRenderingContext2D, overX: number, overY: number, canAct: boolean, 
                           screenx: number, screeny: number, screenwidth: number, screenheight: number) {
@@ -165,6 +230,12 @@ export function renderMap(g: CanvasRenderingContext2D, overX: number, overY: num
     if (!backingTopTile) {
         backingTopTile = getSprite("tile.backingtop");
     }
+    if (undiscovered.length === 0) {
+        undiscovered.push(getSprite("tile.undiscovered1"));
+        undiscovered.push(getSprite("tile.undiscovered2"));
+        undiscovered.push(getSprite("tile.undiscovered3"));
+        undiscovered.push(getSprite("tile.undiscovered4"));
+    }
     
     const xp = Math.floor(screenx / TILE_SIZE) - 1;
     const yp = Math.floor(screeny / TILE_SIZE) - 1;
@@ -172,20 +243,29 @@ export function renderMap(g: CanvasRenderingContext2D, overX: number, overY: num
     const tilesDown = Math.floor(screenheight / TILE_SIZE) + 3;
     for (let x=xp;x<xp+tilesAcross;x++) {
         for (let y=yp;y<yp+tilesDown;y++) {
-            const bg = backgroundSpriteMap[x + (y * MAP_WIDTH)];
-            if (bg) {
-                g.drawImage(bg, x * TILE_SIZE, y * TILE_SIZE);
-                let overhang = getTile(x, y-1, 0);
-                g.drawImage(overhang ? backingTopTile : backingTile, x * TILE_SIZE, y * TILE_SIZE);
-            }
-            const sprite = spriteMap[x + (y * MAP_WIDTH)];
-            if (sprite) {
-                g.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE);
-            }
+            if (isDiscovered(x,y)) {
+                const bg = backgroundSpriteMap[x + (y * MAP_WIDTH)];
+                if (bg) {
+                    g.drawImage(bg, x * TILE_SIZE, y * TILE_SIZE);
+                    let overhang = getTile(x, y-1, 0);
+                    g.drawImage(overhang ? backingTopTile : backingTile, x * TILE_SIZE, y * TILE_SIZE);
+                }
+                const sprite = spriteMap[x + (y * MAP_WIDTH)];
+                if (sprite) {
+                    g.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE);
+                }
 
-            if (x === overX && y === overY && canAct) {
-                g.fillStyle = "rgba(255, 255, 255, 0.3)";
-                g.fillRect(x* TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                if (x === overX && y === overY && canAct) {
+                    g.fillStyle = "rgba(255, 255, 255, 0.3)";
+                    g.fillRect(x* TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                }
+            }
+        }
+    }
+    for (let x=xp;x<xp+tilesAcross;x++) {
+        for (let y=yp;y<yp+tilesDown;y++) {
+            if (!isDiscovered(x,y)) {
+                g.drawImage(undiscovered[(x + y) % undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2), (y * TILE_SIZE) - (TILE_SIZE / 2));
             }
         }
     }

@@ -9,7 +9,7 @@ import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 
 let serverId = localStorage.getItem("server");
-let hosting = true;
+export let hosting = true;
 let names = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
 let waitingForHost = false;
 const chatInput = document.getElementById("chatinput") as HTMLInputElement;

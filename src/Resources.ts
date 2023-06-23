@@ -7,6 +7,7 @@ import female_head from "./img/playerfemale/female_head.png";
 import female_body from "./img/playerfemale/female_body.png";
 import female_arm from "./img/playerfemale/female_arm.png";
 
+
 import sloton_ui from "./img/ui/sloton.png";
 import slotoff_ui from "./img/ui/slotoff.png";
 import left_ui from "./img/ui/left.png";
@@ -17,10 +18,16 @@ import front_ui from "./img/ui/front.png";
 import back_ui from "./img/ui/back.png";
 import arrowup_ui from "./img/ui/arrowup.png";
 
-import pick_iron from "./img/holding/pick_iron.png";
-import clouds_bg from "./img/bg/clouds.png";
+
 import backing_tile from "./img/tiles/backing.png";
 import backingtop_tile from "./img/tiles/backingtop.png";
+import undiscovered1_tile from "./img/tiles/undiscovered1.png";
+import undiscovered2_tile from "./img/tiles/undiscovered2.png";
+import undiscovered3_tile from "./img/tiles/undiscovered3.png";
+import undiscovered4_tile from "./img/tiles/undiscovered4.png";
+
+import pick_iron from "./img/holding/pick_iron.png";
+import clouds_bg from "./img/bg/clouds.png";
 import square_orange_particle from "./img/particles/square_orange.png";
 import square_red_particle from "./img/particles/square_red.png";
 import logo from "./img/logo.png";
@@ -72,3 +79,7 @@ loadImage("ui.arrowup", arrowup_ui);
 
 loadImage("tile.backing", backing_tile);
 loadImage("tile.backingtop", backingtop_tile);
+loadImage("tile.undiscovered1", undiscovered1_tile);
+loadImage("tile.undiscovered2", undiscovered2_tile);
+loadImage("tile.undiscovered3", undiscovered3_tile);
+loadImage("tile.undiscovered4", undiscovered4_tile);
