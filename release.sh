@@ -1,5 +1,6 @@
 VALUE=`jq .version < version.json`
-echo "{ \"version\" : \"$VALUE\" }" > version.json
+VALUE=`echo $VALUE + 1 | bc`
+echo "{ \"version\" : $VALUE }" > version.json
 
 echo Building Version: $VALUE
 

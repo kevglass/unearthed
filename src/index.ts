@@ -250,21 +250,30 @@ function mouseDown(x: number, y: number, touchId: number) {
     let foundInventButton = false;
     let foundControlButton = false;
 
-    if ((x > canvas.width - (130 * 5)) && (y > canvas.height - (130 * 5))) {
+
+    // tools
+    if (isMobile()) {
+        y += 160;
+    }
+    if ((x > canvas.width - (130 * 4)) && (y > canvas.height - (130 * 4))) {
         let xp = Math.floor((canvas.width - x) / 130);
         let yp = Math.floor((canvas.height - y) / 130);
-        let index = xp + (yp * 5);
+        let index = xp + (yp * 4);
         if (index >= 0 && index < INVENTORY.length) {
             foundInventButton = true;
             player.itemHeld = INVENTORY[index];
         }
     } 
-
-    if (x > canvas.width - 810 && y > canvas.height - 140 && x < canvas.width - 810 + 126 && y < canvas.height - 140 + 125) {
+    if (x > canvas.width - 680 && y > canvas.height - 140 && x < canvas.width - 680 + 126 && y < canvas.height - 140 + 125) {
         frontPlace = !frontPlace;
         foundInventButton = true;
         showTip("Placing Tiles on " + (frontPlace ? "Foreground" : "Background"));
     }
+    if (isMobile()) {
+        y -= 160;
+    }
+
+
     foundControlButton = evalControlArea(x, y, touchId);
 
     if (!foundInventButton && !foundControlButton && mainAreaTouchId === 0) {
@@ -281,24 +290,25 @@ function evalControlArea(x: number, y: number, touchId: number): boolean {
     keys['a'] = false;
     keys['d'] = false;
 
-    if ((x < 500) && (y * 2 > canvas.height - 300)) {
+    if ((y * 2 > canvas.height - 300)) {
         let xp = Math.floor((x - 20) / 160);
         let yp = Math.floor((y - (canvas.height - 300)) / 160);
 
-        if (xp == 1 && yp === 0) {
+        if (x > canvas.width - 180 && yp === 1) {
             // up
             keys['w'] = true;
             controllerTouchId = touchId;
             return true;
         }
+
         if (xp == 0 && yp === 1) {
-            // up
+            // left
             keys['a'] = true;
             controllerTouchId = touchId;
             return true;
         }
-        if (xp == 2 && yp === 1) {
-            // up
+        if (xp == 1 && yp === 1) {
+            // right
             keys['d'] = true;
             controllerTouchId = touchId;
             return true;
@@ -382,6 +392,8 @@ requestAnimationFrame(() => { loop() });
 
 let lastFrame = Date.now();
 let focusTarget = canvas;
+let portraitSmall;
+let landscapeSmall;
 
 function loop() {
     if (Date.now() - tooltipShown > 5000) {
@@ -400,6 +412,10 @@ function loop() {
 
     canvas.width = document.body.clientWidth * ZOOM;
     canvas.height = document.body.clientHeight * ZOOM;
+    const isLandscape = canvas.width > canvas.height;
+    landscapeSmall = isMobile() && isLandscape && canvas.height < 800;
+    portraitSmall = isMobile() && !isLandscape && canvas.width < 800;
+
     focusTarget.focus();
 
     g.save();
@@ -413,13 +429,30 @@ function loop() {
         document.getElementById("serverLink")!.innerHTML = waitingForHost ? "Waiting for Host" : "Disconnected";
         requestAnimationFrame(() => { loop() });
         const logo = getSprite("logo");
-        g.drawImage(logo, (canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
-        g.font = "50px Helvetica";
-        g.textAlign = "center";
-        g.fillText("Version _VERSION_", canvas.width / 2, 250 + (logo.height * 2));
+
+        if (landscapeSmall) {
+            g.drawImage(logo, (canvas.width - logo.width) / 2, 5);
+            g.font = "30px Helvetica";
+            g.textAlign = "center";
+            g.fillText("Version _VERSION_", canvas.width / 2, logo.height + 30);
+        } else if (portraitSmall) {
+            g.drawImage(logo, (canvas.width - logo.width) / 2, 300);
+            g.font = "30px Helvetica";
+            g.textAlign = "center";
+            g.fillText("Version _VERSION_", canvas.width / 2, logo.height + 330);
+        } else {
+            g.drawImage(logo, (canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
+            g.font = "50px Helvetica";
+            g.textAlign = "center";
+            g.fillText("Version _VERSION_", canvas.width / 2, 250 + (logo.height * 2));
+        }
 
         if (resourcesLoaded() && !connecting) {
-            g.translate((canvas.width / 2) + 500, (canvas.height / 2) +  40);
+            if (portraitSmall) {
+                g.translate((canvas.width / 2), (canvas.height / 2) +  540);
+            } else {
+                g.translate((canvas.width / 2) + 500, (canvas.height / 2) +  40);
+            }
             g.scale(1.5,1.5);
             player.still();
             player.update(0, false)
@@ -509,11 +542,15 @@ function loop() {
     renderAndUpdateParticles(g);
 
     g.restore();
+    if (isMobile()) {
+        g.save();
+        g.translate(0,-160);
+    }
     let index = 0;
-    const rows = (isMobile() && !isTablet()) ? 1 : 5;
+    const rows = (isMobile()) ? 1 : 4;
 
     for (let y=0;y<rows;y++) {
-        for (let x=0;x<5;x++) {
+        for (let x=0;x<4;x++) {
             const xp = canvas.width - ((x+1) * 130) - 10;
             const yp = canvas.height - ((y+1) * 130) - 10;
             const item = INVENTORY[index];
@@ -529,12 +566,15 @@ function loop() {
             index++;
         }
     }
-    g.drawImage(getSprite(frontPlace ? "ui.front" : "ui.back"), canvas.width - 810, canvas.height - 140, 125, 125);
+    g.drawImage(getSprite(frontPlace ? "ui.front" : "ui.back"), canvas.width - 680, canvas.height - 140, 125, 125);
 
     if (isMobile()) {
+        g.restore();
+    }
+    if (isMobile()) {
         g.drawImage(getSprite("ui.left"), 20, canvas.height - 160, 140, 140);
-        g.drawImage(getSprite("ui.right"), 340, canvas.height - 160, 140, 140);
-        g.drawImage(getSprite("ui.up"), 180, canvas.height - 300, 140, 140);
+        g.drawImage(getSprite("ui.right"), 180, canvas.height - 160, 140, 140);
+        g.drawImage(getSprite("ui.up"), canvas.width - 200, canvas.height - 160, 140, 140);
     }
     lastFrame = Date.now();
     requestAnimationFrame(() => { loop() });
