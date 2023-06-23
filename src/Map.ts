@@ -69,12 +69,13 @@ export const tiles: Record<number, Block> = {
     8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, ladder: true },
 };
 
-export function getMapData(): number[] {
-    return map;
+export function getMapData(): { f: number[], b: number[] } {
+    return { f: map, b: background };
 }
 
-export function setMapData(data: number[]) {
-    map = data;
+export function setMapData(data:  { f: number[], b: number[] }) {
+    map = data.f;
+    background = data.b;
     refreshSpriteTileMap();
 }
 

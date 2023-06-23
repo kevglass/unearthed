@@ -268,7 +268,6 @@ export class Mob {
 
                 if (this.damage >= 60) {
                     if (this.local) {
-                        setTile(this.overX, this.overY, 0, layer);
                         sendNetworkTile(this.overX, this.overY, 0, layer);
                     }
                     this.damage = 0;
@@ -288,7 +287,6 @@ export class Mob {
             }
             if (this.controls.mouse && this.itemHeld.place !== 0 && getTile(this.overX, this.overY, layer) === 0) {
                 if (this.local) {
-                    setTile(this.overX, this.overY, this.itemHeld.place, layer);
                     sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                 }
                 
