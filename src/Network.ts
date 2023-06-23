@@ -73,6 +73,10 @@ export async function startNetwork(token: string, hosting: boolean) {
         }
         if (message.type === "iAmHost" && !hosting) {
             host = participant!;
+            if (message.version !== "_VERSION_") {
+                alert("Game Version Mismatch");
+                location.reload();
+            }
         }
         if (message.type === "mapData" && !hosting) {
             setMapData(message.data);    
@@ -155,6 +159,7 @@ export function sendMapUpdate(target: string) {
 
 export function sendNetworkTile(x: number, y: number, tile: number, layer: number) {
     if (hostingServer) {
+        setTile(x, y, tile, layer);
         const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
         room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE);
     } else if (host) {
@@ -196,7 +201,7 @@ export function networkUpdate(player: Mob, players: Mob[]) {
     // need to send out an "I am the host message"
     if (Date.now() - lastHostUpdate > MAP_REQUEST_INTERVAL && host) {
         lastHostUpdate = Date.now();
-        const data = JSON.stringify({ type: "iAmHost" });
+        const data = JSON.stringify({ type: "iAmHost", version: "_VERSION_" });
         room.localParticipant.publishData(encoder.encode(data), DataPacket_Kind.RELIABLE);
     }
 
