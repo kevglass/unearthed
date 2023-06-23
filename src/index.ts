@@ -410,8 +410,12 @@ let focusTarget = canvas;
 let portraitSmall: boolean = false;
 let landscapeSmall: boolean = false;
 let inventPage = 0;
+let finishStartup = Date.now() + 1000;
 
 function loop() {
+    if (Date.now() > finishStartup) {
+        document.getElementById("splash")!.style.display = "none";
+    }
     if (Date.now() - tooltipShown > 5000) {
         tooltip.style.display = "none";
     }
@@ -421,7 +425,6 @@ function loop() {
         requestAnimationFrame(() => { loop() });
         return;
     }
-
 
     animTime += 0.03;
     animTime = animTime % 1;

@@ -274,6 +274,22 @@
             padding-bottom: 5px;
             margin-left: 2px;
         }
+
+        #splash {
+            background: #337979;
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        #splash img {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
     </style>
 </head>
 
@@ -322,6 +338,10 @@
     <input id="chatinput" type="text">
     </input>
     <div id="tooltip">Test</div>
+
+    <div id="splash">
+        <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png"></div>
+    </div>
     <script src="bundle.js?v=<%= version %>"></script>
 </body>
 
