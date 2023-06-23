@@ -252,16 +252,28 @@ function mouseDown(x: number, y: number, touchId: number) {
 
 
     // tools
-    if (isMobile()) {
+    if (portraitSmall) {
         y += 160;
+    }
+    if (landscapeSmall) {
+        x -= (-(canvas.width / 2)+370);
     }
     if ((x > canvas.width - (130 * 4)) && (y > canvas.height - (130 * 4))) {
         let xp = Math.floor((canvas.width - x) / 130);
         let yp = Math.floor((canvas.height - y) / 130);
-        let index = xp + (yp * 4);
-        if (index >= 0 && index < INVENTORY.length) {
-            foundInventButton = true;
-            player.itemHeld = INVENTORY[index];
+        let index = (xp + (yp * 4)) + (inventPage*4);
+        if (!isMobile() || yp === 0) {
+            if (index >= 0 && index < INVENTORY.length) {
+                foundInventButton = true;
+                player.itemHeld = INVENTORY[index];
+            }
+        } else {
+            if ((xp === 0 && yp === 1)) {
+                inventPage++;
+                if (inventPage > Math.floor((INVENTORY.length - 1) / 4)) {
+                    inventPage = 0;
+                }
+            }
         }
     } 
     if (x > canvas.width - 680 && y > canvas.height - 140 && x < canvas.width - 680 + 126 && y < canvas.height - 140 + 125) {
@@ -269,8 +281,11 @@ function mouseDown(x: number, y: number, touchId: number) {
         foundInventButton = true;
         showTip("Placing Tiles on " + (frontPlace ? "Foreground" : "Background"));
     }
-    if (isMobile()) {
+    if (portraitSmall) {
         y -= 160;
+    }
+    if (landscapeSmall) {
+        x += (-(canvas.width / 2)+370);
     }
 
 
@@ -392,8 +407,9 @@ requestAnimationFrame(() => { loop() });
 
 let lastFrame = Date.now();
 let focusTarget = canvas;
-let portraitSmall;
-let landscapeSmall;
+let portraitSmall: boolean = false;
+let landscapeSmall: boolean = false;
+let inventPage = 0;
 
 function loop() {
     if (Date.now() - tooltipShown > 5000) {
@@ -542,9 +558,13 @@ function loop() {
     renderAndUpdateParticles(g);
 
     g.restore();
-    if (isMobile()) {
+    if (portraitSmall) {
         g.save();
         g.translate(0,-160);
+    }
+    if (landscapeSmall) {
+        g.save();
+        g.translate(-(canvas.width / 2)+370, 0);
     }
     let index = 0;
     const rows = (isMobile()) ? 1 : 4;
@@ -553,7 +573,7 @@ function loop() {
         for (let x=0;x<4;x++) {
             const xp = canvas.width - ((x+1) * 130) - 10;
             const yp = canvas.height - ((y+1) * 130) - 10;
-            const item = INVENTORY[index];
+            const item = INVENTORY[index + (inventPage*4)];
             if (item) {
                 if (item === player.itemHeld) {
                     g.drawImage(getSprite("ui.sloton"), xp, yp, 125, 125);
@@ -567,8 +587,13 @@ function loop() {
         }
     }
     g.drawImage(getSprite(frontPlace ? "ui.front" : "ui.back"), canvas.width - 680, canvas.height - 140, 125, 125);
-
     if (isMobile()) {
+        const xp = canvas.width - ((0+1) * 130) - 10;
+        const yp = canvas.height - ((1+1) * 130) - 10;
+        g.drawImage(getSprite("ui.arrowup"), xp + 20, yp + 50, 80, 80);
+    }
+
+    if (portraitSmall || landscapeSmall) {
         g.restore();
     }
     if (isMobile()) {

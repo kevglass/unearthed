@@ -15,6 +15,8 @@ import up_ui from "./img/ui/up.png";
 import down_ui from "./img/ui/down.png";
 import front_ui from "./img/ui/front.png";
 import back_ui from "./img/ui/back.png";
+import arrowup_ui from "./img/ui/arrowup.png";
+
 import pick_iron from "./img/holding/pick_iron.png";
 import clouds_bg from "./img/bg/clouds.png";
 import backing_tile from "./img/tiles/backing.png";
@@ -57,6 +59,7 @@ loadImage("clouds", clouds_bg);
 loadImage("red.particle", square_red_particle);
 loadImage("orange.particle", square_orange_particle);
 loadImage("logo", logo);
+
 loadImage("ui.sloton", sloton_ui);
 loadImage("ui.slotoff", slotoff_ui);
 loadImage("ui.left", left_ui);
@@ -65,5 +68,7 @@ loadImage("ui.up", up_ui);
 loadImage("ui.down", down_ui);
 loadImage("ui.front", front_ui);
 loadImage("ui.back", back_ui);
+loadImage("ui.arrowup", arrowup_ui);
+
 loadImage("tile.backing", backing_tile);
 loadImage("tile.backingtop", backingtop_tile);
