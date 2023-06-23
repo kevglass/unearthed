@@ -433,7 +433,7 @@ function loop() {
     canvas.height = document.body.clientHeight * ZOOM;
     const isLandscape = canvas.width > canvas.height;
     landscapeSmall = isMobile() && isLandscape && canvas.height < 800;
-    portraitSmall = isMobile() && !isLandscape && canvas.width < 800;
+    portraitSmall = isMobile() && !isLandscape;
 
     focusTarget.focus();
 
