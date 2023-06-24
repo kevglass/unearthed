@@ -1,7 +1,7 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
-import { MAP_DEPTH, MAP_WIDTH, getMapData, refreshSpriteTile, setMapData, setTile } from './Map';
+import { MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, getMapData, refreshSpriteTile, setMapData, setTile } from './Map';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -62,14 +62,18 @@ export async function startNetwork(token: string, hosting: boolean) {
 
     room.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
         if (topic === "map") {
-            console.log(payload.length);
-            const fullArray: number[] = Array.from(payload);
-            const len: number = fullArray.length / 2;
-            setMapData({
-                f: fullArray.slice(0, len),
-                b: fullArray.slice(len)
-            });
-            hadMap = true;
+            if (!hostingServer) {
+                const fullArray: number[] = Array.from(payload);
+                const len: number = fullArray.length / 2;
+                setMapData({
+                    f: fullArray.slice(0, len),
+                    b: fullArray.slice(len)
+                });
+                hadMap = true;
+
+                localPlayer.x = 200;
+                localPlayer.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+            }
         } else {
             const strData = decoder.decode(payload);
             const message = JSON.parse(strData);
@@ -159,12 +163,14 @@ export function addChat(who: string, message: string): void {
     list.appendChild(line);
 }
 
-export function sendMapUpdate(target: string) {
+export function sendMapUpdate(target: string | undefined) {
     const data = getMapData();
     const dataBlocks = new Uint8Array([...data.f, ...data.b]);
-    console.log(dataBlocks);
-    console.log(dataBlocks.length);
-    room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map" });
+    if (target) {
+        room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map", destination: [target] });
+    } else {
+        room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map" });
+    }
 }
 
 export function sendNetworkTile(x: number, y: number, tile: number, layer: number) {

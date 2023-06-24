@@ -1,8 +1,8 @@
 
-import { MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, getTile, refreshSpriteTile, refreshSpriteTileMap, renderMap, setTile, tiles } from "./Map";
+import { MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, getMapData, getTile, refreshSpriteTile, refreshSpriteTileMap, renderMap, resetMap, setMapData, setTile, tiles } from "./Map";
 import { INVENTORY, Mob } from "./Mob";
 import { isMobile, isTablet } from "./MobileDetect";
-import { networkConnected, networkUpdate, sendChatMessage, startNetwork, updatePlayerList } from "./Network";
+import { networkConnected, networkUpdate, sendChatMessage, sendMapUpdate, startNetwork, updatePlayerList } from "./Network";
 import { addParticle, createDirtParticle, renderAndUpdateParticles } from "./Particles";
 import { getSprite, resourcesLoaded } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
@@ -13,6 +13,30 @@ export let hosting = true;
 let names = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
 let waitingForHost = false;
 const chatInput = document.getElementById("chatinput") as HTMLInputElement;
+const resetMapButton = document.getElementById("resetMapButton") as HTMLDivElement;
+const loadMapButton = document.getElementById("loadMapButton") as HTMLDivElement;
+const saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
+const fileInput = document.getElementById("fileInput") as HTMLInputElement;
+fileInput.addEventListener('change', () => {
+    if (fileInput.files) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const rawData = new Uint8Array(reader.result as ArrayBuffer);
+            const fullArray: number[] = Array.from(rawData);
+            const len: number = fullArray.length / 2;
+            setMapData({
+                f: fullArray.slice(0, len),
+                b: fullArray.slice(len)
+            });
+
+            player.x = 200;
+            player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+            document.getElementById("settingsPanel")!.style.display = "none";
+            sendMapUpdate(undefined);
+        }
+        reader.readAsArrayBuffer(fileInput.files[0]);
+    }
+});
 
 if (!serverId) {
     serverId = uuidv4();
@@ -24,8 +48,8 @@ if (params.get("server") && params.get("server") !== serverId) {
     hosting = false;
     (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
 } else {
-    console.log("Connect on: " + location.href + "?server="+serverId)
-    document.getElementById("serverLink")!.innerHTML = location.href+"?server="+serverId;
+    console.log("Connect on: " + location.href + "?server=" + serverId)
+    document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + serverId;
 }
 
 let username = localStorage.getItem("username");
@@ -36,7 +60,7 @@ if (!username) {
 (document.getElementById("playerName") as HTMLInputElement).value = username;
 
 let SHOW_BOUNDS: boolean = false;
-const ZOOM: number = 2;
+const ZOOM: number = isMobile() ? 3 : 2;
 
 let animTime = 0;
 const canvas: HTMLCanvasElement = document.getElementById("game") as HTMLCanvasElement;
@@ -70,7 +94,7 @@ export function showTip(tip: string) {
 document.getElementById("startGame")!.addEventListener("click", () => {
     hosting = true;
     const request = new XMLHttpRequest();
-    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username="+encodeURIComponent(username!)+"&room="+serverId, false);
+    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(username!) + "&room=" + serverId, false);
     request.send();
     const accessToken = request.responseText;
 
@@ -78,7 +102,7 @@ document.getElementById("startGame")!.addEventListener("click", () => {
     startNetwork(accessToken, hosting);
     connecting = true;
     waitingForHost = true;
-    document.getElementById("serverLink")!.innerHTML = location.href+"?server="+serverId;
+    document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + serverId;
 });
 document.getElementById("joinGame")!.addEventListener("click", () => {
     document.getElementById("connect")!.style.display = "none";
@@ -97,12 +121,46 @@ document.getElementById("doneButton")!.addEventListener("click", () => {
 
     updatePlayerList(mobs);
 });
+resetMapButton.addEventListener("click", () => {
+    if (confirm("Reset Map?") && hosting) {
+        resetMap();
+        player.x = 200;
+        player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+        document.getElementById("settingsPanel")!.style.display = "none";
+    }
+});
+saveMapButton.addEventListener("click", () => {
+    const data = getMapData();
+    const dataBlocks = new Uint8Array([...data.f, ...data.b]);
+    const blob = new Blob([dataBlocks], {
+        type: "application/octet-stream"
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const date = new Date().toLocaleString();
+    link.download = "unearthed-level-" + date + ".bin";
+    link.click();
+});
+
+loadMapButton.addEventListener("click", () => {
+    fileInput.click();
+});
+
 document.getElementById("settings")!.addEventListener("click", () => {
     const panel = document.getElementById("settingsPanel")!;
     if (panel.style.display === "block") {
         panel.style.display = "none";
     } else {
         panel.style.display = "block";
+
+        if (hosting) {
+            resetMapButton.style.display = "block";
+            loadMapButton.style.display = "block";
+        } else {
+            resetMapButton.style.display = "none";
+            loadMapButton.style.display = "none";
+        }
     }
 })
 document.getElementById("chat")!.addEventListener("click", () => {
@@ -126,7 +184,7 @@ document.getElementById("joinButton")!.addEventListener("click", () => {
     updatePlayerList(mobs);
 
     const request = new XMLHttpRequest();
-    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username="+encodeURIComponent(username!)+"&room="+serverId, false);
+    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(username!) + "&room=" + serverId, false);
     request.send();
     const accessToken = request.responseText;
 
@@ -142,6 +200,7 @@ document.addEventListener("keyup", (event: KeyboardEvent) => {
 chatInput!.addEventListener("keydown", (event: KeyboardEvent) => {
     if (event.key === "Escape") {
         chatInput.value = "";
+        document.getElementById("settingsPanel")!.style.display = "none";
         hideChat();
     }
     if (event.key === "Enter") {
@@ -184,24 +243,17 @@ document.addEventListener("keydown", (event: KeyboardEvent) => {
         if (player.itemHeld) {
             index = INVENTORY.indexOf(player.itemHeld) - 1;
             if (index < 0) {
-                index = INVENTORY.length-1;
+                index = INVENTORY.length - 1;
             }
         }
         player.itemHeld = INVENTORY[index];
-    }
-    if (event.key === 'r') {
-        if (confirm("Reset Map?") && hosting) {
-            localStorage.removeItem("map");
-            localStorage.removeItem("mapbg");
-            location.reload();
-        }
     }
 });
 canvas.addEventListener('contextmenu', event => event.preventDefault());
 
 if (isMobile()) {
     canvas.addEventListener("touchmove", (event: TouchEvent) => {
-        for (let i=0;i<event.changedTouches.length;i++) {
+        for (let i = 0; i < event.changedTouches.length; i++) {
             const touch = event.changedTouches.item(i);
             if (touch) {
                 mouseMove(touch.clientX * ZOOM, touch.clientY * ZOOM, touch.identifier);
@@ -211,10 +263,10 @@ if (isMobile()) {
     });
 
     canvas.addEventListener("touchstart", (event: TouchEvent) => {
-        for (let i=0;i<event.changedTouches.length;i++) {
+        for (let i = 0; i < event.changedTouches.length; i++) {
             const touch = event.changedTouches.item(i);
             if (touch) {
-                mouseDown(touch.clientX * ZOOM,  touch.clientY * ZOOM, touch.identifier);
+                mouseDown(touch.clientX * ZOOM, touch.clientY * ZOOM, touch.identifier);
                 mouseMove(touch.clientX * ZOOM, touch.clientY * ZOOM, touch.identifier);
             }
         }
@@ -222,10 +274,10 @@ if (isMobile()) {
     });
 
     canvas.addEventListener("touchend", (event: TouchEvent) => {
-        for (let i=0;i<event.changedTouches.length;i++) {
+        for (let i = 0; i < event.changedTouches.length; i++) {
             const touch = event.changedTouches.item(i);
             if (touch) {
-                mouseUp(touch.clientX * ZOOM,  touch.clientY * ZOOM, touch.identifier);
+                mouseUp(touch.clientX * ZOOM, touch.clientY * ZOOM, touch.identifier);
             }
         }
         event.preventDefault();
@@ -256,13 +308,13 @@ function mouseDown(x: number, y: number, touchId: number) {
         y += 160;
     }
     if (landscapeSmall) {
-        x -= (-(canvas.width / 2)+370);
+        x -= (-(canvas.width / 2) + 370);
     }
     if ((x > canvas.width - (130 * 4)) && (y > canvas.height - (130 * 4))) {
         let xp = Math.floor((canvas.width - x) / 130);
         let yp = Math.floor((canvas.height - y) / 130);
-        let index = (xp + (yp * 4)) + (inventPage*4);
-        if (!isMobile() || yp === 0) {
+        let index = (xp + (yp * 4)) + (inventPage * 4);
+        if (!isMobile() || (yp === 0 && xp < 4 && xp >= 0)) {
             if (index >= 0 && index < INVENTORY.length) {
                 foundInventButton = true;
                 player.itemHeld = INVENTORY[index];
@@ -275,7 +327,7 @@ function mouseDown(x: number, y: number, touchId: number) {
                 }
             }
         }
-    } 
+    }
     if (x > canvas.width - 680 && y > canvas.height - 140 && x < canvas.width - 680 + 126 && y < canvas.height - 140 + 125) {
         frontPlace = !frontPlace;
         foundInventButton = true;
@@ -285,7 +337,7 @@ function mouseDown(x: number, y: number, touchId: number) {
         y -= 160;
     }
     if (landscapeSmall) {
-        x += (-(canvas.width / 2)+370);
+        x += (-(canvas.width / 2) + 370);
     }
 
 
@@ -432,7 +484,7 @@ function loop() {
     canvas.width = document.body.clientWidth * ZOOM;
     canvas.height = document.body.clientHeight * ZOOM;
     const isLandscape = canvas.width > canvas.height;
-    landscapeSmall = isMobile() && isLandscape && canvas.height < 800;
+    landscapeSmall = isMobile() && isLandscape;
     portraitSmall = isMobile() && !isLandscape;
 
     focusTarget.focus();
@@ -468,11 +520,13 @@ function loop() {
 
         if (resourcesLoaded() && !connecting) {
             if (portraitSmall) {
-                g.translate((canvas.width / 2), (canvas.height / 2) +  540);
+                g.translate((canvas.width / 2), (canvas.height / 2) + 740);
+            } else if (landscapeSmall) {
+                g.translate((canvas.width / 2) + 700, (canvas.height / 2) + 40);
             } else {
-                g.translate((canvas.width / 2) + 500, (canvas.height / 2) +  40);
+                g.translate((canvas.width / 2) + 500, (canvas.height / 2) + 40);
             }
-            g.scale(1.5,1.5);
+            g.scale(1.5, 1.5);
             player.still();
             player.update(0, false)
             player.x = 0;
@@ -499,7 +553,7 @@ function loop() {
         // scroll the view based on bounds and player position
         let ox = player.x - (canvas.width / 2);
         const oy = player.y - (canvas.height / 2);
-        ox = Math.min(Math.max(0, ox), (MAP_WIDTH  * TILE_SIZE) - canvas.width);
+        ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - canvas.width);
         g.translate(-Math.floor(ox), -Math.floor(oy));
 
         // draw the underground background
@@ -515,8 +569,8 @@ function loop() {
 
         let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
 
-        renderMap(g, player.overX,player. overY, canAct, ox, oy, canvas.width, canvas.height);
-        
+        renderMap(g, player.overX, player.overY, canAct, ox, oy, canvas.width, canvas.height);
+
         // local player specifics
         player.still();
 
@@ -542,9 +596,9 @@ function loop() {
         if (keys[" "] || keys["w"]) {
             player.controls.up = true;
         }
-        for (let i=1;i<10;i++) {
+        for (let i = 1; i < 10; i++) {
             if (keys["" + i]) {
-                player.itemHeld = INVENTORY[i-1];
+                player.itemHeld = INVENTORY[i - 1];
             }
         }
 
@@ -563,27 +617,27 @@ function loop() {
     g.restore();
     if (portraitSmall) {
         g.save();
-        g.translate(0,-160);
+        g.translate(0, -160);
     }
     if (landscapeSmall) {
         g.save();
-        g.translate(-(canvas.width / 2)+370, 0);
+        g.translate(-(canvas.width / 2) + 370, 0);
     }
     let index = 0;
     const rows = (isMobile()) ? 1 : 4;
 
-    for (let y=0;y<rows;y++) {
-        for (let x=0;x<4;x++) {
-            const xp = canvas.width - ((x+1) * 130) - 10;
-            const yp = canvas.height - ((y+1) * 130) - 10;
-            const item = INVENTORY[index + (inventPage*4)];
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < 4; x++) {
+            const xp = canvas.width - ((x + 1) * 130) - 10;
+            const yp = canvas.height - ((y + 1) * 130) - 10;
+            const item = INVENTORY[index + (inventPage * 4)];
             if (item) {
                 if (item === player.itemHeld) {
                     g.drawImage(getSprite("ui.sloton"), xp, yp, 125, 125);
                 } else {
                     g.drawImage(getSprite("ui.slotoff"), xp, yp, 125, 125);
                 }
-                g.drawImage(getSprite(item.sprite), xp+20 + (item.place === 0 ? 7 : 0), yp+15, 85, 85);
+                g.drawImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
 
             }
             index++;
@@ -591,8 +645,8 @@ function loop() {
     }
     g.drawImage(getSprite(frontPlace ? "ui.front" : "ui.back"), canvas.width - 680, canvas.height - 140, 125, 125);
     if (isMobile()) {
-        const xp = canvas.width - ((0+1) * 130) - 10;
-        const yp = canvas.height - ((1+1) * 130) - 10;
+        const xp = canvas.width - ((0 + 1) * 130) - 10;
+        const yp = canvas.height - ((1 + 1) * 130) - 10;
         g.drawImage(getSprite("ui.arrowup"), xp + 20, yp + 50, 80, 80);
     }
 

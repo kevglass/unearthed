@@ -1,7 +1,7 @@
-export const MAP_WIDTH: number = 100;
+export const MAP_WIDTH: number = 140;
 export const TILE_SIZE: number = 128;
 export const SKY_HEIGHT: number = 30;
-export const MAP_DEPTH: number = 300;
+export const MAP_DEPTH: number = 230;
 
 import { getSprite, loadImage } from "./Resources";
 import dirt_tile from "./img/tiles/dirt.png";
@@ -12,21 +12,60 @@ import leaves_tile from "./img/tiles/leaves.png";
 import sand_tile from "./img/tiles/sand.png";
 import wood_tile from "./img/tiles/wood.png";
 import ladder_tile from "./img/tiles/ladder.png";
+
+import grass1_tile from "./img/tiles/grass1.png";
+import grass2_tile from "./img/tiles/grass2.png";
+import grass3_tile from "./img/tiles/grass3.png";
+import grass4_tile from "./img/tiles/grass4.png";
+import flowerwhite_tile from "./img/tiles/flowerwhite.png";
+import flowerred_tile from "./img/tiles/flowerred.png";
+import flowerblue_tile from "./img/tiles/flowerblue.png";
+import trunkmid_tile from "./img/tiles/trunk_mid.png";
+import trunkbottom_tile from "./img/tiles/trunk_bottom.png";
 import { hosting } from ".";
+import { sendMapUpdate } from "./Network";
+
+
+interface Block {
+    sprite: HTMLImageElement;
+    blocks: boolean;
+    ladder: boolean;
+    needsGround: boolean;
+    blocksDiscovery: boolean;
+    leaveBackground: boolean;
+}
 
 export const tiles: Record<number, Block> = {
-    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, ladder: false },
-    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, ladder: false },
-    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, ladder: false },
-    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, ladder: false },
-    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: true, ladder: false },
-    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, ladder: false },
-    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, ladder: false },
-    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, ladder: true },
+    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false },
+    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, ladder: true , needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    9: { sprite: loadImage("tile.grass1", grass1_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false },
+    10: { sprite: loadImage("tile.grass2", grass2_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false },
+    11: { sprite: loadImage("tile.grass3", grass3_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    12: { sprite: loadImage("tile.grass4", grass4_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    13: { sprite: loadImage("tile.flowerwhite", flowerwhite_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    14: { sprite: loadImage("tile.flowerblue", flowerblue_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    15: { sprite: loadImage("tile.flowerred", flowerred_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    16: { sprite: loadImage("tile.trunkbottom", trunkbottom_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
+    17: { sprite: loadImage("tile.trunkmid", trunkmid_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
 };
 
 const DEFAULT_MAP: number[] = [
 ];
+let map: number[] = [];
+const spriteMap: HTMLImageElement[] = [
+];
+const backgroundSpriteMap: HTMLImageElement[] = [
+];
+let background: number[] = [];
+let discovered: boolean[] = [];
+let discoveeryEnabled = true;
+
 
 for (let i=0;i<MAP_WIDTH * SKY_HEIGHT;i++) {
     DEFAULT_MAP.push(0);
@@ -34,16 +73,127 @@ for (let i=0;i<MAP_WIDTH * SKY_HEIGHT;i++) {
 for (let i=0;i<MAP_WIDTH;i++) {
     DEFAULT_MAP.push(2);
 }
-for (let i=0;i<(MAP_DEPTH * MAP_WIDTH)-DEFAULT_MAP.length;i++) {
+const totalSize = (MAP_DEPTH * MAP_WIDTH)-DEFAULT_MAP.length;
+for (let i=0;i<totalSize;i++) {
     DEFAULT_MAP.push(1);
 }
 
-let map: number[] = DEFAULT_MAP;
-let background: number[] = [];
-let discovered: boolean[] = [];
-for (let i=0;i<map.length;i++) {
-    background.push(0);
-    discovered.push(false);
+clearMap();
+generateMap();
+
+export function resetMap() {
+    clearMap();
+    generateMap();
+    refreshSpriteTileMap();
+    setDiscovered(0, 0);
+    sendMapUpdate(undefined);
+}
+
+function clearMap() {
+    map = [...DEFAULT_MAP];
+    background = [];
+    discovered = [];
+    for (let i=0;i<map.length;i++) {
+        background.push(0);
+        discovered.push(false);
+    }
+}
+
+function generateMap() {
+    // map generation
+    let h = 0;
+    let offset = 0;
+    let sinceLastTree = 0;
+    
+    for (let x=5;x<MAP_WIDTH;x++) {
+        sinceLastTree++;
+        if (h > 10) {
+            offset = 0.3;
+        }
+        if (h < 2) {
+            offset = 0;
+        }
+        if (Math.random() < 0.2 + offset) {
+            h--;
+        } else if (Math.random() > 0.5 + offset) {
+            h++;
+        } 
+    
+        if (h < 0) {
+            h = 0;
+        }
+        for (let i=0;i<h;i++) {
+            setTile(x, SKY_HEIGHT-i, 1, 0);
+        }
+        setTile(x, SKY_HEIGHT-h, 2, 0);
+    
+        if (Math.random() < 0.2) {
+            const grass = Math.floor(Math.random() * 4) + 9;
+            setTile(x, SKY_HEIGHT-h-1, grass, 0);
+        } else if (Math.random() < 0.23) {
+            const flower = Math.floor(Math.random() * 3) + 13;
+            setTile(x, SKY_HEIGHT-h-1, flower, 0);
+        }
+    
+        if (Math.random() > 0.85) {
+            if (sinceLastTree > 5) {
+                sinceLastTree = 0;
+                const heightOfTree = Math.floor(Math.random() * 3) + 2;
+                setTile(x, SKY_HEIGHT-h-1, 16, 0);
+                for (let i=1;i<heightOfTree;i++) {
+                    setTile(x, SKY_HEIGHT-h-1-i, 17, 0);
+                }
+    
+                for (let tx=-1;tx<2;tx++) {
+                    for (let ty=-3;ty<0;ty++) {
+                        setTile(x+tx, SKY_HEIGHT-h-heightOfTree+ty, 5, 0);
+                    }
+                }
+            }
+        }
+    }
+
+    // caverns time
+    for (let i=0;i<100;i++) {
+        let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
+        let y = SKY_HEIGHT + 5 + Math.floor(Math.random() * (MAP_DEPTH - (SKY_HEIGHT + 20)));
+        const cutCount = 5 + Math.floor(Math.random() * 5);
+
+        for (let cut=0;cut<cutCount;cut++) {
+            const brushWidth = 4 + Math.floor(Math.random() * 2);
+            const brushHeight = 4 + Math.floor(Math.random() * 2);
+
+            let edges = [];
+
+            for (let bx = 0;bx<brushWidth;bx++) {
+                for (let by=0;by<brushHeight;by++) {
+                    // round the corners
+                    if (bx === 0 && (by === 0 || by === brushHeight-1)) {
+                        continue;
+                    }
+                    if (bx === brushWidth-1 && (by === 0 || by === brushHeight-1)) {
+                        continue;
+                    }
+
+                    let tx = x + bx - Math.floor(brushWidth / 2);
+                    let ty = y + by - Math.floor(brushHeight / 2);
+
+                    if ((bx === 0 || by === 0 || bx === brushHeight-1 || by === brushWidth -1)) {
+                        if (ty > SKY_HEIGHT + 5) {
+                            edges.push([tx, ty]);
+                        }
+                    }
+
+                    map[tx + (ty * MAP_WIDTH)] = 0;
+                    background[tx + (ty * MAP_WIDTH)] = 1;
+                }
+            }
+
+            let nextCenter = edges[Math.floor(Math.random() * edges.length)];
+            x = nextCenter[0];
+            y = nextCenter[1];
+        }
+    }
 }
 
 const existingMap = localStorage.getItem("map");
@@ -64,31 +214,15 @@ if (existingMap) {
 
 setDiscovered(0, 0);
 
-const spriteMap: HTMLImageElement[] = [
-];
-const backgroundSpriteMap: HTMLImageElement[] = [
-];
-
-interface Block {
-    sprite: HTMLImageElement;
-    blocks: boolean;
-    ladder: boolean;
-}
-
 export function getMapData(): { f: number[], b: number[] } {
     return { f: map, b: background };
 }
 
 export function setMapData(data:  { f: number[], b: number[] }) {
-    console.log(map);
+    clearMap();
     map = data.f;
     background = data.b;
     refreshSpriteTileMap();
-
-    discovered = [];
-    for (let i=0;i<map.length;i++) {
-        discovered.push(false);
-    }
 
     setDiscovered(0, 0);
 }
@@ -111,6 +245,9 @@ export function refreshSpriteTileMap(): void {
 }
 
 export function isDiscovered(x: number, y: number): boolean {
+    if (!discoveeryEnabled) {
+        return true;
+    }
     x = Math.floor(x);
     y = Math.floor(y);
 
@@ -125,29 +262,44 @@ export function isDiscovered(x: number, y: number): boolean {
 }
 
 export function setDiscovered(x: number, y: number, force: boolean = false): void {
-    x = Math.floor(x);
-    y = Math.floor(y);
+    discoverImpl(x,y,force);
+}
 
-    if ((x < 0) || (x >= MAP_WIDTH)) {
-        return;
-    }
-    if (y < 0) {
-        return;
-    }
+function discoverImpl(xp: number, yp: number, force: boolean = false): void {
+    let toCheck: { x: number, y: number }[] = [];
+    toCheck.push({x: xp, y: yp});
 
-    if (!discovered[x + (y * MAP_WIDTH)] || force) {
-        discovered[x + (y * MAP_WIDTH)] = true;
-        const tile = tiles[getTile(x,y,0)];
-        if (!tile || !tile.blocks) {
-            setDiscovered(x-1, y);
-            setDiscovered(x-1, y-1);
-            setDiscovered(x+1, y);
-            setDiscovered(x+1, y-1);
-            setDiscovered(x, y+1);
-            setDiscovered(x-1, y+1);
-            setDiscovered(x+1, y+1);
-            setDiscovered(x, y-1);
+    while (toCheck.length > 0) {
+        const point = toCheck.splice(0, 1)[0];
+
+        let x = Math.floor(point.x);
+        let y = Math.floor(point.y);
+
+        if ((x < 0) || (x >= MAP_WIDTH)) {
+            continue;
         }
+        if (y < 0) {
+            continue;
+        }
+
+        if (!discovered[x + (y * MAP_WIDTH)] || force) {
+            discovered[x + (y * MAP_WIDTH)] = true;
+            const tile = tiles[getTile(x,y,0)];
+            if (!tile || !tile.blocks || !tile.blocksDiscovery) {
+                toCheck.push({x: x - 1, y: y});
+                toCheck.push({x: x - 1, y: y - 1});
+                toCheck.push({x: x - 1, y: y + 1});
+                
+                toCheck.push({x: x + 1, y: y - 1});
+                toCheck.push({x: x + 1, y: y});
+                toCheck.push({x: x + 1, y: y + 1});
+
+                toCheck.push({x: x, y: y - 1});
+                toCheck.push({x: x, y: y + 1});
+            }
+        }
+
+        force = false;
     }
 }
 
@@ -161,6 +313,8 @@ export function setTile(x: number, y: number, tile: number, layer: number): void
     if (y < 0) {
         return;
     }
+
+    const before = map[x + (y * MAP_WIDTH)];
 
     if (layer === 0) {
         map[x + (y * MAP_WIDTH)] = tile;
@@ -180,6 +334,24 @@ export function setTile(x: number, y: number, tile: number, layer: number): void
         backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
         if (hosting) {
             localStorage.setItem("mapbg", JSON.stringify(background));
+        }
+    }
+
+    if (tile === 0) {
+        const above = getTile(x, y-1, layer);
+        const tile = tiles[above];
+        if (tile && tile.needsGround) {
+            setTile(x, y-1, 0, layer);
+        }
+
+        if (layer === 0) {
+            const behind = getTile(x, y, 1);
+            if (behind === 0) {
+                const tile = tiles[before];
+                if (tile && tile.leaveBackground) {
+                    setTile(x, y, before, 1);
+                }
+            }
         }
     }
 }
@@ -262,6 +434,7 @@ export function renderMap(g: CanvasRenderingContext2D, overX: number, overY: num
             }
         }
     }
+
     for (let x=xp;x<xp+tilesAcross;x++) {
         for (let y=yp;y<yp+tilesDown;y++) {
             if (!isDiscovered(x,y)) {

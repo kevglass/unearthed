@@ -25,11 +25,12 @@
             color: white;
             font-size: 20px;
             border-radius: 10px;
+            margin-bottom: 30px;
         }
 
         #settingsPanel {
             width: 400px;
-            height: 300px;
+            height: 380px;
             display: none;
         }
 
@@ -119,6 +120,31 @@
             -moz-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
             box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
         }
+
+        .mapbutton:active {
+            transform: translate(0, 3px);
+            border-bottom: 2px solid #616374;
+            margin-bottom: 13px;
+        }
+        
+        .mapbutton {
+            outline: 4px solid black;
+            user-select: none;
+            color: white;
+            font-size: 28px;
+            line-height: 40px;
+            height: 40px;
+            background: #838796;
+            border-bottom: 5px solid #616374;
+            border-radius: 10px;
+            margin-left: 100px;
+            margin-bottom: 10px;
+            width: 200px;
+            -webkit-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+            -moz-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+            box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+        }
+
 
         #chat {
             border-radius: 10px;
@@ -334,6 +360,9 @@
         <div id="closeButton">Close</div>
         <div class="label">Server Link</div>
         <div id="serverLink"></div>
+        <div id="resetMapButton" class="mapButton">Reset Map</div>
+        <div id="loadMapButton" class="mapButton">Load Map</div>
+        <div id="saveMapButton" class="mapButton">Save Map</div>
     </div>
     <input id="chatinput" type="text">
     </input>
@@ -342,6 +371,7 @@
     <div id="splash">
         <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png"></div>
     </div>
+    <input id="fileInput" type="file" style="visibility:hidden" />
     <script src="bundle.js?v=<%= version %>"></script>
 </body>
 
