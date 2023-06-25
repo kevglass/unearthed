@@ -258,7 +258,7 @@ if (existingMap) {
 
         if (existingBG) {
             const savedMap = JSON.parse(existingBG);
-            if (savedMap.length === DEFAULT_MAP.length) {
+            if (savedMap.length >= DEFAULT_MAP.length) {
                 background = savedMap;
             }
         }

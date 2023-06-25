@@ -354,9 +354,6 @@ function evalControlArea(x: number, y: number, touchId: number): boolean {
     if (!isMobile()) {
         return false;
     }
-    keys['w'] = false;
-    keys['a'] = false;
-    keys['d'] = false;
 
     if ((y * 2 > canvas.height - 300)) {
         let xp = Math.floor((x - 20) / 160);
@@ -372,12 +369,14 @@ function evalControlArea(x: number, y: number, touchId: number): boolean {
         if (xp == 0 && yp === 1) {
             // left
             keys['a'] = true;
+            keys['d'] = false;
             controllerTouchId = touchId;
             return true;
         }
         if (xp == 1 && yp === 1) {
             // right
             keys['d'] = true;
+            keys['a'] = false;
             controllerTouchId = touchId;
             return true;
         }
