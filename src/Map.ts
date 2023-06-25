@@ -223,7 +223,7 @@ function placeSeam(tile: number, size: number, upper: number, lower: number, cut
                 let ty = y + by - Math.floor(brushHeight / 2);
 
                 if ((bx === 0 || by === 0 || bx === brushHeight-1 || by === brushWidth -1)) {
-                    if (ty > SKY_HEIGHT + 5) {
+                    if ((ty > SKY_HEIGHT + 5) && (ty < MAP_DEPTH - 15)) {
                         edges.push([tx, ty]);
                     }
                 }
@@ -314,7 +314,7 @@ export function isDiscovered(x: number, y: number): boolean {
     if ((x < 0) || (x >= MAP_WIDTH)) {
         return true;
     }
-    if (y < 0) {
+    if (y < 0 || y >= MAP_DEPTH) {
         return true;
     }
 
@@ -322,6 +322,13 @@ export function isDiscovered(x: number, y: number): boolean {
 }
 
 export function setDiscovered(x: number, y: number, force: boolean = false): void {
+    if ((x < 0) || (x >= MAP_WIDTH)) {
+        return;
+    }
+    if (y < 0 || y >= MAP_DEPTH) {
+        return;
+    }
+
     discoverImpl(x,y,force);
 }
 
@@ -338,7 +345,7 @@ function discoverImpl(xp: number, yp: number, force: boolean = false): void {
         if ((x < 0) || (x >= MAP_WIDTH)) {
             continue;
         }
-        if (y < 0) {
+        if (y < 0 || y >= MAP_DEPTH) {
             continue;
         }
 
@@ -370,7 +377,7 @@ export function setTile(x: number, y: number, tile: number, layer: number): void
     if ((x < 0) || (x >= MAP_WIDTH)) {
         return;
     }
-    if (y < 0) {
+    if (y < 0 || y >= MAP_DEPTH) {
         return;
     }
 
@@ -439,6 +446,9 @@ export function getTile(x: number, y: number, layer: number): number {
     }
     if (y < 0) {
         return 0;
+    }
+    if (y >= MAP_DEPTH) {
+        return 1;
     }
 
     if (layer === 1) {

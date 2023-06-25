@@ -1,4 +1,5 @@
 const config = require('./version.json');
+const localProperties = require('./local.properties.json');
 const path = require('path');
 const TsConfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin')
@@ -21,6 +22,14 @@ module.exports = {
             }
           },
           {
+            loader: 'string-replace-loader',
+            options: {
+              search: '_ROOMPASSWORD_',
+              replace: '' + localProperties.roomPassword,
+              flags: 'g'
+            }
+          },
+          {
             loader: 'ts-loader',
           },
         ],
@@ -28,6 +37,10 @@ module.exports = {
       },
       {
         test: /\.png$/,
+        loader: "url-loader",
+      },
+      {
+        test: /\.properties$/,
         loader: "url-loader",
       }
     ],

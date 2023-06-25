@@ -1,7 +1,7 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
-import { MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, getMapData, refreshSpriteTile, setMapData, setTile } from './Map';
+import { SKY_HEIGHT, TILE_SIZE, getMapData, refreshSpriteTile, setMapData, setTile } from './Map';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

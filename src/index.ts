@@ -95,7 +95,7 @@ export function showTip(tip: string) {
 document.getElementById("startGame")!.addEventListener("click", () => {
     hosting = true;
     const request = new XMLHttpRequest();
-    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(username!) + "&room=" + serverId, false);
+    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(username!) + "&room=" + serverId + "&password=_ROOMPASSWORD_", false);
     request.send();
     const accessToken = request.responseText;
 
@@ -185,7 +185,7 @@ document.getElementById("joinButton")!.addEventListener("click", () => {
     updatePlayerList(mobs);
 
     const request = new XMLHttpRequest();
-    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(username!) + "&room=" + serverId, false);
+    request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(username!) + "&room=" + serverId + "&password=_ROOMPASSWORD_", false);
     request.send();
     const accessToken = request.responseText;
 
