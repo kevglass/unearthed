@@ -13,22 +13,20 @@ const ZOOM: number = isMobile() ? 3 : 2;
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
 
 export class Game {
-
-    tooltip: HTMLDivElement;
-    
+    tooltipDiv: HTMLDivElement;
+    timeTooltipShown: number = 0;
     animTime: number = 0;
     canvas: HTMLCanvasElement;
     g: CanvasRenderingContext2D;
-    tooltipShown: number = 0;
-    hosting: boolean = true;
+    isHostingTheServer: boolean = true;
     connecting: boolean = false;
     waitingForHost: boolean = false;
     username: string;
     player: Mob;
     serverId: string;
     mobs: Mob[] = [];
-    keys: Record<string, boolean> = {};
-    mouseButtons: Record<number, boolean> = {};
+    keyDown: Record<string, boolean> = {};
+    mouseButtonDown: Record<number, boolean> = {};
     mouseX = 0;
     mouseY = 0;
     lastWorkX = 0;
@@ -36,15 +34,15 @@ export class Game {
     mainAreaTouchId = 0;
     controllerTouchId = 0;
     jumpTouchId = 0;
-    frontPlace: boolean = true;
+    placingTilesOnFrontLayer: boolean = true;
     lastFrame = Date.now();
-    portraitSmall: boolean = false;
-    landscapeSmall: boolean = false;
+    limitedPortraitScreen: boolean = false;
+    limitedLandscapeScreen: boolean = false;
     inventPage = 0;
     finishStartup = Date.now() + 1000;
 
     constructor() {
-        this.tooltip = document.getElementById("tooltip") as HTMLDivElement;
+        this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
         this.g = this.canvas.getContext("2d")!;
 
@@ -92,7 +90,7 @@ export class Game {
 
         const params = new URLSearchParams(location.search);
         if (params.get("server") && params.get("server") !== this.serverId) {
-            GAME.hosting = false;
+            GAME.isHostingTheServer = false;
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
         } else {
             console.log("Connect on: " + location.href + "?server=" + this.serverId)
@@ -101,9 +99,9 @@ export class Game {
     }
 
     showTip(tip: string) {
-        this.tooltip.style.display = "block";
-        this.tooltip.innerHTML = tip;
-        this.tooltipShown = Date.now();
+        this.tooltipDiv.style.display = "block";
+        this.tooltipDiv.innerHTML = tip;
+        this.timeTooltipShown = Date.now();
     }
 
     configureEventHandlers() {
@@ -112,7 +110,7 @@ export class Game {
                 return;
             }
 
-            this.keys[event.key] = true;
+            this.keyDown[event.key] = true;
 
             if (NETWORK.connected()) {
                 if (event.key === "Enter") {
@@ -131,7 +129,7 @@ export class Game {
                 this.player.itemHeld = this.player.inventory[index];
             }
             if (event.key === 'x') {
-                this.frontPlace = !this.frontPlace;
+                this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
             }
 
             if (event.key === 'e') {
@@ -147,7 +145,7 @@ export class Game {
         });
 
         document.addEventListener("keyup", (event: KeyboardEvent) => {
-            this.keys[event.key] = false;
+            this.keyDown[event.key] = false;
         });
         this.canvas.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -204,10 +202,10 @@ export class Game {
         let foundControlButton = false;
 
         // tools
-        if (this.portraitSmall) {
+        if (this.limitedPortraitScreen) {
             y += 160;
         }
-        if (this.landscapeSmall) {
+        if (this.limitedLandscapeScreen) {
             x -= (-(this.canvas.width / 2) + 370);
         }
         if ((x > this.canvas.width - (130 * 4)) && (y > this.canvas.height - (130 * 4))) {
@@ -229,14 +227,14 @@ export class Game {
             }
         }
         if (x > this.canvas.width - 680 && y > this.canvas.height - 140 && x < this.canvas.width - 680 + 126 && y < this.canvas.height - 140 + 125) {
-            this.frontPlace = !this.frontPlace;
+            this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
             foundInventButton = true;
-            this.showTip("Placing Tiles on " + (this.frontPlace ? "Foreground" : "Background"));
+            this.showTip("Placing Tiles on " + (this.placingTilesOnFrontLayer ? "Foreground" : "Background"));
         }
-        if (this.portraitSmall) {
+        if (this.limitedPortraitScreen) {
             y -= 160;
         }
-        if (this.landscapeSmall) {
+        if (this.limitedLandscapeScreen) {
             x += (-(this.canvas.width / 2) + 370);
         }
 
@@ -245,7 +243,7 @@ export class Game {
 
         if (!foundInventButton && !foundControlButton && this.mainAreaTouchId === 0) {
             this.mainAreaTouchId = touchId;
-            this.mouseButtons[0] = true;
+            this.mouseButtonDown[0] = true;
         }
     }
 
@@ -260,22 +258,22 @@ export class Game {
 
             if (x > this.canvas.width - 180 && yp === 1) {
                 // up
-                this.keys['w'] = true;
+                this.keyDown['w'] = true;
                 this.jumpTouchId = touchId;
                 return true;
             }
 
             if (xp == 0 && yp === 1) {
                 // left
-                this.keys['a'] = true;
-                this.keys['d'] = false;
+                this.keyDown['a'] = true;
+                this.keyDown['d'] = false;
                 this.controllerTouchId = touchId;
                 return true;
             }
             if (xp == 1 && yp === 1) {
                 // right
-                this.keys['d'] = true;
-                this.keys['a'] = false;
+                this.keyDown['d'] = true;
+                this.keyDown['a'] = false;
                 this.controllerTouchId = touchId;
                 return true;
             }
@@ -287,15 +285,15 @@ export class Game {
     private mouseUp(x: number, y: number, touchId: number) {
         if (touchId === this.mainAreaTouchId) {
             this.mainAreaTouchId = 0;
-            this.mouseButtons[0] = false;
+            this.mouseButtonDown[0] = false;
         }
         if (touchId === this.jumpTouchId) {
-            this.keys['w'] = false;
+            this.keyDown['w'] = false;
             this.jumpTouchId = 0;
         }
         if (touchId === this.controllerTouchId) {
-            this.keys['a'] = false;
-            this.keys['d'] = false;
+            this.keyDown['a'] = false;
+            this.keyDown['d'] = false;
             this.controllerTouchId = 0;
         }
     }
@@ -318,8 +316,8 @@ export class Game {
     if (Date.now() > this.finishStartup) {
         document.getElementById("splash")!.style.display = "none";
     }
-    if (Date.now() - this.tooltipShown > 5000) {
-        this.tooltip.style.display = "none";
+    if (Date.now() - this.timeTooltipShown > 5000) {
+        this.tooltipDiv.style.display = "none";
     }
 
     const delta = Date.now() - this.lastFrame;
@@ -334,8 +332,8 @@ export class Game {
     this.canvas.width = document.body.clientWidth * ZOOM;
     this.canvas.height = document.body.clientHeight * ZOOM;
     const isLandscape = this.canvas.width > this.canvas.height;
-    this.landscapeSmall = isMobile() && isLandscape;
-    this.portraitSmall = isMobile() && !isLandscape;
+    this.limitedLandscapeScreen = isMobile() && isLandscape;
+    this.limitedPortraitScreen = isMobile() && !isLandscape;
 
     this.canvas.focus();
 
@@ -351,12 +349,12 @@ export class Game {
         requestAnimationFrame(() => { this.loop() });
         const logo = getSprite("logo");
 
-        if (this.landscapeSmall) {
+        if (this.limitedLandscapeScreen) {
             this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 5);
             this.g.font = "30px Helvetica";
             this.g.textAlign = "center";
             this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 30);
-        } else if (this.portraitSmall) {
+        } else if (this.limitedPortraitScreen) {
             this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 300);
             this.g.font = "30px Helvetica";
             this.g.textAlign = "center";
@@ -369,9 +367,9 @@ export class Game {
         }
 
         if (resourcesLoaded() && !this.connecting) {
-            if (this.portraitSmall) {
+            if (this.limitedPortraitScreen) {
                 this.g.translate((this.canvas.width / 2), (this.canvas.height / 2) + 740);
-            } else if (this.landscapeSmall) {
+            } else if (this.limitedLandscapeScreen) {
                 this.g.translate((this.canvas.width / 2) + 700, (this.canvas.height / 2) + 40);
             } else {
                 this.g.translate((this.canvas.width / 2) + 500, (this.canvas.height / 2) + 40);
@@ -393,7 +391,7 @@ export class Game {
         return;
     }
 
-    if (!this.hosting) {
+    if (!this.isHostingTheServer) {
         document.getElementById("serverLink")!.innerHTML = "Connected";
     }
 
@@ -425,35 +423,35 @@ export class Game {
         this.player.still();
 
         // mining
-        if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtons[0])) {
+        if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
             this.player.damage = 0;
         }
-        if (this.mouseButtons[0] && canAct && GAME_MAP.getTile(this.player.overX, this.player.overY, this.frontPlace ? 0 : 1) !== 0) {
+        if (this.mouseButtonDown[0] && canAct && GAME_MAP.getTile(this.player.overX, this.player.overY, this.placingTilesOnFrontLayer ? 0 : 1) !== 0) {
             this.lastWorkX = this.player.overX;
             this.lastWorkY = this.player.overY;
         }
 
-        if (this.mouseButtons[0] && canAct) {
+        if (this.mouseButtonDown[0] && canAct) {
             this.player.controls.mouse = true;
         }
         this.player.localUpdate();
-        if (this.keys["d"]) {
+        if (this.keyDown["d"]) {
             this.player.controls.right = true;
         }
-        if (this.keys["a"]) {
+        if (this.keyDown["a"]) {
             this.player.controls.left = true;
         }
-        if (this.keys[" "] || this.keys["w"]) {
+        if (this.keyDown[" "] || this.keyDown["w"]) {
             this.player.controls.up = true;
         }
         for (let i = 1; i < 10; i++) {
-            if (this.keys["" + i]) {
+            if (this.keyDown["" + i]) {
                 this.player.itemHeld = this.player.inventory[i - 1];
             }
         }
 
         for (const mob of [...this.mobs]) {
-            mob.update(this.animTime, !this.frontPlace);
+            mob.update(this.animTime, !this.placingTilesOnFrontLayer);
             mob.draw(this.g, SHOW_BOUNDS);
 
             if (Date.now() - mob.lastUpdate > 10000) {
@@ -465,11 +463,11 @@ export class Game {
     renderAndUpdateParticles(this.g);
 
     this.g.restore();
-    if (this.portraitSmall) {
+    if (this.limitedPortraitScreen) {
         this.g.save();
         this.g.translate(0, -160);
     }
-    if (this.landscapeSmall) {
+    if (this.limitedLandscapeScreen) {
         this.g.save();
         this.g.translate(-(this.canvas.width / 2) + 370, 0);
     }
@@ -493,14 +491,14 @@ export class Game {
             index++;
         }
     }
-    this.g.drawImage(getSprite(this.frontPlace ? "ui.front" : "ui.back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
+    this.g.drawImage(getSprite(this.placingTilesOnFrontLayer ? "ui.front" : "ui.back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
     if (isMobile()) {
         const xp = this.canvas.width - ((0 + 1) * 130) - 10;
         const yp = this.canvas.height - ((1 + 1) * 130) - 10;
         this.g.drawImage(getSprite("ui.arrowup"), xp + 20, yp + 50, 80, 80);
     }
 
-    if (this.portraitSmall || this.landscapeSmall) {
+    if (this.limitedPortraitScreen || this.limitedLandscapeScreen) {
         this.g.restore();
     }
     if (isMobile()) {

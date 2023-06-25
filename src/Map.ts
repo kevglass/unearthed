@@ -385,7 +385,7 @@ export class GameMap {
             const sprite = tiles[tile]?.sprite;
             this.spriteMap[x + (y * MAP_WIDTH)] = sprite;
     
-            if (GAME.hosting) {
+            if (GAME.isHostingTheServer) {
                 localStorage.setItem("map", JSON.stringify(this.map));
             }
     
@@ -396,7 +396,7 @@ export class GameMap {
             this.background[x + (y * MAP_WIDTH)] = tile;
             const sprite = tiles[tile]?.sprite;
             this.backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
-            if (GAME.hosting) {
+            if (GAME.isHostingTheServer) {
                 localStorage.setItem("mapbg", JSON.stringify(this.background));
             }
         }

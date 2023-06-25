@@ -32,7 +32,7 @@ export class HtmlUi {
         });
 
         this.resetMapButton.addEventListener("click", () => {
-            if (confirm("Reset Map?") && GAME.hosting) {
+            if (confirm("Reset Map?") && GAME.isHostingTheServer) {
                 GAME_MAP.reset();
                 GAME.player.x = 200;
                 GAME.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
@@ -59,7 +59,7 @@ export class HtmlUi {
 
 
         document.getElementById("startGame")!.addEventListener("click", () => {
-            GAME.hosting = true;
+            GAME.isHostingTheServer = true;
             const request = new XMLHttpRequest();
             request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(GAME.username!) + 
                                 "&room=" + GAME.serverId + "&password=_ROOMPASSWORD_", false);
@@ -67,7 +67,7 @@ export class HtmlUi {
             const accessToken = request.responseText;
 
             document.getElementById("connect")!.style.display = "none";
-            NETWORK.startNetwork(accessToken, GAME.hosting);
+            NETWORK.startNetwork(accessToken, GAME.isHostingTheServer);
             GAME.connecting = true;
             GAME.waitingForHost = true;
             document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + GAME.serverId;
@@ -100,7 +100,7 @@ export class HtmlUi {
             } else {
                 panel.style.display = "block";
 
-                if (GAME.hosting) {
+                if (GAME.isHostingTheServer) {
                     this.resetMapButton.style.display = "block";
                     this.loadMapButton.style.display = "block";
                 } else {
@@ -136,7 +136,7 @@ export class HtmlUi {
         
 
         document.getElementById("joinButton")!.addEventListener("click", () => {
-            GAME.hosting = false;
+            GAME.isHostingTheServer = false;
             GAME.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
             GAME.username = (document.getElementById("playerName") as HTMLInputElement).value;
             GAME.player.name = GAME.username;
@@ -149,7 +149,7 @@ export class HtmlUi {
             const accessToken = request.responseText;
         
             document.getElementById("join")!.style.display = "none";
-            NETWORK.startNetwork(accessToken, GAME.hosting);
+            NETWORK.startNetwork(accessToken, GAME.isHostingTheServer);
             GAME.connecting = true;
             GAME.waitingForHost = true;
         });
