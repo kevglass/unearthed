@@ -32,8 +32,8 @@ import iron_tile from "./img/tiles/iron.png";
 import silver_tile from "./img/tiles/silver.png";
 import diamond_tile from "./img/tiles/diamond.png";
 
-import { hosting } from ".";
-import { sendMapUpdate } from "./Network";
+import { NETWORK } from "./Network";
+import { GAME } from "./Game";
 
 
 interface Block {
@@ -75,14 +75,6 @@ export const tiles: Record<number, Block> = {
 
 const DEFAULT_MAP: number[] = [
 ];
-let map: number[] = [];
-const spriteMap: HTMLImageElement[] = [
-];
-const backgroundSpriteMap: HTMLImageElement[] = [
-];
-let background: number[] = [];
-let discovered: boolean[] = [];
-let discoveryEnabled = true;
 
 
 for (let i=0;i<MAP_WIDTH * SKY_HEIGHT;i++) {
@@ -96,420 +88,429 @@ for (let i=0;i<totalSize;i++) {
     DEFAULT_MAP.push(1);
 }
 
-export function resetMap() {
-    console.log("Reset map");
-    clearMap();
-    generateMap();
-    refreshSpriteTileMap();
-    setDiscovered(0, 0);
-    sendMapUpdate(undefined);
-}
-
-function clearMap() {
-    map = [...DEFAULT_MAP];
-    background = [];
-    discovered = [];
-    for (let i=0;i<map.length;i++) {
-        background.push(0);
-        discovered.push(false);
-    }
-}
-
-function generateMap() {
-    console.log("Generating map");
-
-    // map generation
-    let h = 0;
-    let offset = 0;
-    let sinceLastTree = 0;
+export class GameMap {
+    map: number[] = [];
+    spriteMap: HTMLImageElement[] = [
+    ];
+    backgroundSpriteMap: HTMLImageElement[] = [
+    ];
+    background: number[] = [];
+    discovered: boolean[] = [];
+    discoveryEnabled = true;
+    backingTile?: HTMLImageElement;
+    backingTopTile?: HTMLImageElement;
+    undiscovered: HTMLImageElement[] = [];
     
-    for (let x=5;x<MAP_WIDTH;x++) {
-        sinceLastTree++;
-        if (h > 10) {
-            offset = 0.3;
-        }
-        if (h < 2) {
-            offset = 0;
-        }
-        if (Math.random() < 0.2 + offset) {
-            h--;
-        } else if (Math.random() > 0.5 + offset) {
-            h++;
-        } 
-    
-        if (h < 0) {
-            h = 0;
-        }
-        for (let i=0;i<h;i++) {
-            setTile(x, SKY_HEIGHT-i, 1, 0);
-        }
-        setTile(x, SKY_HEIGHT-h, 2, 0);
-    
-        if (Math.random() < 0.2) {
-            const grass = Math.floor(Math.random() * 4) + 9;
-            setTile(x, SKY_HEIGHT-h-1, grass, 0);
-        } else if (Math.random() < 0.23) {
-            const flower = Math.floor(Math.random() * 3) + 13;
-            setTile(x, SKY_HEIGHT-h-1, flower, 0);
-        }
-    
-        if (Math.random() > 0.85) {
-            if (sinceLastTree > 5) {
-                sinceLastTree = 0;
-                const heightOfTree = Math.floor(Math.random() * 3) + 2;
-                setTile(x, SKY_HEIGHT-h-1, 16, 0);
-                for (let i=1;i<heightOfTree;i++) {
-                    setTile(x, SKY_HEIGHT-h-1-i, 17, 0);
-                }
-    
-                for (let tx=-1;tx<2;tx++) {
-                    for (let ty=-3;ty<0;ty++) {
-                        setTile(x+tx, SKY_HEIGHT-h-heightOfTree+ty, 5, 0);
-                    }
-                }
-            }
+    reset() {
+        console.log("Reset map");
+        this.clear();
+        this.generate();
+        this.refreshSpriteTileMap();
+        this.setDiscovered(0, 0);
+        NETWORK.sendMapUpdate(undefined);
+    }
+
+    clear() {
+        this.map = [...DEFAULT_MAP];
+        this.background = [];
+        this.discovered = [];
+        for (let i=0;i<this.map.length;i++) {
+            this.background.push(0);
+            this.discovered.push(false);
         }
     }
 
-    // caverns time
-    for (let i=0;i<100;i++) {
-        placeSeam(0, 4, SKY_HEIGHT+5, MAP_DEPTH - 15, 5);
-    }
-    for (let i=0;i<80;i++) {
-        placeSeam(18, 3, SKY_HEIGHT+5, MAP_DEPTH - 15, 3);
-    }
-    for (let i=0;i<60;i++) {
-        placeSeam(19, 3, SKY_HEIGHT+5, MAP_DEPTH - 15, 3);
-    }
-    for (let i=0;i<40;i++) {
-        placeSeam(20, 3, SKY_HEIGHT+40, MAP_DEPTH - 15, 3);
-    }
-    for (let i=0;i<30;i++) {
-        placeSeam(21, 3, SKY_HEIGHT+60, MAP_DEPTH - 15, 2);
-    }
-    for (let i=0;i<30;i++) {
-        placeSeam(22, 3, SKY_HEIGHT+100, MAP_DEPTH - 15, 2);
-    }
-    for (let i=0;i<30;i++) {
-        placeSeam(23, 3, SKY_HEIGHT+150, MAP_DEPTH - 15, 2);
-    }
-
-    localStorage.setItem("map", JSON.stringify(map));
-    localStorage.setItem("mapbg", JSON.stringify(background));
-}
-
-function placeSeam(tile: number, size: number, upper: number, lower: number, cutBase: number) {
-    let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
-    let y = upper + Math.floor(Math.random() * (MAP_DEPTH - upper));
-    const cutCount = cutBase + Math.floor(Math.random() * 5);
-
-    for (let cut=0;cut<cutCount;cut++) {
-        const brushWidth = size + Math.floor(Math.random() * 2);
-        const brushHeight = size + Math.floor(Math.random() * 2);
-
-        let edges = [];
-
-        for (let bx = 0;bx<brushWidth;bx++) {
-            for (let by=0;by<brushHeight;by++) {
-                // round the corners
-                if (bx === 0 && (by === 0 || by === brushHeight-1)) {
-                    continue;
-                }
-                if (bx === brushWidth-1 && (by === 0 || by === brushHeight-1)) {
-                    continue;
-                }
-
-                let tx = x + bx - Math.floor(brushWidth / 2);
-                let ty = y + by - Math.floor(brushHeight / 2);
-
-                if ((bx === 0 || by === 0 || bx === brushHeight-1 || by === brushWidth -1)) {
-                    if ((ty > SKY_HEIGHT + 5) && (ty < MAP_DEPTH - 15)) {
-                        edges.push([tx, ty]);
-                    }
-                }
-
-                map[tx + (ty * MAP_WIDTH)] = tile;
-                background[tx + (ty * MAP_WIDTH)] = 1;
-            }
-        }
-
-        if (edges.length === 0) {
-            return;
-        }
-
-        let nextCenter = edges[Math.floor(Math.random() * edges.length)];
-        x = nextCenter[0];
-        y = nextCenter[1];
-    }
-}
-
-
-clearMap();
-
-let mapLoaded = false;
-
-const existingMap = localStorage.getItem("map");
-const existingBG = localStorage.getItem("mapbg");
-if (existingMap) {
-    const savedMap = JSON.parse(existingMap);
-    console.log("Loading map: " + savedMap.length + " vs " + map.length);
-    if (savedMap.length >= DEFAULT_MAP.length) {
-        map = savedMap;
-
-        if (existingBG) {
-            const savedMap = JSON.parse(existingBG);
+    loadFromStorage(): boolean {
+        const existingMap = localStorage.getItem("map");
+        const existingBG = localStorage.getItem("mapbg");
+        if (existingMap) {
+            const savedMap = JSON.parse(existingMap);
             if (savedMap.length >= DEFAULT_MAP.length) {
-                background = savedMap;
+                this.map = savedMap;
+
+                if (existingBG) {
+                    const savedMap = JSON.parse(existingBG);
+                    if (savedMap.length >= DEFAULT_MAP.length) {
+                        this.background = savedMap;
+                    }
+                }
+
+                this.refreshSpriteTileMap();
+                return true;
             }
         }
 
-        refreshSpriteTileMap();
-        mapLoaded = true;
-    }
-}
-
-if (!mapLoaded) {
-    generateMap();
-}
-
-setDiscovered(0, 0);
-
-export function getMapData(): { f: number[], b: number[] } {
-    return { f: map, b: background };
-}
-
-export function setMapData(data:  { f: number[], b: number[] }) {
-    clearMap();
-    map = data.f;
-    background = data.b;
-    refreshSpriteTileMap();
-
-    setDiscovered(0, 0);
-}
-
-export function refreshSpriteTile(x: number, y: number) {
-    const i = x + (y * MAP_WIDTH);
-    const tile = tiles[map[i]]?.sprite;
-    spriteMap[i] = tile;
-    const bg = tiles[background[i]]?.sprite;
-    backgroundSpriteMap[i] = bg;
-}
-
-export function refreshSpriteTileMap(): void {
-    for (let i=0;i<map.length;i++) {
-        const tile = tiles[map[i]]?.sprite;
-        spriteMap[i] = tile;
-        const bg = tiles[background[i]]?.sprite;
-        backgroundSpriteMap[i] = bg;
-    }
-}
-
-export function isDiscovered(x: number, y: number): boolean {
-    if (!discoveryEnabled) {
-        return true;
-    }
-    x = Math.floor(x);
-    y = Math.floor(y);
-
-    if ((x < 0) || (x >= MAP_WIDTH)) {
-        return true;
-    }
-    if (y < 0 || y >= MAP_DEPTH) {
-        return true;
+        return false;
     }
 
-    return discovered[x + (y * MAP_WIDTH)];
-}
-
-export function setDiscovered(x: number, y: number, force: boolean = false): void {
-    if ((x < 0) || (x >= MAP_WIDTH)) {
-        return;
+    generate() {
+        console.log("Generating map");
+    
+        // map generation
+        let h = 0;
+        let offset = 0;
+        let sinceLastTree = 0;
+        
+        for (let x=5;x<MAP_WIDTH;x++) {
+            sinceLastTree++;
+            if (h > 10) {
+                offset = 0.3;
+            }
+            if (h < 2) {
+                offset = 0;
+            }
+            if (Math.random() < 0.2 + offset) {
+                h--;
+            } else if (Math.random() > 0.5 + offset) {
+                h++;
+            } 
+        
+            if (h < 0) {
+                h = 0;
+            }
+            for (let i=0;i<h;i++) {
+                this.setTile(x, SKY_HEIGHT-i, 1, 0);
+            }
+            this.setTile(x, SKY_HEIGHT-h, 2, 0);
+        
+            if (Math.random() < 0.2) {
+                const grass = Math.floor(Math.random() * 4) + 9;
+                this.setTile(x, SKY_HEIGHT-h-1, grass, 0);
+            } else if (Math.random() < 0.23) {
+                const flower = Math.floor(Math.random() * 3) + 13;
+                this.setTile(x, SKY_HEIGHT-h-1, flower, 0);
+            }
+        
+            if (Math.random() > 0.85) {
+                if (sinceLastTree > 5) {
+                    sinceLastTree = 0;
+                    const heightOfTree = Math.floor(Math.random() * 3) + 2;
+                    this.setTile(x, SKY_HEIGHT-h-1, 16, 0);
+                    for (let i=1;i<heightOfTree;i++) {
+                        this.setTile(x, SKY_HEIGHT-h-1-i, 17, 0);
+                    }
+        
+                    for (let tx=-1;tx<2;tx++) {
+                        for (let ty=-3;ty<0;ty++) {
+                            this.setTile(x+tx, SKY_HEIGHT-h-heightOfTree+ty, 5, 0);
+                        }
+                    }
+                }
+            }
+        }
+    
+        // caverns time
+        for (let i=0;i<100;i++) {
+            this.placeSeam(0, 4, SKY_HEIGHT+5, MAP_DEPTH - 15, 5);
+        }
+        for (let i=0;i<80;i++) {
+            this.placeSeam(18, 3, SKY_HEIGHT+5, MAP_DEPTH - 15, 3);
+        }
+        for (let i=0;i<60;i++) {
+            this.placeSeam(19, 3, SKY_HEIGHT+5, MAP_DEPTH - 15, 3);
+        }
+        for (let i=0;i<40;i++) {
+            this.placeSeam(20, 3, SKY_HEIGHT+40, MAP_DEPTH - 15, 3);
+        }
+        for (let i=0;i<30;i++) {
+            this.placeSeam(21, 3, SKY_HEIGHT+60, MAP_DEPTH - 15, 2);
+        }
+        for (let i=0;i<30;i++) {
+            this. placeSeam(22, 3, SKY_HEIGHT+100, MAP_DEPTH - 15, 2);
+        }
+        for (let i=0;i<30;i++) {
+            this.placeSeam(23, 3, SKY_HEIGHT+150, MAP_DEPTH - 15, 2);
+        }
+    
+        localStorage.setItem("map", JSON.stringify(this.map));
+        localStorage.setItem("mapbg", JSON.stringify(this.background));
     }
-    if (y < 0 || y >= MAP_DEPTH) {
-        return;
+    
+    private placeSeam(tile: number, size: number, upper: number, lower: number, cutBase: number) {
+        let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
+        let y = upper + Math.floor(Math.random() * (MAP_DEPTH - upper));
+        const cutCount = cutBase + Math.floor(Math.random() * 5);
+    
+        for (let cut=0;cut<cutCount;cut++) {
+            const brushWidth = size + Math.floor(Math.random() * 2);
+            const brushHeight = size + Math.floor(Math.random() * 2);
+    
+            let edges = [];
+    
+            for (let bx = 0;bx<brushWidth;bx++) {
+                for (let by=0;by<brushHeight;by++) {
+                    // round the corners
+                    if (bx === 0 && (by === 0 || by === brushHeight-1)) {
+                        continue;
+                    }
+                    if (bx === brushWidth-1 && (by === 0 || by === brushHeight-1)) {
+                        continue;
+                    }
+    
+                    let tx = x + bx - Math.floor(brushWidth / 2);
+                    let ty = y + by - Math.floor(brushHeight / 2);
+    
+                    if ((bx === 0 || by === 0 || bx === brushHeight-1 || by === brushWidth -1)) {
+                        if ((ty > SKY_HEIGHT + 5) && (ty < MAP_DEPTH - 15)) {
+                            edges.push([tx, ty]);
+                        }
+                    }
+    
+                    this.map[tx + (ty * MAP_WIDTH)] = tile;
+                    this.background[tx + (ty * MAP_WIDTH)] = 1;
+                }
+            }
+    
+            if (edges.length === 0) {
+                return;
+            }
+    
+            let nextCenter = edges[Math.floor(Math.random() * edges.length)];
+            x = nextCenter[0];
+            y = nextCenter[1];
+        }
     }
 
-    discoverImpl(x,y,force);
-}
-
-function discoverImpl(xp: number, yp: number, force: boolean = false): void {
-    let toCheck: { x: number, y: number }[] = [];
-    toCheck.push({x: xp, y: yp});
-
-    while (toCheck.length > 0) {
-        const point = toCheck.splice(0, 1)[0];
-
-        let x = Math.floor(point.x);
-        let y = Math.floor(point.y);
-
+    getMapData(): { f: number[], b: number[] } {
+        return { f: this.map, b: this.background };
+    }
+    
+    setMapData(data:  { f: number[], b: number[] }) {
+        this.clear();
+        this.map = data.f;
+        this.background = data.b;
+        this.refreshSpriteTileMap();
+    
+        this.setDiscovered(0, 0);
+    }
+    
+    refreshSpriteTile(x: number, y: number) {
+        const i = x + (y * MAP_WIDTH);
+        const tile = tiles[this.map[i]]?.sprite;
+        this.spriteMap[i] = tile;
+        const bg = tiles[this.background[i]]?.sprite;
+        this.backgroundSpriteMap[i] = bg;
+    }
+    
+    refreshSpriteTileMap(): void {
+        for (let i=0;i<this.map.length;i++) {
+            const tile = tiles[this.map[i]]?.sprite;
+            this.spriteMap[i] = tile;
+            const bg = tiles[this.background[i]]?.sprite;
+            this.backgroundSpriteMap[i] = bg;
+        }
+    }
+    
+    isDiscovered(x: number, y: number): boolean {
+        if (!this.discoveryEnabled) {
+            return true;
+        }
+        x = Math.floor(x);
+        y = Math.floor(y);
+    
         if ((x < 0) || (x >= MAP_WIDTH)) {
-            continue;
+            return true;
         }
         if (y < 0 || y >= MAP_DEPTH) {
-            continue;
+            return true;
         }
-
-        if (!discovered[x + (y * MAP_WIDTH)] || force) {
-            discovered[x + (y * MAP_WIDTH)] = true;
-            const tile = tiles[getTile(x,y,0)];
-            if (!tile || !tile.blocks || !tile.blocksDiscovery) {
-                toCheck.push({x: x - 1, y: y});
-                toCheck.push({x: x - 1, y: y - 1});
-                toCheck.push({x: x - 1, y: y + 1});
-                
-                toCheck.push({x: x + 1, y: y - 1});
-                toCheck.push({x: x + 1, y: y});
-                toCheck.push({x: x + 1, y: y + 1});
-
-                toCheck.push({x: x, y: y - 1});
-                toCheck.push({x: x, y: y + 1});
-            }
-        }
-
-        force = false;
-    }
-}
-
-export function setTile(x: number, y: number, tile: number, layer: number): void {
-    x = Math.floor(x);
-    y = Math.floor(y);
-
-    if ((x < 0) || (x >= MAP_WIDTH)) {
-        return;
-    }
-    if (y < 0 || y >= MAP_DEPTH) {
-        return;
-    }
-
-    const before = map[x + (y * MAP_WIDTH)];
-
-    if (layer === 0) {
-        map[x + (y * MAP_WIDTH)] = tile;
-        const sprite = tiles[tile]?.sprite;
-        spriteMap[x + (y * MAP_WIDTH)] = sprite;
-
-        if (hosting) {
-            localStorage.setItem("map", JSON.stringify(map));
-        }
-
-        if (tile === 0) {
-            setDiscovered(x,y,true);
-        }
-    } else if (layer === 1) {
-        background[x + (y * MAP_WIDTH)] = tile;
-        const sprite = tiles[tile]?.sprite;
-        backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
-        if (hosting) {
-            localStorage.setItem("mapbg", JSON.stringify(background));
-        }
-    }
-
-    if (tile === 0) {
-        const above = getTile(x, y-1, layer);
-        const tile = tiles[above];
-        if (tile && tile.needsGround) {
-            setTile(x, y-1, 0, layer);
-        }
-
-        if (layer === 0) {
-            const behind = getTile(x, y, 1);
-            if (behind === 0) {
-                const tile = tiles[before];
-                if (tile && tile.leaveBackground) {
-                    setTile(x, y, before, 1);
-                }
-            }
-        }
-    }
-}
-
-export function isLadder(x: number, y: number): boolean {
-    const tile1 = getTile(x,y,0);
-    const tile2 = getTile(x,y,1);
-    const def1 = tiles[tile1];
-    const def2 = tiles[tile2];
-    return (def1 && def1.ladder) || (!def1 && def2 && def2.ladder);
-}
-
-export function isBlocked(x: number, y: number): boolean {
-    const tile = getTile(x,y,0);
-    const def = tiles[tile];
-    return (def && def.blocks);
-}
-
-export function getTile(x: number, y: number, layer: number): number {
-    x = Math.floor(x);
-    y = Math.floor(y);
-
-    if ((x < 0) || (x >= MAP_WIDTH)) {
-        return 1;
-    }
-    if (y < 0) {
-        return 0;
-    }
-    if (y >= MAP_DEPTH) {
-        return 1;
-    }
-
-    if (layer === 1) {
-        return background[x+(y*MAP_WIDTH)];
-    }
-
-    return map[x + (y * MAP_WIDTH)];
-}
-
-let backingTile: HTMLImageElement;
-let backingTopTile: HTMLImageElement;
-let undiscovered: HTMLImageElement[] = [];
-
-export function renderMap(g: CanvasRenderingContext2D, overX: number, overY: number, canAct: boolean, 
-                          screenx: number, screeny: number, screenwidth: number, screenheight: number) {
-    const height = map.length / MAP_WIDTH;
-
-    if (!backingTile) {
-        backingTile = getSprite("tile.backing");
-    }
-    if (!backingTopTile) {
-        backingTopTile = getSprite("tile.backingtop");
-    }
-    if (undiscovered.length === 0) {
-        undiscovered.push(getSprite("tile.undiscovered1"));
-        undiscovered.push(getSprite("tile.undiscovered2"));
-        undiscovered.push(getSprite("tile.undiscovered3"));
-        undiscovered.push(getSprite("tile.undiscovered4"));
+    
+        return this.discovered[x + (y * MAP_WIDTH)];
     }
     
-    const xp = Math.floor(screenx / TILE_SIZE) - 1;
-    const yp = Math.floor(screeny / TILE_SIZE) - 1;
-    const tilesAcross = Math.floor(screenwidth / TILE_SIZE) + 3;
-    const tilesDown = Math.floor(screenheight / TILE_SIZE) + 3;
-    for (let x=xp;x<xp+tilesAcross;x++) {
-        for (let y=yp;y<yp+tilesDown;y++) {
-            if (isDiscovered(x,y)) {
-                const bg = backgroundSpriteMap[x + (y * MAP_WIDTH)];
-                if (bg) {
-                    g.drawImage(bg, x * TILE_SIZE, y * TILE_SIZE);
-                    let overhang = getTile(x, y-1, 0);
-                    g.drawImage(overhang ? backingTopTile : backingTile, x * TILE_SIZE, y * TILE_SIZE);
+    setDiscovered(x: number, y: number, force: boolean = false): void {
+        if ((x < 0) || (x >= MAP_WIDTH)) {
+            return;
+        }
+        if (y < 0 || y >= MAP_DEPTH) {
+            return;
+        }
+    
+        this.discoverImpl(x,y,force);
+    }
+    
+    private discoverImpl(xp: number, yp: number, force: boolean = false): void {
+        let toCheck: { x: number, y: number }[] = [];
+        toCheck.push({x: xp, y: yp});
+    
+        while (toCheck.length > 0) {
+            const point = toCheck.splice(0, 1)[0];
+    
+            let x = Math.floor(point.x);
+            let y = Math.floor(point.y);
+    
+            if ((x < 0) || (x >= MAP_WIDTH)) {
+                continue;
+            }
+            if (y < 0 || y >= MAP_DEPTH) {
+                continue;
+            }
+    
+            if (!this.discovered[x + (y * MAP_WIDTH)] || force) {
+                this.discovered[x + (y * MAP_WIDTH)] = true;
+                const tile = tiles[this.getTile(x,y,0)];
+                if (!tile || !tile.blocks || !tile.blocksDiscovery) {
+                    toCheck.push({x: x - 1, y: y});
+                    toCheck.push({x: x - 1, y: y - 1});
+                    toCheck.push({x: x - 1, y: y + 1});
+                    
+                    toCheck.push({x: x + 1, y: y - 1});
+                    toCheck.push({x: x + 1, y: y});
+                    toCheck.push({x: x + 1, y: y + 1});
+    
+                    toCheck.push({x: x, y: y - 1});
+                    toCheck.push({x: x, y: y + 1});
                 }
-                const sprite = spriteMap[x + (y * MAP_WIDTH)];
-                if (sprite) {
-                    g.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE);
-                }
-
-                if (x === overX && y === overY && canAct) {
-                    g.fillStyle = "rgba(255, 255, 255, 0.3)";
-                    g.fillRect(x* TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            }
+    
+            force = false;
+        }
+    }
+    
+    setTile(x: number, y: number, tile: number, layer: number): void {
+        x = Math.floor(x);
+        y = Math.floor(y);
+    
+        if ((x < 0) || (x >= MAP_WIDTH)) {
+            return;
+        }
+        if (y < 0 || y >= MAP_DEPTH) {
+            return;
+        }
+    
+        const before = this.map[x + (y * MAP_WIDTH)];
+    
+        if (layer === 0) {
+            this.map[x + (y * MAP_WIDTH)] = tile;
+            const sprite = tiles[tile]?.sprite;
+            this.spriteMap[x + (y * MAP_WIDTH)] = sprite;
+    
+            if (GAME.hosting) {
+                localStorage.setItem("map", JSON.stringify(this.map));
+            }
+    
+            if (tile === 0) {
+                this.setDiscovered(x,y,true);
+            }
+        } else if (layer === 1) {
+            this.background[x + (y * MAP_WIDTH)] = tile;
+            const sprite = tiles[tile]?.sprite;
+            this.backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
+            if (GAME.hosting) {
+                localStorage.setItem("mapbg", JSON.stringify(this.background));
+            }
+        }
+    
+        if (tile === 0) {
+            const above = this.getTile(x, y-1, layer);
+            const tile = tiles[above];
+            if (tile && tile.needsGround) {
+                this.setTile(x, y-1, 0, layer);
+            }
+    
+            if (layer === 0) {
+                const behind = this.getTile(x, y, 1);
+                if (behind === 0) {
+                    const tile = tiles[before];
+                    if (tile && tile.leaveBackground) {
+                        this.setTile(x, y, before, 1);
+                    }
                 }
             }
         }
     }
-
-    for (let x=xp;x<xp+tilesAcross;x++) {
-        for (let y=yp;y<yp+tilesDown;y++) {
-            if (!isDiscovered(x,y)) {
-                g.drawImage(undiscovered[(x + y) % undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2), (y * TILE_SIZE) - (TILE_SIZE / 2));
+    
+    isLadder(x: number, y: number): boolean {
+        const tile1 = this.getTile(x,y,0);
+        const tile2 = this.getTile(x,y,1);
+        const def1 = tiles[tile1];
+        const def2 = tiles[tile2];
+        return (def1 && def1.ladder) || (!def1 && def2 && def2.ladder);
+    }
+    
+    isBlocked(x: number, y: number): boolean {
+        const tile = this.getTile(x,y,0);
+        const def = tiles[tile];
+        return (def && def.blocks);
+    }
+    
+    getTile(x: number, y: number, layer: number): number {
+        x = Math.floor(x);
+        y = Math.floor(y);
+    
+        if ((x < 0) || (x >= MAP_WIDTH)) {
+            return 1;
+        }
+        if (y < 0) {
+            return 0;
+        }
+        if (y >= MAP_DEPTH) {
+            return 1;
+        }
+    
+        if (layer === 1) {
+            return this.background[x+(y*MAP_WIDTH)];
+        }
+    
+        return this.map[x + (y * MAP_WIDTH)];
+    }
+    
+    render(g: CanvasRenderingContext2D, overX: number, overY: number, canAct: boolean, 
+                              screenx: number, screeny: number, screenwidth: number, screenheight: number) {
+        const height = this.map.length / MAP_WIDTH;
+    
+        if (!this.backingTile) {
+            this.backingTile = getSprite("tile.backing");
+        }
+        if (!this.backingTopTile) {
+            this.backingTopTile = getSprite("tile.backingtop");
+        }
+        if (this.undiscovered.length === 0) {
+            this.undiscovered.push(getSprite("tile.undiscovered1"));
+            this.undiscovered.push(getSprite("tile.undiscovered2"));
+            this.undiscovered.push(getSprite("tile.undiscovered3"));
+            this.undiscovered.push(getSprite("tile.undiscovered4"));
+        }
+        
+        const xp = Math.floor(screenx / TILE_SIZE) - 1;
+        const yp = Math.floor(screeny / TILE_SIZE) - 1;
+        const tilesAcross = Math.floor(screenwidth / TILE_SIZE) + 3;
+        const tilesDown = Math.floor(screenheight / TILE_SIZE) + 3;
+        for (let x=xp;x<xp+tilesAcross;x++) {
+            for (let y=yp;y<yp+tilesDown;y++) {
+                if (this.isDiscovered(x,y)) {
+                    const bg = this.backgroundSpriteMap[x + (y * MAP_WIDTH)];
+                    if (bg) {
+                        g.drawImage(bg, x * TILE_SIZE, y * TILE_SIZE);
+                        let overhang = this.getTile(x, y-1, 0);
+                        g.drawImage(overhang ? this.backingTopTile : this.backingTile, x * TILE_SIZE, y * TILE_SIZE);
+                    }
+                    const sprite = this.spriteMap[x + (y * MAP_WIDTH)];
+                    if (sprite) {
+                        g.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE);
+                    }
+    
+                    if (x === overX && y === overY && canAct) {
+                        g.fillStyle = "rgba(255, 255, 255, 0.3)";
+                        g.fillRect(x* TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            }
+        }
+    
+        for (let x=xp;x<xp+tilesAcross;x++) {
+            for (let y=yp;y<yp+tilesDown;y++) {
+                if (!this.isDiscovered(x,y)) {
+                    g.drawImage(this.undiscovered[(x + y) % this.undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2), (y * TILE_SIZE) - (TILE_SIZE / 2));
+                }
             }
         }
     }
 }
+
+export const GAME_MAP: GameMap = new GameMap();
+GAME_MAP.clear();
+if (!GAME_MAP.loadFromStorage()) {
+    GAME_MAP.generate();
+}
+GAME_MAP.setDiscovered(0, 0);

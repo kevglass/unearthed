@@ -1,23 +1,13 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
-import { Bone, updateBones, renderLayeredBones } from "./Bones";
-import { getTile, isBlocked, isLadder, refreshSpriteTile, setTile, TILE_SIZE } from "./Map";
-import { sendNetworkTile } from "./Network";
+import { Bone } from "./Bones";
+import { GAME_MAP, TILE_SIZE } from "./Map";
+import { NETWORK } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
 
 export interface InventItem {
     sprite: string;
     place: number;
 }
-
-export const INVENTORY: InventItem[] = [
-    { sprite: "pick.iron", place: 0 },
-    { sprite: "tile.dirt", place: 1 },
-    { sprite: "tile.brick_grey", place: 3 },
-    { sprite: "tile.brick_red", place: 4 },
-    { sprite: "tile.sand_tile", place: 6 },
-    { sprite: "tile.wood_tile", place: 7 },
-    { sprite: "tile.ladder_tile", place: 8 },
-];
 
 export interface Controls {
     left: boolean;
@@ -52,6 +42,16 @@ export class Mob {
     head: string = "male";
     body: string = "male";
     local: boolean = false;
+
+    inventory: InventItem[] = [
+        { sprite: "pick.iron", place: 0 },
+        { sprite: "tile.dirt", place: 1 },
+        { sprite: "tile.brick_grey", place: 3 },
+        { sprite: "tile.brick_red", place: 4 },
+        { sprite: "tile.sand_tile", place: 6 },
+        { sprite: "tile.wood_tile", place: 7 },
+        { sprite: "tile.ladder_tile", place: 8 },
+    ];
 
     controls: Controls = {
         left: false,
@@ -134,7 +134,7 @@ export class Mob {
         let count = 0;
         for (let s=0;s<(this.height * 2);s+=stepSize) {
             count++;
-            if (isBlocked((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
+            if (GAME_MAP.isBlocked((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -147,7 +147,7 @@ export class Mob {
         let count = 0;
         for (let s=0;s<(this.height * 2);s+=stepSize) {
             count++;
-            if (isBlocked((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
+            if (GAME_MAP.isBlocked((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -164,7 +164,7 @@ export class Mob {
 
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE)) {
+            if (GAME_MAP.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -181,7 +181,7 @@ export class Mob {
 
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE)) {
+            if (GAME_MAP.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -207,7 +207,7 @@ export class Mob {
     }
 
     jump(): void {
-        if (isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+        if (GAME_MAP.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
@@ -262,13 +262,13 @@ export class Mob {
         if (this.itemHeld) {
             const layer = backPlace ? 1 : 0;
 
-            if (this.controls.mouse && this.itemHeld?.place === 0 && getTile(this.overX, this.overY, layer) !== 0) {
+            if (this.controls.mouse && this.itemHeld?.place === 0 && GAME_MAP.getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
                 this.damage++;
 
                 if (this.damage >= 60) {
                     if (this.local) {
-                        sendNetworkTile(this.overX, this.overY, 0, layer);
+                        NETWORK.sendNetworkTile(this.overX, this.overY, 0, layer);
                     }
                     this.damage = 0;
                 } else {
@@ -285,12 +285,12 @@ export class Mob {
                     this.headTilt = -0.2;
                 }
             }
-            if (this.controls.mouse && this.itemHeld.place !== 0 && getTile(this.overX, this.overY, layer) === 0) {
+            if (this.controls.mouse && this.itemHeld.place !== 0 && GAME_MAP.getTile(this.overX, this.overY, layer) === 0) {
                 if (this.local) {
-                    sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
+                    NETWORK.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                 }
                 
-                refreshSpriteTile(this.overX, this.overY);
+                GAME_MAP.refreshSpriteTile(this.overX, this.overY);
                 for (let i=0;i<5;i++) {
                     addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
                 }
@@ -333,11 +333,14 @@ export class Mob {
 
         this.y += this.vy;
 
-        updateBones(animTime, this.bone, this.allBones, this.anim);
+        for (const bone of this.allBones) {
+            bone.update(animTime, bone, this.anim);
+        }
 
         if (this.working) {
-            updateBones(animTime, this.bone.findBone("rightarm")!, this.allBones, WORK_ANIM);
-
+            for (const bone of this.allBones) {
+                bone.update(animTime, this.bone.findBone("rightarm")!, WORK_ANIM);
+            }
             if (this.overX * TILE_SIZE > this.x) {
                 this.flip = true;
             }
@@ -355,7 +358,7 @@ export class Mob {
     draw(g: CanvasRenderingContext2D, showBounds: boolean): void {
         g.save();
         g.translate(this.x, this.y);
-        renderLayeredBones(this.bone, g, this.flip);
+        this.bone.renderBoneOnLayers(g, this.flip);
 
         if (showBounds) {
             g.fillStyle = "rgba(0,255,0,0.4)";

@@ -71,10 +71,8 @@ export class Bone {
         }
         return undefined;
     }
-}
 
-export function updateBones(animTime: number, bone: Bone, allBones: Bone[], animDefinition: Anim) {
-    for (const bone of allBones) {
+    update(animTime: number, bone: Bone, animDefinition: Anim) {
         const anim = animDefinition.frames[bone.name];
         if (anim) {
             for (const pt of anim) {
@@ -106,38 +104,38 @@ export function updateBones(animTime: number, bone: Bone, allBones: Bone[], anim
             }
         }
     }
-}
 
-export function renderBones(bone: Bone, g: CanvasRenderingContext2D, layer: number): void {
-    g.save();
-    g.translate(bone.dx, bone.dy);
-    g.rotate(bone.ang);
-    g.scale(bone.scale, bone.scale);
-
-    if (layer === bone.layer && bone.sprite) {
-        const sprite = getSprite(bone.sprite);
-        if (sprite) {
-            g.drawImage(sprite, bone.spritex!, bone.spritey!);
-        }
-    }
-
-    for (const child of bone.children) {
-        renderBones(child, g, layer);
-    }
-    g.restore();
-}
-
-export function renderLayeredBones(bone: Bone, g: CanvasRenderingContext2D, flip: boolean = false): void {
-    if (flip) {
+    render(g: CanvasRenderingContext2D, layer: number): void {
         g.save();
-        g.scale(-1, 1);
-        for (let layer = 10; layer >= 0; layer--) {
-            renderBones(bone, g, layer);
+        g.translate(this.dx, this.dy);
+        g.rotate(this.ang);
+        g.scale(this.scale, this.scale);
+
+        if (layer === this.layer && this.sprite) {
+            const sprite = getSprite(this.sprite);
+            if (sprite) {
+                g.drawImage(sprite, this.spritex!, this.spritey!);
+            }
+        }
+
+        for (const child of this.children) {
+            child.render( g, layer);
         }
         g.restore();
-    } else {
-        for (let layer = 0; layer < 10; layer++) {
-            renderBones(bone, g, layer);
+    }
+    
+    renderBoneOnLayers(g: CanvasRenderingContext2D, flip: boolean = false): void {
+        if (flip) {
+            g.save();
+            g.scale(-1, 1);
+            for (let layer = 10; layer >= 0; layer--) {
+                this.render(g, layer);
+            }
+            g.restore();
+        } else {
+            for (let layer = 0; layer < 10; layer++) {
+                this.render(g, layer);
+            }
         }
     }
 }
