@@ -77,6 +77,7 @@ let lastWorkX = 0;
 let lastWorkY = 0;
 let mainAreaTouchId = 0;
 let controllerTouchId = 0;
+let jumpTouchId = 0;
 let frontPlace: boolean = true;
 let connecting: boolean = false;
 const tooltip = document.getElementById("tooltip") as HTMLDivElement
@@ -364,7 +365,7 @@ function evalControlArea(x: number, y: number, touchId: number): boolean {
         if (x > canvas.width - 180 && yp === 1) {
             // up
             keys['w'] = true;
-            controllerTouchId = touchId;
+            jumpTouchId = touchId;
             return true;
         }
 
@@ -390,8 +391,11 @@ function mouseUp(x: number, y: number, touchId: number) {
         mainAreaTouchId = 0;
         mouseButtons[0] = false;
     }
-    if (touchId === controllerTouchId) {
+    if (touchId === jumpTouchId) {
         keys['w'] = false;
+        jumpTouchId = 0;
+    }
+    if (touchId === controllerTouchId) {
         keys['a'] = false;
         keys['d'] = false;
         controllerTouchId = 0;
@@ -403,7 +407,7 @@ function mouseMove(x: number, y: number, touchId: number) {
         mouseX = x;
         mouseY = y;
     }
-    if (touchId === controllerTouchId) {
+    if (touchId === controllerTouchId || touchId === jumpTouchId) {
         evalControlArea(x, y, touchId);
     }
 }

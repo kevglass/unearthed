@@ -17,11 +17,21 @@ import grass1_tile from "./img/tiles/grass1.png";
 import grass2_tile from "./img/tiles/grass2.png";
 import grass3_tile from "./img/tiles/grass3.png";
 import grass4_tile from "./img/tiles/grass4.png";
+
 import flowerwhite_tile from "./img/tiles/flowerwhite.png";
 import flowerred_tile from "./img/tiles/flowerred.png";
 import flowerblue_tile from "./img/tiles/flowerblue.png";
+
 import trunkmid_tile from "./img/tiles/trunk_mid.png";
 import trunkbottom_tile from "./img/tiles/trunk_bottom.png";
+
+import stone_tile from "./img/tiles/stone.png";
+import coal_tile from "./img/tiles/coal.png";
+import gold_tile from "./img/tiles/gold.png";
+import iron_tile from "./img/tiles/iron.png";
+import silver_tile from "./img/tiles/silver.png";
+import diamond_tile from "./img/tiles/diamond.png";
+
 import { hosting } from ".";
 import { sendMapUpdate } from "./Network";
 
@@ -53,6 +63,14 @@ export const tiles: Record<number, Block> = {
     15: { sprite: loadImage("tile.flowerred", flowerred_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
     16: { sprite: loadImage("tile.trunkbottom", trunkbottom_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
     17: { sprite: loadImage("tile.trunkmid", trunkmid_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
+
+
+    18: { sprite: loadImage("tile.stone", stone_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    19: { sprite: loadImage("tile.coal", coal_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    20: { sprite: loadImage("tile.iron", iron_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    21: { sprite: loadImage("tile.silver", silver_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
 };
 
 const DEFAULT_MAP: number[] = [
@@ -64,7 +82,7 @@ const backgroundSpriteMap: HTMLImageElement[] = [
 ];
 let background: number[] = [];
 let discovered: boolean[] = [];
-let discoveeryEnabled = true;
+let discoveryEnabled = true;
 
 
 for (let i=0;i<MAP_WIDTH * SKY_HEIGHT;i++) {
@@ -78,10 +96,8 @@ for (let i=0;i<totalSize;i++) {
     DEFAULT_MAP.push(1);
 }
 
-clearMap();
-generateMap();
-
 export function resetMap() {
+    console.log("Reset map");
     clearMap();
     generateMap();
     refreshSpriteTileMap();
@@ -100,6 +116,8 @@ function clearMap() {
 }
 
 function generateMap() {
+    console.log("Generating map");
+
     // map generation
     let h = 0;
     let offset = 0;
@@ -155,52 +173,87 @@ function generateMap() {
 
     // caverns time
     for (let i=0;i<100;i++) {
-        let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
-        let y = SKY_HEIGHT + 5 + Math.floor(Math.random() * (MAP_DEPTH - (SKY_HEIGHT + 20)));
-        const cutCount = 5 + Math.floor(Math.random() * 5);
+        placeSeam(0, 4, SKY_HEIGHT+5, MAP_DEPTH - 15, 5);
+    }
+    for (let i=0;i<80;i++) {
+        placeSeam(18, 3, SKY_HEIGHT+5, MAP_DEPTH - 15, 3);
+    }
+    for (let i=0;i<60;i++) {
+        placeSeam(19, 3, SKY_HEIGHT+5, MAP_DEPTH - 15, 3);
+    }
+    for (let i=0;i<40;i++) {
+        placeSeam(20, 3, SKY_HEIGHT+40, MAP_DEPTH - 15, 3);
+    }
+    for (let i=0;i<30;i++) {
+        placeSeam(21, 3, SKY_HEIGHT+60, MAP_DEPTH - 15, 2);
+    }
+    for (let i=0;i<30;i++) {
+        placeSeam(22, 3, SKY_HEIGHT+100, MAP_DEPTH - 15, 2);
+    }
+    for (let i=0;i<30;i++) {
+        placeSeam(23, 3, SKY_HEIGHT+150, MAP_DEPTH - 15, 2);
+    }
 
-        for (let cut=0;cut<cutCount;cut++) {
-            const brushWidth = 4 + Math.floor(Math.random() * 2);
-            const brushHeight = 4 + Math.floor(Math.random() * 2);
+    localStorage.setItem("map", JSON.stringify(map));
+    localStorage.setItem("mapbg", JSON.stringify(background));
+}
 
-            let edges = [];
+function placeSeam(tile: number, size: number, upper: number, lower: number, cutBase: number) {
+    let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
+    let y = upper + Math.floor(Math.random() * (MAP_DEPTH - upper));
+    const cutCount = cutBase + Math.floor(Math.random() * 5);
 
-            for (let bx = 0;bx<brushWidth;bx++) {
-                for (let by=0;by<brushHeight;by++) {
-                    // round the corners
-                    if (bx === 0 && (by === 0 || by === brushHeight-1)) {
-                        continue;
-                    }
-                    if (bx === brushWidth-1 && (by === 0 || by === brushHeight-1)) {
-                        continue;
-                    }
+    for (let cut=0;cut<cutCount;cut++) {
+        const brushWidth = size + Math.floor(Math.random() * 2);
+        const brushHeight = size + Math.floor(Math.random() * 2);
 
-                    let tx = x + bx - Math.floor(brushWidth / 2);
-                    let ty = y + by - Math.floor(brushHeight / 2);
+        let edges = [];
 
-                    if ((bx === 0 || by === 0 || bx === brushHeight-1 || by === brushWidth -1)) {
-                        if (ty > SKY_HEIGHT + 5) {
-                            edges.push([tx, ty]);
-                        }
-                    }
-
-                    map[tx + (ty * MAP_WIDTH)] = 0;
-                    background[tx + (ty * MAP_WIDTH)] = 1;
+        for (let bx = 0;bx<brushWidth;bx++) {
+            for (let by=0;by<brushHeight;by++) {
+                // round the corners
+                if (bx === 0 && (by === 0 || by === brushHeight-1)) {
+                    continue;
                 }
-            }
+                if (bx === brushWidth-1 && (by === 0 || by === brushHeight-1)) {
+                    continue;
+                }
 
-            let nextCenter = edges[Math.floor(Math.random() * edges.length)];
-            x = nextCenter[0];
-            y = nextCenter[1];
+                let tx = x + bx - Math.floor(brushWidth / 2);
+                let ty = y + by - Math.floor(brushHeight / 2);
+
+                if ((bx === 0 || by === 0 || bx === brushHeight-1 || by === brushWidth -1)) {
+                    if (ty > SKY_HEIGHT + 5) {
+                        edges.push([tx, ty]);
+                    }
+                }
+
+                map[tx + (ty * MAP_WIDTH)] = tile;
+                background[tx + (ty * MAP_WIDTH)] = 1;
+            }
         }
+
+        if (edges.length === 0) {
+            return;
+        }
+
+        let nextCenter = edges[Math.floor(Math.random() * edges.length)];
+        x = nextCenter[0];
+        y = nextCenter[1];
     }
 }
+
+
+clearMap();
+
+let mapLoaded = false;
 
 const existingMap = localStorage.getItem("map");
 const existingBG = localStorage.getItem("mapbg");
 if (existingMap) {
     const savedMap = JSON.parse(existingMap);
-    if (savedMap.length === DEFAULT_MAP.length) {
+    console.log("Loading map: " + savedMap.length + " vs " + map.length);
+    if (savedMap.length >= DEFAULT_MAP.length) {
         map = savedMap;
 
         if (existingBG) {
@@ -209,7 +262,14 @@ if (existingMap) {
                 background = savedMap;
             }
         }
+
+        refreshSpriteTileMap();
+        mapLoaded = true;
     }
+}
+
+if (!mapLoaded) {
+    generateMap();
 }
 
 setDiscovered(0, 0);
@@ -245,7 +305,7 @@ export function refreshSpriteTileMap(): void {
 }
 
 export function isDiscovered(x: number, y: number): boolean {
-    if (!discoveeryEnabled) {
+    if (!discoveryEnabled) {
         return true;
     }
     x = Math.floor(x);
