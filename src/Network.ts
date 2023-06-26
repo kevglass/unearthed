@@ -4,27 +4,67 @@ import { HUMAN_SKELETON } from './Skeletons';
 import { SKY_HEIGHT, TILE_SIZE, GAME_MAP } from './Map';
 import { GAME } from './Game';
 
+//
+// Network is handled by using WebRTC through https://livekit.io/ 
+//
+// They're really designed for video/audio rooms but since they support data channel
+// its particularly easy to set up P2P network through them. They have a fault tolerant local access
+// point based network through their service and give a generous 50GB of transfer a month free
+// 
+// In short they're awesome, go use it
+//
+
+/** Interval between updates sent from server and client - 1/10th of a second */
 const UPDATE_INTERVAL_MS: number = 100;
+/** Interval between asking for the map if we haven't had it yet - once a second */
 const MAP_REQUEST_INTERVAL: number = 1000;
+/** 
+ * The network password using to access cokeandcode's service - 
+ * this is set from your local.properties.json - if you don't have one a blank value means no network 
+ */
 const NETWORK_PASSWORD: string = "_ROOMPASSWORD_";
+/** True if networking is enabled */
 const NETWORKING_ENABLED: boolean = NETWORK_PASSWORD !== "";
 
+/**
+ * A webrtc based peer to peer network that allocates one player as server and then forwards
+ * state updates between players. 
+ */
 export class Network {
+    /** used to encode blobs across the network */
     encoder = new TextEncoder();
+    /** used to decode blobs across the network */
     decoder = new TextDecoder();
+    /** The livekit.io Room we're using */
     room = new Room();
+    /** The last time there was an update sent */
     lastUpdate = Date.now();
+    /** The last time the map was requested */
     lastMapRequest = Date.now();
+    /** The last time a host update was received */
     lastHostUpdate = Date.now();
+    /** True if we're connected to the network */
     isConnected = false;
+    /** True if this client is hosting the server */
     hostingServer = false;
+    /** The list of mobs that we're syncing across the network */
     localMobs: Mob[] = [];
+    /** The player thats considered local and shouldn't be updated from the network */
     localPlayer?: Mob;
+    /** True if we've received the game map */
     hadMap: boolean = false;
-    host: RemoteParticipant | undefined;
+    /** The participant that represents the remote hosting server (if we're not the host) */
+    hostParticipantId: RemoteParticipant | undefined;
+    /** The list of mobs names that have been removed */
     removed: string[] = [];
+    /** True if the networking has been started */
     started: boolean = false;
 
+    /**
+     * Update the visual list of players connected 
+     * 
+     * @param mobs The list of mobs that are the players
+     */
     updatePlayerList(mobs: Mob[]): void {
         const listDiv = document.getElementById("playerList")!;
         listDiv.innerHTML = "";
@@ -37,20 +77,33 @@ export class Network {
         }
     }
     
+    /**
+     * Check if we're connected to the networking service.
+     * 
+     * @returns True if we're connected to the network
+     */
     connected(): boolean {
         if (!NETWORKING_ENABLED) {
             return this.started;
         }
 
-        return (this.host !== undefined) || this.hostingServer;
+        return (this.hostParticipantId !== undefined) || this.hostingServer;
     }
     
-    async startNetwork(hosting: boolean) {
+    /**
+     * Start the networking service 
+     * 
+     * @param hosting True if we want to host the game
+     */
+    async startNetwork(hosting: boolean): Promise<void> {
+        this.started = true;
+
         if (!NETWORKING_ENABLED) {
-            this.started = true;
             return;
         }
 
+        // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
+        // provider that uses kev's hidden livekit key. 
         const request = new XMLHttpRequest();
         request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(GAME.username!) + 
                             "&room=" + GAME.serverId + "&password=" + NETWORK_PASSWORD, false);
@@ -60,14 +113,19 @@ export class Network {
         this.hostingServer = hosting;
         const wsURL = "wss://talesofyore.livekit.cloud"
     
+        // connect to the live kit room
         await this.room.connect(wsURL, token);
     
         this.room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-            if (participant === this.host) {
-                this.host = undefined;
+            // if the hosting participant disconnects then go into frozen mode
+            // until we get one back
+            if (participant === this.hostParticipantId) {
+                this.hostParticipantId = undefined;
                 this.localMobs.splice(0, this.localMobs.length);
                 this.localMobs.push(this.localPlayer!);
             } else {
+                // otherwise if a participant disconnects remove their 
+                // mob from the game
                 const mob = this.localMobs.find(m => m.participantId === participant.sid);
                 if (mob) {
                     this.localMobs.splice(this.localMobs.indexOf(mob), 1);
@@ -81,9 +139,13 @@ export class Network {
             }
         });
     
+        // process messages received 
         this.room.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+            // if the topic is "map" then we've got a big
+            // binary blob coming that is the tile mapS
             if (topic === "map") {
                 if (!this.hostingServer) {
+                    // parse the blob and update the game map
                     const fullArray: number[] = Array.from(payload);
                     const len: number = fullArray.length / 2;
                     GAME_MAP.setMapData({
@@ -98,21 +160,34 @@ export class Network {
             } else {
                 const strData = this.decoder.decode(payload);
                 const message = JSON.parse(strData);
+
+                // a remote client is requesting the game map - this happens when clients
+                // connect to the room before the host got in
                 if (message.type === "requestMap" && hosting) {
                     if (participant) {
                         this.sendMapUpdate(participant.sid);
                     }
                 }
+
+                // simple chat message, just display it
                 if (message.type === "chatMessage") {
                     this.addChat(message.who, message.message);
                 }
+
+                // notification that a client who is hosting is around
+                // we do a quick version check to prevent different
+                // versions of the game connecting since that gets
+                // very confusing
                 if (message.type === "iAmHost" && !hosting) {
-                    this.host = participant!;
+                    this.hostParticipantId = participant!;
                     if (message.version !== "_VERSION_") {
                         alert("Game Version Mismatch");
                         location.reload();
                     }
                 }
+
+                // notification of a tile being updates. This can be sent from server
+                // or client but only the server controls which tiles are actually applied
                 if (message.type === "tileChange") {
                     GAME_MAP.setTile(message.x, message.y, message.tile, message.layer);
                     GAME_MAP.refreshSpriteTile(message.x, message.y);
@@ -120,6 +195,8 @@ export class Network {
                         this.sendNetworkTile(message.x, message.y, message.tile, message.layer);
                     }
                 }
+
+                // remove a mob from the world
                 if (message.type === "remove") {
                     const mob = this.localMobs.find(mob => mob.id === message.mobId);
                     if (mob) {
@@ -128,10 +205,15 @@ export class Network {
                         this.updatePlayerList(this.localMobs);
                     }
                 }
+
+                // the mains tate update - all the mobs encoded with their network
+                // state. If any mob didn't get an update for a while then 
+                // remove it as a timeout. If we don't have a mob for a state update
+                // then create it as a new player.
                 if (message.type === "mobs") {
                     if (this.localMobs && this.localPlayer) {
                         if (message.host) {
-                            this. host = participant;
+                            this. hostParticipantId = participant;
                         }
                         for (const mobData of message.data) {
                             if (mobData.id !== this.localPlayer.id) {
@@ -161,11 +243,18 @@ export class Network {
         this.isConnected = true;
     }
     
+    /**
+     * Add a chat to the session
+     * 
+     * @param who The name of the player that sent the chat
+     * @param message The message they sent
+     */
     addChat(who: string, message: string): void {
         if (!NETWORKING_ENABLED) {
             return;
         }
         
+        // add the chat into the HTML
         const list = document.getElementById("chatList") as HTMLDivElement;
     
         while (list.childElementCount > 4) {
@@ -188,6 +277,13 @@ export class Network {
         list.appendChild(line);
     }
     
+    /**
+     * Send the state of block/tile map out across the network. This can either be
+     * because a client requested it (then the target will be set) or at the start 
+     * when the host joins and all players need it
+     * 
+     * @param target The participant ID of the player to send the map to or undefined to broadcast to all
+     */
     sendMapUpdate(target: string | undefined) {
         if (!NETWORKING_ENABLED) {
             return;
@@ -202,6 +298,14 @@ export class Network {
         }
     }
     
+    /**
+     * Send a tile update across the network. This will be forwards to other via the server.
+     * 
+     * @param x The x coordinate of the tile being update
+     * @param y The y coordinate of the tile being update
+     * @param tile The tile to place on the map (or 0 to remove)
+     * @param layer The layer to place the tile on
+     */
     sendNetworkTile(x: number, y: number, tile: number, layer: number) {
         if (!NETWORKING_ENABLED) {
             GAME_MAP.setTile(x, y, tile, layer);
@@ -209,15 +313,23 @@ export class Network {
         }
         
         if (this.hostingServer) {
+            // if we're the host then forward the update to all players
             GAME_MAP.setTile(x, y, tile, layer);
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
-        } else if (this.host) {
+        } else if (this.hostParticipantId) {
+            // if we have a host then send it to just that host
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
-            this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.host.sid]);
+            this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
         }
     }
     
+    /**
+     * Send a chat messages across the network
+     * 
+     * @param who The name of the player sending the chat
+     * @param message The message to send
+     */
     sendChatMessage(who: string, message: string) {
         if (!NETWORKING_ENABLED) {
             return;
@@ -228,12 +340,19 @@ export class Network {
             return;
         }
     
+        // broadcast the chat to everyone
         const data = JSON.stringify({ type: "chatMessage", who, message });
         this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
     
         this.addChat(who, message);
     }
     
+    /**
+     * Update the network by sending any regular messages
+     * 
+     * @param player The local player Mob
+     * @param players The list of mob to sync
+     */
     update(player: Mob, players: Mob[]) {
         this.localPlayer = player;
         this.localMobs = players;
@@ -242,18 +361,18 @@ export class Network {
             return;
         }
     
-        if (Date.now() - this.lastMapRequest > MAP_REQUEST_INTERVAL && this.host) {
+        if (Date.now() - this.lastMapRequest > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
             this.lastMapRequest = Date.now();
             if (!this.hostingServer && !this.hadMap) {
                 // request the map
                 console.log("Requesting Map");
                 const data = JSON.stringify({ type: "requestMap" });
-                this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.host.sid]);
+                this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
             }
         }
     
         // need to send out an "I am the host message"
-        if (Date.now() - this.lastHostUpdate > MAP_REQUEST_INTERVAL && this.host) {
+        if (Date.now() - this.lastHostUpdate > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
             this.lastHostUpdate = Date.now();
             const data = JSON.stringify({ type: "iAmHost", version: "_VERSION_" });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
@@ -266,9 +385,9 @@ export class Network {
                 const data = JSON.stringify({ type: "mobs", host: true, data: players.map(mob => mob.getNetworkState()) });
                 this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.LOSSY);
             } else {
-                if (this.host) {
+                if (this.hostParticipantId) {
                     const data = JSON.stringify({ type: "mobs", host: false, data: [player.getNetworkState()] });
-                    this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.LOSSY, [this.host.sid]);
+                    this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.LOSSY, [this.hostParticipantId.sid]);
                 }
             }
         }
