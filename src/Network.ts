@@ -68,7 +68,7 @@ export class Network {
                 this.localMobs.splice(0, this.localMobs.length);
                 this.localMobs.push(this.localPlayer!);
             } else {
-                const mob = this.localMobs.find(m => m.sid === participant.sid);
+                const mob = this.localMobs.find(m => m.participantId === participant.sid);
                 if (mob) {
                     this.localMobs.splice(this.localMobs.indexOf(mob), 1);
                     this.removed.push(mob.id);
@@ -147,7 +147,7 @@ export class Network {
                                 }
     
                                 if (participant) {
-                                    targetMob.sid = participant.sid;
+                                    targetMob.participantId = participant.sid;
                                 }
                                 targetMob.updateFromNetworkState(mobData);
                             }

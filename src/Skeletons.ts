@@ -1,5 +1,8 @@
 import { Bone } from "./Bones";
 
+/**
+ * The bones that build up the human skeleton
+ */
 export enum HumanBones {
     ROOT = "root",
     BODY = "body",
@@ -11,6 +14,12 @@ export enum HumanBones {
     HELD = "held"
 };
 
+/**
+ * Create a human skeleton - this is used as the template for all players. Probably
+ * should be in a configuration file
+ * 
+ * @returns The root bone of a human skeleton thats been created
+ */
 function createHumanSkeleton(): Bone {
     const male = new Bone(HumanBones.ROOT, 0, 0, 0, 0);
     const body = new Bone(HumanBones.BODY, 0, -20, 0, 3, "male.body", -22, 0, male);

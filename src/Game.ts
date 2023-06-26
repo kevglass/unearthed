@@ -424,7 +424,7 @@ export class Game {
 
         // mining
         if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
-            this.player.damage = 0;
+            this.player.blockDamage = 0;
         }
         if (this.mouseButtonDown[0] && canAct && GAME_MAP.getTile(this.player.overX, this.player.overY, 
             this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {

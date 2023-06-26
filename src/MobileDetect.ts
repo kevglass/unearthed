@@ -1,4 +1,9 @@
 
+/**
+ * Check if we're running on a tablet type device
+ * 
+ * @returns True if we're running on a tablet type device
+ */
 export function isTablet(): boolean {
     if (!isPhone() && isIOS()) {
         return true;
@@ -7,15 +12,29 @@ export function isTablet(): boolean {
 
     return isTablet;
 }
-
+/**
+ * Check if we're running on a mobile type (including tablets) device
+ * 
+ * @returns True if we're running on a mobile type (including tablets) device
+ */
 export function isMobile(): boolean {
     return isIOS() || isAndroid();
 }
 
+/**
+ * Check if we're running on Android
+ * 
+ * @returns True if we're running on android
+ */
 export function isAndroid(): boolean {
     return navigator.userAgent.match(/Android/i) != null;
 }
 
+/**
+ * Check if we're running on IOS
+ * 
+ * @returns True if we're running on IOS
+ */
 export function isIOS(): boolean {
     return [
         'iPad Simulator',
@@ -29,6 +48,11 @@ export function isIOS(): boolean {
         || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
 }
 
+/**
+ * Check if we're running on a small phone device
+ * 
+ * @returns True if we're running on a small mobile device (phone like)
+ */
 export function isPhone(): boolean {
     return isIOS() && window.matchMedia("only screen and (max-width: 760px)").matches;
 }
