@@ -1,8 +1,9 @@
-import { HTML_UI } from "./HtmlUi";
-import { GAME_MAP, Layer, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
+
+import { HtmlUi } from "./HtmlUi";
+import { GameMap, Layer, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile } from "./MobileDetect";
-import { NETWORK } from "./Network";
+import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./Particles";
 import { getSprite, resourcesLoaded } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
@@ -79,6 +80,13 @@ export class Game {
     /** the time at which the splash screen should be removed - 1 second of Coke and Code */
     finishStartup = Date.now() + 1000;
 
+    /** The game map being maintained */
+    gameMap: GameMap;
+    /** The network being used */
+    network: Network;
+    /** The HTML UI overlaying the game */
+    ui: HtmlUi;
+
     constructor() {
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
@@ -101,8 +109,19 @@ export class Game {
         }
         (document.getElementById("playerName") as HTMLInputElement).value = this.username;
 
+
+        this.gameMap = new GameMap(this);
+        this.gameMap.clear();
+        if (!this.gameMap.loadFromStorage()) {
+            this.gameMap.generate();
+        }
+        this.gameMap.setDiscovered(0, 0);
+
+        this.network = new Network(this, this.gameMap);
+        this.ui = new HtmlUi(this, this.network, this.gameMap);
+        
         // create the local player and configure and skin settings
-        this.player = new Mob(uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
+        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
         if (localStorage.getItem("head")) {
             this.player.head = localStorage.getItem("head")!;
         }
@@ -127,20 +146,21 @@ export class Game {
 
         // set up the mobs list ready to kick off
         this.mobs.push(this.player);
-        NETWORK.updatePlayerList(this.mobs);
+        this.network.updatePlayerList(this.mobs);
         this.player.itemHeld = this.player.inventory[0];
-
 
         // honour a server parameter if its there so we can pass links
         // to each other
         const params = new URLSearchParams(location.search);
         if (params.get("server") && params.get("server") !== this.serverId) {
-            GAME.isHostingTheServer = false;
+            this.isHostingTheServer = false;
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
         } else {
             console.log("Connect on: " + location.href + "?server=" + this.serverId)
             document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + this.serverId;
         }
+
+        this.configureEventHandlers();
     }
 
     /**
@@ -161,7 +181,7 @@ export class Game {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             // if we're focused on the chat input that takes precedence
-            if (document.activeElement === HTML_UI.chatInput) {
+            if (document.activeElement === this.ui.chatInput) {
                 return;
             }
 
@@ -170,9 +190,9 @@ export class Game {
 
             // if the user hits enter and we're connected to the game
             // then show the chat box
-            if (NETWORK.connected()) {
+            if (this.network.connected()) {
                 if (event.key === "Enter") {
-                    HTML_UI.showChat();
+                    this.ui.showChat();
                 }
             }
 
@@ -472,9 +492,9 @@ export class Game {
         this.g.fillStyle = "#445253";
 
         // if the network hasn't been started we're at the main menu
-        if (!NETWORK.connected()) {
+        if (!this.network.connected()) {
             // update the sample player
-            NETWORK.update(this.player, this.mobs);
+            this.network.update(this.player, this.mobs);
             document.getElementById("serverLink")!.innerHTML = this.waitingForHost ? "Waiting for Host" : "Disconnected";
             requestAnimationFrame(() => { this.loop() });
 
@@ -530,7 +550,7 @@ export class Game {
         // so now we know the network is started (or the pretend network is) and 
         // all the resources are loaded so we can render the real game
         if (resourcesLoaded()) {
-            NETWORK.update(this.player, this.mobs);
+            this.network.update(this.player, this.mobs);
 
             // scroll the view based on bounds and player position
             let ox = this.player.x - (this.canvas.width / 2);
@@ -554,7 +574,7 @@ export class Game {
             let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
 
             // render the whole game map
-            GAME_MAP.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
+            this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
 
             // local player specifics - set the initial state to doing nothing
             this.player.still();
@@ -567,7 +587,7 @@ export class Game {
 
             // if we're pressing down and the we can act on the location and theres
             // a tile to dig there, then mark us as working
-            if (this.mouseButtonDown[0] && canAct && GAME_MAP.getTile(this.player.overX, this.player.overY,
+            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
                 this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
                 this.lastWorkX = this.player.overX;
                 this.lastWorkY = this.player.overY;
@@ -667,6 +687,3 @@ export class Game {
         requestAnimationFrame(() => { this.loop() });
     }
 }
-
-export const GAME: Game = new Game();
-GAME.configureEventHandlers();

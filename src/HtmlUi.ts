@@ -1,6 +1,6 @@
-import { GAME_MAP, SKY_HEIGHT, TILE_SIZE } from "./Map";
-import { NETWORK } from "./Network";
-import { GAME } from "./Game";
+import { Game } from "./Game";
+import { GameMap, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { Network } from "./Network";
 
 /**
  * A controller for everything thats on the HTML layer rather than the canvas. The game
@@ -17,8 +17,18 @@ export class HtmlUi {
     saveMapButton: HTMLDivElement;
     /** The file input element used to upload maps */
     fileInput: HTMLInputElement;
-
-    constructor() {
+    /** The network in use */
+    network: Network;
+    /** The game map being maintained */
+    gameMap: GameMap;
+    /** The central game controller */
+    game: Game;
+    
+    constructor(game: Game, network: Network, gameMap: GameMap) {
+        this.game = game;
+        this.network = network;
+        this.gameMap = gameMap;
+        
         this.resetMapButton = document.getElementById("resetMapButton") as HTMLDivElement;
         this.loadMapButton = document.getElementById("loadMapButton") as HTMLDivElement;
         this.saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
@@ -37,15 +47,15 @@ export class HtmlUi {
                     const rawData = new Uint8Array(reader.result as ArrayBuffer);
                     const fullArray: number[] = Array.from(rawData);
                     const len: number = fullArray.length / 2;
-                    GAME_MAP.setMapData({
+                    this.gameMap.setMapData({
                         f: fullArray.slice(0, len),
                         b: fullArray.slice(len)
                     });
 
-                    GAME.player.x = 200;
-                    GAME.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+                    this.game.player.x = 200;
+                    this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
                     document.getElementById("settingsPanel")!.style.display = "none";
-                    NETWORK.sendMapUpdate(undefined);
+                    this.network.sendMapUpdate(undefined);
                 }
                 reader.readAsArrayBuffer(this.fileInput.files[0]);
             }
@@ -53,10 +63,11 @@ export class HtmlUi {
 
         // reset the map 
         this.resetMapButton.addEventListener("click", () => {
-            if (confirm("Reset Map?") && GAME.isHostingTheServer) {
-                GAME_MAP.reset();
-                GAME.player.x = 200;
-                GAME.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+            if (confirm("Reset Map?") && this.game.isHostingTheServer) {
+                this.gameMap.reset();
+                this.network.sendMapUpdate(undefined);
+                this.game.player.x = 200;
+                this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
                 document.getElementById("settingsPanel")!.style.display = "none";
             }
         });
@@ -65,7 +76,7 @@ export class HtmlUi {
         // an encoded URL of the map data and then click it as a download.
         //
         this.saveMapButton.addEventListener("click", () => {
-            const data = GAME_MAP.getMapData();
+            const data = this.gameMap.getMapData();
             const dataBlocks = new Uint8Array([...data.f, ...data.b]);
             const blob = new Blob([dataBlocks], {
                 type: "application/octet-stream"
@@ -84,12 +95,12 @@ export class HtmlUi {
 
         // start the game button - start the network on our server ID
         document.getElementById("startGame")!.addEventListener("click", () => {
-            GAME.isHostingTheServer = true;
+            this.game.isHostingTheServer = true;
             document.getElementById("connect")!.style.display = "none";
-            NETWORK.startNetwork(GAME.isHostingTheServer);
-            GAME.connecting = true;
-            GAME.waitingForHost = true;
-            document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + GAME.serverId;
+            this.network.startNetwork(this.game.isHostingTheServer);
+            this.game.connecting = true;
+            this.game.waitingForHost = true;
+            document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + this.game.serverId;
         });
         // join game button - just show the join game dialog
         document.getElementById("joinGame")!.addEventListener("click", () => {
@@ -104,13 +115,13 @@ export class HtmlUi {
 
         // done button from the settings panel. Apply the settings and go back to main menu
         document.getElementById("doneButton")!.addEventListener("click", () => {
-            GAME.username = (document.getElementById("playerName") as HTMLInputElement).value;
-            GAME.player.name = GAME.username;
-            localStorage.setItem("username", GAME.username);
+            this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
+            this.game.player.name = this.game.username;
+            localStorage.setItem("username", this.game.username);
             document.getElementById("connect")!.style.display = "block";
             document.getElementById("setup")!.style.display = "none";
 
-            NETWORK.updatePlayerList(GAME.mobs);
+            this.network.updatePlayerList(this.game.mobs);
         });
 
         // settings button in the top right. When clicked display the
@@ -122,7 +133,7 @@ export class HtmlUi {
             } else {
                 panel.style.display = "block";
 
-                if (GAME.isHostingTheServer) {
+                if (this.game.isHostingTheServer) {
                     this.resetMapButton.style.display = "block";
                     this.loadMapButton.style.display = "block";
                 } else {
@@ -134,7 +145,7 @@ export class HtmlUi {
         // chat button in the top left. When clicked show the user
         // chat input
         document.getElementById("chat")!.addEventListener("click", () => {
-            if (NETWORK.connected()) {
+            if (this.network.connected()) {
                 if (this.chatInput.style.display === "block") {
                     this.hideChat();
                 } else {
@@ -165,16 +176,16 @@ export class HtmlUi {
         // Joining the game is starting the game with a network that
         // acts as a client
         document.getElementById("joinButton")!.addEventListener("click", () => {
-            GAME.isHostingTheServer = false;
-            GAME.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
-            GAME.username = (document.getElementById("playerName") as HTMLInputElement).value;
-            GAME.player.name = GAME.username;
-            NETWORK.updatePlayerList(GAME.mobs);
+            this.game.isHostingTheServer = false;
+            this.game.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
+            this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
+            this.game.player.name = this.game.username;
+            this.network.updatePlayerList(this.game.mobs);
         
             document.getElementById("join")!.style.display = "none";
-            NETWORK.startNetwork(GAME.isHostingTheServer);
-            GAME.connecting = true;
-            GAME.waitingForHost = true;
+            this.network.startNetwork(this.game.isHostingTheServer);
+            this.game.connecting = true;
+            this.game.waitingForHost = true;
         });
     }
 
@@ -182,7 +193,7 @@ export class HtmlUi {
      * Show the chat input
      */
     showChat() {
-        if (NETWORK.connected()) {
+        if (this.network.connected()) {
             this.chatInput!.style.display = "block";
             this.chatInput.focus();
         }
@@ -194,8 +205,8 @@ export class HtmlUi {
      * @param message The message to send
      */
     sendChat(message: string) {
-        if (NETWORK.connected()) {
-            NETWORK.sendChatMessage(GAME.player.name, message);
+        if (this.network.connected()) {
+            this.network.sendChatMessage(this.game.player.name, message);
         }
     }
     
@@ -205,7 +216,4 @@ export class HtmlUi {
     hideChat() {
         this.chatInput!.style.display = "none";
     }
-
 }
-
-export const HTML_UI: HtmlUi = new HtmlUi();

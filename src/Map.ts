@@ -26,9 +26,7 @@ import gold_tile from "./img/tiles/gold.png";
 import iron_tile from "./img/tiles/iron.png";
 import silver_tile from "./img/tiles/silver.png";
 import diamond_tile from "./img/tiles/diamond.png";
-
-import { NETWORK } from "./Network";
-import { GAME } from "./Game";
+import { Game } from "./Game";
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
@@ -138,7 +136,13 @@ export class GameMap {
     backingTopTile?: HTMLImageElement;
     /** The collection of images that can be used to black out undiscovered areas - these vary to make the black not uniform */
     undiscovered: HTMLImageElement[] = [];
+    /** The central game controller */
+    game: Game;
     
+    constructor(game: Game) {
+        this.game = game;
+    }
+
     /**
      * Reset the map to a newly generated one
      */
@@ -148,7 +152,6 @@ export class GameMap {
         this.generate();
         this.refreshSpriteTileMap();
         this.setDiscovered(0, 0);
-        NETWORK.sendMapUpdate(undefined);
     }
 
     /**
@@ -527,7 +530,7 @@ export class GameMap {
             const sprite = tiles[tile]?.sprite;
             this.foregroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
     
-            if (GAME.isHostingTheServer) {
+            if (this.game.isHostingTheServer) {
                 localStorage.setItem("map", JSON.stringify(this.foreground));
             }
     
@@ -538,7 +541,7 @@ export class GameMap {
             this.background[x + (y * MAP_WIDTH)] = tile;
             const sprite = tiles[tile]?.sprite;
             this.backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
-            if (GAME.isHostingTheServer) {
+            if (this.game.isHostingTheServer) {
                 localStorage.setItem("mapbg", JSON.stringify(this.background));
             }
         }
@@ -689,10 +692,3 @@ export class GameMap {
         }
     }
 }
-
-export const GAME_MAP: GameMap = new GameMap();
-GAME_MAP.clear();
-if (!GAME_MAP.loadFromStorage()) {
-    GAME_MAP.generate();
-}
-GAME_MAP.setDiscovered(0, 0);

@@ -1,8 +1,8 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
-import { SKY_HEIGHT, TILE_SIZE, GAME_MAP } from './Map';
-import { GAME } from './Game';
+import { GameMap, SKY_HEIGHT, TILE_SIZE } from './Map';
+import { Game } from './Game';
 
 //
 // Network is handled by using WebRTC through https://livekit.io/ 
@@ -59,6 +59,21 @@ export class Network {
     removed: string[] = [];
     /** True if the networking has been started */
     started: boolean = false;
+    /** The game map this network is running against */
+    gameMap: GameMap;
+    /** The central game controller */
+    game: Game;
+
+    /**
+     * Create a new network session
+     * 
+     * @param game The central game controller
+     * @param map The map to maintain
+     */
+    constructor(game: Game, map: GameMap) {
+        this.game = game;
+        this.gameMap = map;
+    }
 
     /**
      * Update the visual list of players connected 
@@ -105,8 +120,8 @@ export class Network {
         // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
         // provider that uses kev's hidden livekit key. 
         const request = new XMLHttpRequest();
-        request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(GAME.username!) + 
-                            "&room=" + GAME.serverId + "&password=" + NETWORK_PASSWORD, false);
+        request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(this.game.username!) + 
+                            "&room=" + this.game.serverId + "&password=" + NETWORK_PASSWORD, false);
         request.send();
         const token = request.responseText;
 
@@ -148,7 +163,7 @@ export class Network {
                     // parse the blob and update the game map
                     const fullArray: number[] = Array.from(payload);
                     const len: number = fullArray.length / 2;
-                    GAME_MAP.setMapData({
+                    this.gameMap.setMapData({
                         f: fullArray.slice(0, len),
                         b: fullArray.slice(len)
                     });
@@ -189,8 +204,8 @@ export class Network {
                 // notification of a tile being updates. This can be sent from server
                 // or client but only the server controls which tiles are actually applied
                 if (message.type === "tileChange") {
-                    GAME_MAP.setTile(message.x, message.y, message.tile, message.layer);
-                    GAME_MAP.refreshSpriteTile(message.x, message.y);
+                    this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
+                    this.gameMap.refreshSpriteTile(message.x, message.y);
                     if (this.hostingServer) {
                         this.sendNetworkTile(message.x, message.y, message.tile, message.layer);
                     }
@@ -223,7 +238,7 @@ export class Network {
     
                                 let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
                                 if (!targetMob) {
-                                    targetMob = new Mob(mobData.id, mobData.name, HUMAN_SKELETON, mobData.x, mobData.y);
+                                    targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, HUMAN_SKELETON, mobData.x, mobData.y);
                                     this.localMobs.push(targetMob);
                                     this.updatePlayerList(this.localMobs);
                                 }
@@ -289,7 +304,7 @@ export class Network {
             return;
         }
         
-        const data = GAME_MAP.getMapData();
+        const data = this.gameMap.getMapData();
         const dataBlocks = new Uint8Array([...data.f, ...data.b]);
         if (target) {
             this.room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map", destination: [target] });
@@ -308,13 +323,13 @@ export class Network {
      */
     sendNetworkTile(x: number, y: number, tile: number, layer: number) {
         if (!NETWORKING_ENABLED) {
-            GAME_MAP.setTile(x, y, tile, layer);
+            this.gameMap.setTile(x, y, tile, layer);
             return;
         }
         
         if (this.hostingServer) {
             // if we're the host then forward the update to all players
-            GAME_MAP.setTile(x, y, tile, layer);
+            this.gameMap.setTile(x, y, tile, layer);
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
         } else if (this.hostParticipantId) {
@@ -392,9 +407,5 @@ export class Network {
             }
         }
     }
-    
-
 }
-
-export const NETWORK = new Network();
 

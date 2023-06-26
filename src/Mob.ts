@@ -1,7 +1,7 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./Bones";
-import { GAME_MAP, Layer, TILE_SIZE } from "./Map";
-import { NETWORK } from "./Network";
+import { GameMap, Layer, TILE_SIZE } from "./Map";
+import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
 import { HumanBones } from "./Skeletons";
 
@@ -85,6 +85,10 @@ export class Mob {
     body: string = "male";
     /** True if this mob is locally controlled */
     local: boolean = false;
+    /** The game map this mob is on */
+    gameMap: GameMap;
+    /** The network this mob is using */
+    network: Network;
 
     /** The item in the mob's inventory */
     inventory: InventItem[] = [
@@ -108,13 +112,17 @@ export class Mob {
     /**
      * Create a new mob
      * 
+     * @param network The network maintaining this mob
+     * @param gameMap The game map this mob exists on
      * @param id The ID to assign to the new mob
      * @param name The name given for the mob
      * @param original The original skeleton to copy for this mob
      * @param x The x coordinate of the mob's initial position
      * @param y The y coordinate of the mob's initial position
      */
-    constructor(id: string, name: string, original: Bone, x: number, y: number) {
+    constructor(network: Network, gameMap: GameMap, id: string, name: string, original: Bone, x: number, y: number) {
+        this.gameMap = gameMap;
+        this.network = network;
         this.rootBone = original.copy();
         this.allBones = this.rootBone.findAll();
         this.x = x;
@@ -211,7 +219,7 @@ export class Mob {
         let count = 0;
         for (let s=0;s<(this.height * 2);s+=stepSize) {
             count++;
-            if (GAME_MAP.isBlocked((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
+            if (this.gameMap.isBlocked((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -229,7 +237,7 @@ export class Mob {
         let count = 0;
         for (let s=0;s<(this.height * 2);s+=stepSize) {
             count++;
-            if (GAME_MAP.isBlocked((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
+            if (this.gameMap.isBlocked((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -251,7 +259,7 @@ export class Mob {
 
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (GAME_MAP.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE)) {
+            if (this.gameMap.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -273,7 +281,7 @@ export class Mob {
 
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (GAME_MAP.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE)) {
+            if (this.gameMap.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE)) {
                 return true;
             }
         }
@@ -308,7 +316,7 @@ export class Mob {
      * Indicate that the mob wan't to jump (either local controls or network update)
      */
     jump(): void {
-        if (GAME_MAP.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+        if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
@@ -375,13 +383,13 @@ export class Mob {
         if (this.itemHeld) {
             const layer = placingOnBackgroundLayer ? Layer.BACKGROUND : Layer.FOREGROUND;
 
-            if (this.controls.mouse && this.itemHeld?.place === 0 && GAME_MAP.getTile(this.overX, this.overY, layer) !== 0) {
+            if (this.controls.mouse && this.itemHeld?.place === 0 && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
                 this.blockDamage++;
 
                 if (this.blockDamage >= 60) {
                     if (this.local) {
-                        NETWORK.sendNetworkTile(this.overX, this.overY, 0, layer);
+                        this.network.sendNetworkTile(this.overX, this.overY, 0, layer);
                     }
                     this.blockDamage = 0;
                 } else {
@@ -398,12 +406,12 @@ export class Mob {
                     this.headTilt = -0.2;
                 }
             }
-            if (this.controls.mouse && this.itemHeld.place !== 0 && GAME_MAP.getTile(this.overX, this.overY, layer) === 0) {
+            if (this.controls.mouse && this.itemHeld.place !== 0 && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
                 if (this.local) {
-                    NETWORK.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
+                    this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                 }
                 
-                GAME_MAP.refreshSpriteTile(this.overX, this.overY);
+                this.gameMap.refreshSpriteTile(this.overX, this.overY);
                 for (let i=0;i<5;i++) {
                     addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
                 }

@@ -1,6 +1,8 @@
 //
 // Simple bootstrap 
 //
-import { GAME } from "./Game";
 
-GAME.startLoop();
+import { Game } from "./Game";
+
+const game = new Game();
+game.startLoop();
