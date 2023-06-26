@@ -9,10 +9,10 @@
 - Run `npm start`
 - Connect to http://localhost:20000
 
-Screenshots:
+## Screenshots
 
 ![image](https://github.com/kevglass/unearthed/assets/3787210/8021ee35-4f76-439a-b42c-138f0300c8fd)
 
-Thanks 
+## Thanks 
 
 - Thanks to Kenney for his awesome graphics ([https://](https://kenney.nl/)https://kenney.nl/)
