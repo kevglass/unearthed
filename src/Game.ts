@@ -5,7 +5,7 @@ import { Mob } from "./Mob";
 import { isMobile } from "./MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./Particles";
-import { getSprite, resourcesLoaded } from "./Resources";
+import { getSfx, getSprite, resourcesLoaded } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -206,6 +206,7 @@ export class Game {
                     }
                 }
                 this.player.itemHeld = this.player.inventory[index];
+                getSfx('click').play();
             }
             if (event.key === 'e') {
                 let index = 0;
@@ -216,6 +217,7 @@ export class Game {
                     }
                 }
                 this.player.itemHeld = this.player.inventory[index];
+                getSfx('click').play();
             }
 
             // Pressing X changes the layer we're targeting
@@ -316,6 +318,7 @@ export class Game {
                 if (index >= 0 && index < this.player.inventory.length) {
                     foundInventButton = true;
                     this.player.itemHeld = this.player.inventory[index];
+                    getSfx('click').play();
                 }
             } else {
                 if ((xp === 0 && yp === 1)) {
@@ -612,6 +615,7 @@ export class Game {
             for (let i = 1; i < 10; i++) {
                 if (this.keyDown["" + i]) {
                     this.player.itemHeld = this.player.inventory[i - 1];
+                    getSfx('click').play();
                 }
             }
 

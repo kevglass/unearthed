@@ -19,4 +19,4 @@ https://cokeandcode.com/demos/unearthed/
 
 ## Thanks 
 
-- Thanks to Kenney for his awesome graphics (https://kenney.nl/)
+- Thanks to Kenney for his awesome assets (https://kenney.nl/)
