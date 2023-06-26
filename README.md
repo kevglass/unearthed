@@ -1,5 +1,9 @@
 # Unearthed - a simple 2D block digging game
 
+## Play It
+
+https://cokeandcode.com/demos/unearthed/
+
 ## Getting Started
 
 - Check out code
