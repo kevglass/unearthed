@@ -8,8 +8,8 @@ https://cokeandcode.com/demos/unearthed/
 
 - Check out code
 - Run `npm i`
-- Copy `local.properties.json.template' to 'local.properties.json'
-- Update `local.properties.json' to either add your password or set it to a blank value (to disable network)
+- Copy `local.properties.json.template` to `local.properties.json`
+- Update `local.properties.json` to either add your password or set it to a blank value (to disable network)
 - Run `npm start`
 - Connect to http://localhost:20000
 
@@ -19,4 +19,4 @@ https://cokeandcode.com/demos/unearthed/
 
 ## Thanks 
 
-- Thanks to Kenney for his awesome graphics ([https://](https://kenney.nl/)https://kenney.nl/)
+- Thanks to Kenney for his awesome graphics (https://kenney.nl/)
