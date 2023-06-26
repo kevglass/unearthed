@@ -2,9 +2,12 @@ import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-cli
 import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
 import { SKY_HEIGHT, TILE_SIZE, GAME_MAP } from './Map';
+import { GAME } from './Game';
 
 const UPDATE_INTERVAL_MS: number = 100;
 const MAP_REQUEST_INTERVAL: number = 1000;
+const NETWORK_PASSWORD: string = "_ROOMPASSWORD_";
+const NETWORKING_ENABLED: boolean = NETWORK_PASSWORD !== "";
 
 export class Network {
     encoder = new TextEncoder();
@@ -20,7 +23,8 @@ export class Network {
     hadMap: boolean = false;
     host: RemoteParticipant | undefined;
     removed: string[] = [];
-    
+    started: boolean = false;
+
     updatePlayerList(mobs: Mob[]): void {
         const listDiv = document.getElementById("playerList")!;
         listDiv.innerHTML = "";
@@ -34,10 +38,25 @@ export class Network {
     }
     
     connected(): boolean {
+        if (!NETWORKING_ENABLED) {
+            return this.started;
+        }
+
         return (this.host !== undefined) || this.hostingServer;
     }
     
-    async startNetwork(token: string, hosting: boolean) {
+    async startNetwork(hosting: boolean) {
+        if (!NETWORKING_ENABLED) {
+            this.started = true;
+            return;
+        }
+
+        const request = new XMLHttpRequest();
+        request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(GAME.username!) + 
+                            "&room=" + GAME.serverId + "&password=" + NETWORK_PASSWORD, false);
+        request.send();
+        const token = request.responseText;
+
         this.hostingServer = hosting;
         const wsURL = "wss://talesofyore.livekit.cloud"
     
@@ -143,6 +162,10 @@ export class Network {
     }
     
     addChat(who: string, message: string): void {
+        if (!NETWORKING_ENABLED) {
+            return;
+        }
+        
         const list = document.getElementById("chatList") as HTMLDivElement;
     
         while (list.childElementCount > 4) {
@@ -166,6 +189,10 @@ export class Network {
     }
     
     sendMapUpdate(target: string | undefined) {
+        if (!NETWORKING_ENABLED) {
+            return;
+        }
+        
         const data = GAME_MAP.getMapData();
         const dataBlocks = new Uint8Array([...data.f, ...data.b]);
         if (target) {
@@ -176,6 +203,11 @@ export class Network {
     }
     
     sendNetworkTile(x: number, y: number, tile: number, layer: number) {
+        if (!NETWORKING_ENABLED) {
+            GAME_MAP.setTile(x, y, tile, layer);
+            return;
+        }
+        
         if (this.hostingServer) {
             GAME_MAP.setTile(x, y, tile, layer);
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
@@ -187,6 +219,10 @@ export class Network {
     }
     
     sendChatMessage(who: string, message: string) {
+        if (!NETWORKING_ENABLED) {
+            return;
+        }
+        
         message = message.trim();
         if (message.length === 0) {
             return;

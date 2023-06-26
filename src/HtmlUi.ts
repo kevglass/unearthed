@@ -2,14 +2,34 @@ import { GAME_MAP, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { NETWORK } from "./Network";
 import { GAME } from "./Game";
 
+/**
+ * A controller for everything thats on the HTML layer rather than the canvas. The game
+ * makes use of HTML components for the UI rather than drawing them manually on the canvas.
+ */
 export class HtmlUi {
-    chatInput = document.getElementById("chatinput") as HTMLInputElement;
-    resetMapButton = document.getElementById("resetMapButton") as HTMLDivElement;
-    loadMapButton = document.getElementById("loadMapButton") as HTMLDivElement;
-    saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
-    fileInput = document.getElementById("fileInput") as HTMLInputElement;
+    /** The input element used to accept user network chat */
+    chatInput: HTMLInputElement;
+    /** The button in the setting dialog for resetting the map */
+    resetMapButton: HTMLDivElement;
+    /** The button in the setting dialog for loading the map */
+    loadMapButton: HTMLDivElement;
+    /** The button in the setting dialog for saving the map */
+    saveMapButton: HTMLDivElement;
+    /** The file input element used to upload maps */
+    fileInput: HTMLInputElement;
 
     constructor() {
+        this.resetMapButton = document.getElementById("resetMapButton") as HTMLDivElement;
+        this.loadMapButton = document.getElementById("loadMapButton") as HTMLDivElement;
+        this.saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
+        this.fileInput = document.getElementById("fileInput") as HTMLInputElement;
+        this.chatInput = document.getElementById("chatinput") as HTMLInputElement;
+
+        //
+        // The file input is used to show the file selector in the browser. We programmatically
+        // click it to show the choose. When the value is changed we load the data
+        // selected and stick it in our map array
+        //
         this.fileInput.addEventListener('change', () => {
             if (this.fileInput.files) {
                 const reader = new FileReader();
@@ -31,6 +51,7 @@ export class HtmlUi {
             }
         });
 
+        // reset the map 
         this.resetMapButton.addEventListener("click", () => {
             if (confirm("Reset Map?") && GAME.isHostingTheServer) {
                 GAME_MAP.reset();
@@ -39,6 +60,10 @@ export class HtmlUi {
                 document.getElementById("settingsPanel")!.style.display = "none";
             }
         });
+        //
+        // saving the map - since this a browser based app we create a link with
+        // an encoded URL of the map data and then click it as a download.
+        //
         this.saveMapButton.addEventListener("click", () => {
             const data = GAME_MAP.getMapData();
             const dataBlocks = new Uint8Array([...data.f, ...data.b]);
@@ -52,37 +77,32 @@ export class HtmlUi {
             link.download = "unearthed-level-" + date + ".bin";
             link.click();
         });
-
+        // This is just to start the file chooser
         this.loadMapButton.addEventListener("click", () => {
             this.fileInput.click();
         });
 
-
+        // start the game button - start the network on our server ID
         document.getElementById("startGame")!.addEventListener("click", () => {
             GAME.isHostingTheServer = true;
-            const request = new XMLHttpRequest();
-            request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(GAME.username!) + 
-                                "&room=" + GAME.serverId + "&password=_ROOMPASSWORD_", false);
-            request.send();
-            const accessToken = request.responseText;
-
             document.getElementById("connect")!.style.display = "none";
-            NETWORK.startNetwork(accessToken, GAME.isHostingTheServer);
+            NETWORK.startNetwork(GAME.isHostingTheServer);
             GAME.connecting = true;
             GAME.waitingForHost = true;
             document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + GAME.serverId;
         });
-
+        // join game button - just show the join game dialog
         document.getElementById("joinGame")!.addEventListener("click", () => {
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("join")!.style.display = "block";
         });
-
+        // join game button - just show the setup dialog
         document.getElementById("setupButton")!.addEventListener("click", () => {
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("setup")!.style.display = "block";
         });
 
+        // done button from the settings panel. Apply the settings and go back to main menu
         document.getElementById("doneButton")!.addEventListener("click", () => {
             GAME.username = (document.getElementById("playerName") as HTMLInputElement).value;
             GAME.player.name = GAME.username;
@@ -93,6 +113,8 @@ export class HtmlUi {
             NETWORK.updatePlayerList(GAME.mobs);
         });
 
+        // settings button in the top right. When clicked display the
+        // the setting menu.
         document.getElementById("settings")!.addEventListener("click", () => {
             const panel = document.getElementById("settingsPanel")!;
             if (panel.style.display === "block") {
@@ -109,6 +131,8 @@ export class HtmlUi {
                 }
             }
         })
+        // chat button in the top left. When clicked show the user
+        // chat input
         document.getElementById("chat")!.addEventListener("click", () => {
             if (NETWORK.connected()) {
                 if (this.chatInput.style.display === "block") {
@@ -118,9 +142,13 @@ export class HtmlUi {
                 }
             }
         })
+        // close button hide the settings panel
         document.getElementById("closeButton")!.addEventListener("click", () => {
             document.getElementById("settingsPanel")!.style.display = "none";
         })
+
+        // special cases for when chatting. Enter will send the message and escape
+        // will hide the chat box.
         this.chatInput!.addEventListener("keydown", (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 this.chatInput.value = "";
@@ -134,7 +162,8 @@ export class HtmlUi {
             }
         });
         
-
+        // Joining the game is starting the game with a network that
+        // acts as a client
         document.getElementById("joinButton")!.addEventListener("click", () => {
             GAME.isHostingTheServer = false;
             GAME.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
@@ -142,19 +171,16 @@ export class HtmlUi {
             GAME.player.name = GAME.username;
             NETWORK.updatePlayerList(GAME.mobs);
         
-            const request = new XMLHttpRequest();
-            request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(GAME.username!) + 
-                                "&room=" + GAME.serverId + "&password=_ROOMPASSWORD_", false);
-            request.send();
-            const accessToken = request.responseText;
-        
             document.getElementById("join")!.style.display = "none";
-            NETWORK.startNetwork(accessToken, GAME.isHostingTheServer);
+            NETWORK.startNetwork(GAME.isHostingTheServer);
             GAME.connecting = true;
             GAME.waitingForHost = true;
         });
     }
 
+    /**
+     * Show the chat input
+     */
     showChat() {
         if (NETWORK.connected()) {
             this.chatInput!.style.display = "block";
@@ -162,12 +188,20 @@ export class HtmlUi {
         }
     }
     
+    /**
+     * Send a chat message
+     * 
+     * @param message The message to send
+     */
     sendChat(message: string) {
         if (NETWORK.connected()) {
             NETWORK.sendChatMessage(GAME.player.name, message);
         }
     }
     
+    /**
+     * Hide the chat input
+     */
     hideChat() {
         this.chatInput!.style.display = "none";
     }

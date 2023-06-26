@@ -1,8 +1,9 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./Bones";
-import { GAME_MAP, TILE_SIZE } from "./Map";
+import { GAME_MAP, Layer, TILE_SIZE } from "./Map";
 import { NETWORK } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
+import { HumanBones } from "./Skeletons";
 
 export interface InventItem {
     sprite: string;
@@ -260,7 +261,7 @@ export class Mob {
         }
 
         if (this.itemHeld) {
-            const layer = backPlace ? 1 : 0;
+            const layer = backPlace ? Layer.BACKGROUND : Layer.FOREGROUND;
 
             if (this.controls.mouse && this.itemHeld?.place === 0 && GAME_MAP.getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
@@ -334,13 +335,11 @@ export class Mob {
         this.y += this.vy;
 
         for (const bone of this.allBones) {
-            bone.update(animTime, bone, this.anim);
+            bone.update(animTime, this.anim);
         }
 
         if (this.working) {
-            for (const bone of this.allBones) {
-                bone.update(animTime, this.bone.findBone("rightarm")!, WORK_ANIM);
-            }
+            this.bone.findNamedBone(HumanBones.RIGHT_ARM)!.update(animTime, WORK_ANIM);
             if (this.overX * TILE_SIZE > this.x) {
                 this.flip = true;
             }
@@ -352,7 +351,7 @@ export class Mob {
         if (this.vy < 0) {
             this.headTilt = 0.3;
         }
-        this.bone.findBone("head")!.ang = this.headTilt;
+        this.bone.findNamedBone(HumanBones.HEAD)!.ang = this.headTilt;
     }
 
     draw(g: CanvasRenderingContext2D, showBounds: boolean): void {

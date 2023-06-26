@@ -1,5 +1,5 @@
 import { HTML_UI } from "./HtmlUi";
-import { GAME_MAP, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { GAME_MAP, Layer, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile } from "./MobileDetect";
 import { NETWORK } from "./Network";
@@ -426,7 +426,8 @@ export class Game {
         if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
             this.player.damage = 0;
         }
-        if (this.mouseButtonDown[0] && canAct && GAME_MAP.getTile(this.player.overX, this.player.overY, this.placingTilesOnFrontLayer ? 0 : 1) !== 0) {
+        if (this.mouseButtonDown[0] && canAct && GAME_MAP.getTile(this.player.overX, this.player.overY, 
+            this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
             this.lastWorkX = this.player.overX;
             this.lastWorkY = this.player.overY;
         }
