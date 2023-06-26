@@ -35,9 +35,19 @@ import square_orange_particle from "./img/particles/square_orange.png";
 import square_red_particle from "./img/particles/square_red.png";
 import logo from "./img/logo.png";
 
+import click_002 from "./sfx/ui/click_002.ogg";
+
+import impactMetal_heavy_000 from "./sfx/ui/impactMetal_heavy_000.ogg";
+import impactMetal_heavy_001 from "./sfx/ui/impactMetal_heavy_001.ogg";
+import impactMetal_heavy_002 from "./sfx/ui/impactMetal_heavy_002.ogg";
+import impactMetal_heavy_003 from "./sfx/ui/impactMetal_heavy_003.ogg";
+import impactMetal_heavy_004 from "./sfx/ui/impactMetal_heavy_004.ogg";
+
 /** The collection of all sprites loaded by the game */
 const sprites: Record<string, HTMLImageElement> = {};
-/** The number of sprites left to load */
+/** The collection of all sound effects loaded by the game */
+const sfx: Record<string, HTMLAudioElement> = {};
+/** The number of assets left to load */
 let loadedCount = 0;
 
 /**
@@ -57,6 +67,22 @@ export function loadImage(name: string, url: string): HTMLImageElement {
 }
 
 /**
+ * Load a sound effect into the resources cache
+ * 
+ * @param name The name to give the sound effect in the cache
+ * @param url The URL (normally a webpack reference) to load the sound effect from
+ * @returns The newly created audio element
+ */
+export function loadSfx(name: string, url: string): HTMLAudioElement {
+    sfx[name] = new Audio();
+    sfx[name].src = url;
+    loadedCount++;
+    sfx[name].onloadeddata = () => { loadedCount--; };
+    
+    return sfx[name];
+}
+
+/**
  * Get a sprite from the cache with a specific name
  * 
  * @param name The name of the sprite to retrieve
@@ -64,6 +90,16 @@ export function loadImage(name: string, url: string): HTMLImageElement {
  */
 export function getSprite(name: string): HTMLImageElement {
     return sprites[name];
+}
+
+/**
+ * Get a sound effect from the cache with a specific name
+ * 
+ * @param name The name of the sound effect to retrieve
+ * @returns The sound effect or undefined if the sound effect couldn't be found
+ */
+export function getSfx(name: string): HTMLAudioElement {
+    return sfx[name];
 }
 
 /**
@@ -115,3 +151,13 @@ loadImage("tile.undiscovered1", undiscovered1_tile);
 loadImage("tile.undiscovered2", undiscovered2_tile);
 loadImage("tile.undiscovered3", undiscovered3_tile);
 loadImage("tile.undiscovered4", undiscovered4_tile);
+
+// ui sounds
+loadSfx("click", click_002);
+
+// mining sounds
+loadSfx("mining.000", impactMetal_heavy_000);
+loadSfx("mining.001", impactMetal_heavy_001);
+loadSfx("mining.002", impactMetal_heavy_002);
+loadSfx("mining.003", impactMetal_heavy_003);
+loadSfx("mining.004", impactMetal_heavy_004);

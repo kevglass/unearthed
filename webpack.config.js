@@ -40,6 +40,10 @@ module.exports = {
         loader: "url-loader",
       },
       {
+        test: /\.ogg$/,
+        loader: "url-loader",
+      },
+      {
         test: /\.properties$/,
         loader: "url-loader",
       }
