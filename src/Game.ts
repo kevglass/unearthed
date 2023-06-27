@@ -116,6 +116,7 @@ export class Game {
             this.gameMap.generate();
         }
         this.gameMap.setDiscovered(0, 0);
+        this.gameMap.refreshFullLightMap();
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
@@ -208,7 +209,7 @@ export class Game {
                     }
                 }
                 this.player.itemHeld = this.player.inventory[index];
-                playSfx('click');
+                playSfx('click', 1);
             }
             if (event.key === 'e') {
                 let index = 0;
@@ -219,7 +220,7 @@ export class Game {
                     }
                 }
                 this.player.itemHeld = this.player.inventory[index];
-                playSfx('click');
+                playSfx('click', 1);
             }
 
             // Pressing X changes the layer we're targeting
@@ -324,7 +325,7 @@ export class Game {
                 if (index >= 0 && index < this.player.inventory.length) {
                     foundInventButton = true;
                     this.player.itemHeld = this.player.inventory[index];
-                    playSfx('click');
+                    playSfx('click', 1);
                 }
             } else {
                 if ((xp === 0 && yp === 1)) {
@@ -651,7 +652,7 @@ export class Game {
                 if (this.keyDown["" + i]) {
                     if (this.player.itemHeld !== this.player.inventory[i - 1]) {
                         this.player.itemHeld = this.player.inventory[i - 1];
-                        playSfx('click');
+                        playSfx('click', 1);
                     }
                 }
             }
@@ -665,6 +666,8 @@ export class Game {
                     this.mobs.splice(this.mobs.indexOf(mob), 1);
                 }
             }
+
+            this.gameMap.drawLightMap(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
         }
 
         renderAndUpdateParticles(this.g);

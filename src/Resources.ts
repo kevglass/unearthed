@@ -128,7 +128,7 @@ export function getSprite(name: string): HTMLImageElement {
  * @param name The name of the sound effect to play
  * @param variations The number of variations of the sound effect to choose from
  */
-export function playSfx(name: string, variations: number|null = null): void {
+export function playSfx(name: string, volume: number, variations: number|null = null): void {
     if (!audioContext) {
         return;
     }
@@ -145,18 +145,22 @@ export function playSfx(name: string, variations: number|null = null): void {
         if (!audioBuffers[variationName]) {
             audioContext.decodeAudioData(effect).then((buffer: AudioBuffer) => {
                 audioBuffers[variationName] = buffer;
-                playBuffer(buffer);
+                playBuffer(buffer, volume);
             });
         } else {
-            playBuffer(audioBuffers[variationName]);
+            playBuffer(audioBuffers[variationName], volume);
         }
     }
 }
 
-function playBuffer(buffer: AudioBuffer): void {
+function playBuffer(buffer: AudioBuffer, volume: number = 1): void {
     const source = audioContext.createBufferSource();
+    const gainNode: GainNode = audioContext.createGain();
+    gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+
     source.buffer = buffer;
-    source.connect(audioContext.destination);
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
     source.start(0);
 }

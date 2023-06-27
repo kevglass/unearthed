@@ -322,7 +322,7 @@ export class Mob {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
-            playSfx("jump");
+            playSfx("jump", 0.1);
         } 
     }
 
@@ -395,10 +395,10 @@ export class Mob {
                         this.network.sendNetworkTile(this.overX, this.overY, 0, layer);
                     }
                     this.blockDamage = 0;
-                    playSfx('mining_break', 5);
+                    playSfx('mining_break', 0.6, 5);
                 } else {
                     if (this.blockDamage % 20 === 0) {
-                        playSfx('mining', 5);
+                        playSfx('mining', 0.5, 5);
                     }
                     if (Date.now() - this.lastParticleCreated > 100) {
                         this.lastParticleCreated = Date.now();
@@ -419,7 +419,7 @@ export class Mob {
                 }
                 
                 this.gameMap.refreshSpriteTile(this.overX, this.overY);
-                playSfx('place');
+                playSfx('place', 0.2);
                 for (let i=0;i<5;i++) {
                     addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
                 }
@@ -452,7 +452,7 @@ export class Mob {
                 if (!this.blockedRight()) {
                     this.x += 7;
                     if (this.standingOnSomething() && this.seq % 15 === 0) {
-                        playSfx('footstep', 5);
+                        playSfx('footstep', 0.1, 5);
                     }
                 } else {
                     // if we're blocked then move us out of the collision
@@ -463,7 +463,7 @@ export class Mob {
                 if (!this.blockedLeft()) {
                     this.x -= 7;
                     if (this.standingOnSomething() && this.seq % 15 === 0) {
-                        playSfx('footstep', 5);
+                        playSfx('footstep', 0.1, 5);
                     }
                 } else {
                     // if we're blocked then move us out of the collision
