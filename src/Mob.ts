@@ -1,6 +1,6 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./Bones";
-import { GameMap, Layer, TILE_SIZE } from "./Map";
+import { GameMap, Layer, TILE_SIZE, tiles } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
 import { playSfx } from "./Resources";
@@ -425,14 +425,17 @@ export class Mob {
                 }
             }
             if (this.controls.mouse && this.itemHeld.place !== 0 && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
-                if (this.local) {
-                    this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
-                }
-                
-                this.gameMap.refreshSpriteTile(this.overX, this.overY);
-                playSfx('place', 0.2);
-                for (let i=0;i<5;i++) {
-                    addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
+                const block = tiles[this.itemHeld.place];
+                if (layer !== Layer.BACKGROUND || (block && !block.backgroundDisabled)) {
+                    if (this.local) {
+                        this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
+                    }
+                    
+                    this.gameMap.refreshSpriteTile(this.overX, this.overY);
+                    playSfx('place', 0.2);
+                    for (let i=0;i<5;i++) {
+                        addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
+                    }
                 }
             }
         }

@@ -31,6 +31,7 @@ import iron_tile from "./img/tiles/iron.png";
 import silver_tile from "./img/tiles/silver.png";
 import diamond_tile from "./img/tiles/diamond.png";
 import { Game } from "./Game";
+import { addParticle, createDirtParticle } from "./Particles";
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
@@ -68,15 +69,28 @@ interface Block {
     timer?: { timer: number, callback: (map: GameMap, tile: number) => void }|null;
     /** Does this block light the area */
     light?: boolean;
+    /** True if we can't place this block in the background */
+    backgroundDisabled?: boolean;
 }
 
-const explosion = (map: GameMap, tile: number): void => {
+/**
+ * A callback to explode a tile location 
+ * 
+ * @param map The map the explosion is taking place on
+ * @param tile The tile index the explosion is taking place at
+ */
+const EXPLOSION_MUTATOR = (map: GameMap, tile: number): void => {
     for (let x = tile % MAP_WIDTH - 1; x <= tile % MAP_WIDTH + 1; x++) {
         for (let y = Math.floor(tile / MAP_WIDTH) - 1; y <= Math.floor(tile / MAP_WIDTH) + 1; y++) {
             if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
                 continue;
             }
-            map.setTile(x, y, 0, Layer.FOREGROUND);
+            if (map.getTile(x,y, Layer.FOREGROUND) !== 0) {
+                map.setTile(x, y, 0, Layer.FOREGROUND);
+                for (let i=0;i<5;i++) {
+                    addParticle(createDirtParticle((x+ 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
+                }
+            }
         }
     }
     playSfx("explosion", 1);
@@ -111,8 +125,8 @@ export const tiles: Record<number, Block> = {
     22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
     23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
     24: { sprite: loadImage("tile.platform_tile", platform_tile), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-    25: { sprite: loadImage("tile.tnt", tnt_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: explosion } },
-    26: { sprite: loadImage("tile.torch", torch_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true},
+    25: { sprite: loadImage("tile.tnt", tnt_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
+    26: { sprite: loadImage("tile.torch", torch_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
 };
 
 export enum Layer {
