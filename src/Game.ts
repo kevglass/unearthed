@@ -119,7 +119,7 @@ export class Game {
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
-        
+
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
         if (localStorage.getItem("head")) {
@@ -181,7 +181,7 @@ export class Game {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             startAudioOnFirstInput();
-            
+
             // if we're focused on the chat input that takes precedence
             if (document.activeElement === this.ui.chatInput) {
                 return;
@@ -496,9 +496,38 @@ export class Game {
 
         this.g.save();
 
-        // draw the background clouds
-        this.g.drawImage(getSprite('clouds'), 0, 0, this.canvas.width, this.canvas.height);
-        this.g.fillStyle = "#445253";
+        let ox = this.player.x - (this.canvas.width / 2);
+        const oy = this.player.y - (this.canvas.height / 2);
+        ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
+
+        this.g.fillStyle = "#a4ddf0";
+        this.g.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+
+        const backgrounds = [{
+            sprite: "clouds",
+            parallax: 6,
+            scale: 2,
+            offset: 0
+        }, {
+            sprite: "hills",
+            parallax: 3,
+            scale: 2,
+            offset: 400
+        }];
+
+        for (const bg of backgrounds) {
+            const background = getSprite(bg.sprite);
+            this.g.save();
+            this.g.translate(-((ox / bg.parallax) % (background.width * bg.scale)), bg.offset);
+            for (let x = 0; x < this.canvas.width * 2; x += (background.width * bg.scale) - bg.scale) {
+                // draw the background clouds
+                this.g.drawImage(background, x, 0, background.width * bg.scale, background.height * bg.scale);
+            }
+            this.g.restore();
+
+        }
+
 
         // if the network hasn't been started we're at the main menu
         if (!this.network.connected()) {
@@ -506,6 +535,8 @@ export class Game {
             this.network.update(this.player, this.mobs);
             document.getElementById("serverLink")!.innerHTML = this.waitingForHost ? "Waiting for Host" : "Disconnected";
             requestAnimationFrame(() => { this.loop() });
+
+            this.g.fillStyle = "black";
 
             // draw the logo and version number
             const logo = getSprite("logo");
@@ -562,12 +593,10 @@ export class Game {
             this.network.update(this.player, this.mobs);
 
             // scroll the view based on bounds and player position
-            let ox = this.player.x - (this.canvas.width / 2);
-            const oy = this.player.y - (this.canvas.height / 2);
-            ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 
             // draw the underground background
+            this.g.fillStyle = "#445253";
             this.g.fillRect(0, SKY_HEIGHT * 128, this.canvas.width * 5, this.canvas.height * 5);
 
             // update the mouse over indicator

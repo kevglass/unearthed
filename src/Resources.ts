@@ -31,6 +31,7 @@ import undiscovered4_tile from "./img/tiles/undiscovered4.png";
 
 import pick_iron from "./img/holding/pick_iron.png";
 import clouds_bg from "./img/bg/clouds.png";
+import hills_bg from "./img/bg/hills.png";
 import square_orange_particle from "./img/particles/square_orange.png";
 import square_red_particle from "./img/particles/square_red.png";
 import logo from "./img/logo.png";
@@ -178,6 +179,7 @@ loadImage("pick.iron", pick_iron);
 
 // misc resources
 loadImage("clouds", clouds_bg);
+loadImage("hills", hills_bg);
 loadImage("red.particle", square_red_particle);
 loadImage("orange.particle", square_orange_particle);
 loadImage("logo", logo);
