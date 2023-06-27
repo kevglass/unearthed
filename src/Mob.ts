@@ -322,6 +322,7 @@ export class Mob {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
+            playSfx("jump");
         } 
     }
 
@@ -388,16 +389,17 @@ export class Mob {
             if (this.controls.mouse && this.itemHeld?.place === 0 && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
                 this.blockDamage++;
-                if (this.blockDamage % 20 === 0) {
-                    playSfx('mining.' + ['000', '001', '002', '003', '004'][Math.floor(Math.random() * 5)]);
-                }
 
                 if (this.blockDamage >= 60) {
                     if (this.local) {
                         this.network.sendNetworkTile(this.overX, this.overY, 0, layer);
                     }
                     this.blockDamage = 0;
+                    playSfx('mining_break', 5);
                 } else {
+                    if (this.blockDamage % 20 === 0) {
+                        playSfx('mining', 5);
+                    }
                     if (Date.now() - this.lastParticleCreated > 100) {
                         this.lastParticleCreated = Date.now();
                         addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
@@ -417,6 +419,7 @@ export class Mob {
                 }
                 
                 this.gameMap.refreshSpriteTile(this.overX, this.overY);
+                playSfx('place');
                 for (let i=0;i<5;i++) {
                     addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
                 }
@@ -448,6 +451,9 @@ export class Mob {
             if (this.flip) {
                 if (!this.blockedRight()) {
                     this.x += 7;
+                    if (this.standingOnSomething() && this.seq % 15 === 0) {
+                        playSfx('footstep', 5);
+                    }
                 } else {
                     // if we're blocked then move us out of the collision
                     this.x = (Math.floor((this.x + this.width) / TILE_SIZE) * TILE_SIZE) - this.width;
@@ -456,6 +462,9 @@ export class Mob {
             } else {
                 if (!this.blockedLeft()) {
                     this.x -= 7;
+                    if (this.standingOnSomething() && this.seq % 15 === 0) {
+                        playSfx('footstep', 5);
+                    }
                 } else {
                     // if we're blocked then move us out of the collision
                     this.x = (Math.floor((this.x - this.height) / TILE_SIZE) * TILE_SIZE) + TILE_SIZE - 1 + this.width;
