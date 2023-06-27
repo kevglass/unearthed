@@ -36,13 +36,27 @@ import square_orange_particle from "./img/particles/square_orange.png";
 import square_red_particle from "./img/particles/square_red.png";
 import logo from "./img/logo.png";
 
-import click_002 from "./sfx/ui/click_002.mp3";
+import click_002 from "./sfx/click_002.mp3";
 
-import impactMetal_heavy_000 from "./sfx/ui/impactMetal_heavy_000.mp3";
-import impactMetal_heavy_001 from "./sfx/ui/impactMetal_heavy_001.mp3";
-import impactMetal_heavy_002 from "./sfx/ui/impactMetal_heavy_002.mp3";
-import impactMetal_heavy_003 from "./sfx/ui/impactMetal_heavy_003.mp3";
-import impactMetal_heavy_004 from "./sfx/ui/impactMetal_heavy_004.mp3";
+import impactMetal_heavy_000 from "./sfx/impactMetal_heavy_000.mp3";
+import impactMetal_heavy_001 from "./sfx/impactMetal_heavy_001.mp3";
+import impactMetal_heavy_002 from "./sfx/impactMetal_heavy_002.mp3";
+import impactMetal_heavy_003 from "./sfx/impactMetal_heavy_003.mp3";
+import impactMetal_heavy_004 from "./sfx/impactMetal_heavy_004.mp3";
+import impactMining_000 from "./sfx/impactMining_000.mp3";
+import impactMining_001 from "./sfx/impactMining_001.mp3";
+import impactMining_002 from "./sfx/impactMining_002.mp3";
+import impactMining_003 from "./sfx/impactMining_003.mp3";
+import impactMining_004 from "./sfx/impactMining_004.mp3";
+
+import impactPlank_medium_004 from "./sfx/impactPlank_medium_004.mp3";
+
+import footstep_concrete_000 from "./sfx/footstep_concrete_000.mp3";
+import footstep_concrete_001 from "./sfx/footstep_concrete_001.mp3";
+import footstep_concrete_002 from "./sfx/footstep_concrete_002.mp3";
+import footstep_concrete_003 from "./sfx/footstep_concrete_003.mp3";
+import footstep_concrete_004 from "./sfx/footstep_concrete_004.mp3";
+import footstep_carpet_003 from "./sfx/footstep_carpet_003.mp3";
 
 /** The collection of all sprites loaded by the game */
 const sprites: Record<string, HTMLImageElement> = {};
@@ -111,9 +125,10 @@ export function getSprite(name: string): HTMLImageElement {
 /**
  * Play a sound effect
  * 
- * @param name The nam eof the sound effect to play
+ * @param name The name of the sound effect to play
+ * @param variations The number of variations of the sound effect to choose from
  */
-export function playSfx(name: string): void {
+export function playSfx(name: string, variations: number|null = null): void {
     if (!audioContext) {
         return;
     }
@@ -123,16 +138,17 @@ export function playSfx(name: string): void {
       console.error(e);
     });
 
-    const effect = sfx[name];
+    const variationName = variations ? `${name}.${(Math.floor(Math.random() * variations)).toString().padStart(3, '0')}` : name;
+    const effect = sfx[variationName];
 
     if (effect) {
-        if (!audioBuffers[name]) {
+        if (!audioBuffers[variationName]) {
             audioContext.decodeAudioData(effect).then((buffer: AudioBuffer) => {
-                audioBuffers[name] = buffer;
+                audioBuffers[variationName] = buffer;
                 playBuffer(buffer);
             });
         } else {
-            playBuffer(audioBuffers[name]);
+            playBuffer(audioBuffers[variationName]);
         }
     }
 }
@@ -212,3 +228,19 @@ loadSfx("mining.001", impactMetal_heavy_001);
 loadSfx("mining.002", impactMetal_heavy_002);
 loadSfx("mining.003", impactMetal_heavy_003);
 loadSfx("mining.004", impactMetal_heavy_004);
+loadSfx("mining_break.000", impactMining_000);
+loadSfx("mining_break.001", impactMining_001);
+loadSfx("mining_break.002", impactMining_002);
+loadSfx("mining_break.003", impactMining_003);
+loadSfx("mining_break.004", impactMining_004);
+
+// building sounds
+loadSfx("place", impactPlank_medium_004);
+
+// footstep sounds
+loadSfx("footstep.000", footstep_concrete_000);
+loadSfx("footstep.001", footstep_concrete_001);
+loadSfx("footstep.002", footstep_concrete_002);
+loadSfx("footstep.003", footstep_concrete_003);
+loadSfx("footstep.004", footstep_concrete_004);
+loadSfx("jump", footstep_carpet_003);
