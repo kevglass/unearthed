@@ -101,6 +101,7 @@ export class Mob {
         { sprite: "tile.wood_tile", place: 7 },
         { sprite: "tile.ladder_tile", place: 8 },
         { sprite: "tile.platform_tile", place: 24 },
+        { sprite: "tile.tnt", place: 25 },
     ];
 
     /** Current state of this mob's controls - based on local controls or network updates */
