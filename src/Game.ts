@@ -656,6 +656,8 @@ export class Game {
                     }
                 }
             }
+            
+            this.gameMap.updateTimers();
 
             // finally draw update and draw the mobs
             for (const mob of [...this.mobs]) {

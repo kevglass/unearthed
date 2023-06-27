@@ -107,7 +107,8 @@ export class Mob {
         { sprite: "tile.wood_tile", place: 7, spriteOffsetX: -70, spriteOffsetY: -130 , spriteScale: 0.7  },
         { sprite: "tile.ladder_tile", place: 8, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
         { sprite: "tile.platform_tile", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "torch", place: 25, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
+        { sprite: "torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
+        { sprite: "tile.tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
     ];
 
     /** Current state of this mob's controls - based on local controls or network updates */

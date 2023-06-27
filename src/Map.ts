@@ -1,4 +1,4 @@
-import { getSprite, loadImage } from "./Resources";
+import {getSprite, loadImage, playSfx} from "./Resources";
 import dirt_tile from "./img/tiles/dirt.png";
 import dirt_grass_tile from "./img/tiles/dirt_grass.png";
 import brick_grey_tile from "./img/tiles/brick_grey.png";
@@ -8,6 +8,7 @@ import sand_tile from "./img/tiles/sand.png";
 import wood_tile from "./img/tiles/wood.png";
 import ladder_tile from "./img/tiles/ladder.png";
 import platform_tile from "./img/tiles/platform.png";
+import tnt_tile from "./img/tiles/tnt.png";
 
 import grass1_tile from "./img/tiles/grass1.png";
 import grass2_tile from "./img/tiles/grass2.png";
@@ -63,6 +64,22 @@ interface Block {
     blocksDown: boolean;
     /** True if this block prevents lights passing */
     blocksLight: boolean;
+    /** The timer object with the number of ticks it takes for the block's effect to happen and the callback that defines the effect */
+    timer?: { timer: number, callback: (map: GameMap, tile: number) => void }|null;
+    /** Does this block light the area */
+    light?: boolean;
+}
+
+const explosion = (map: GameMap, tile: number): void => {
+    for (let x = tile % MAP_WIDTH - 1; x <= tile % MAP_WIDTH + 1; x++) {
+        for (let y = Math.floor(tile / MAP_WIDTH) - 1; y <= Math.floor(tile / MAP_WIDTH) + 1; y++) {
+            if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
+                continue;
+            }
+            map.setTile(x, y, 0, Layer.FOREGROUND);
+        }
+    }
+    playSfx("explosion", 1);
 }
 
 /**
@@ -94,7 +111,8 @@ export const tiles: Record<number, Block> = {
     22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
     23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
     24: { sprite: loadImage("tile.platform_tile", platform_tile), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-    25: { sprite: loadImage("tile.torch", torch_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+    25: { sprite: loadImage("tile.tnt", tnt_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: explosion } },
+    26: { sprite: loadImage("tile.torch", torch_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true},
 };
 
 export enum Layer {
@@ -120,6 +138,15 @@ for (let i = 0; i < totalSize; i++) {
     DEFAULT_MAP.push(1);
 }
 
+interface Timer {
+    /** The tile index in the map */
+    tileIndex: number;
+    /** The number of ticks until the timer triggers */
+    timer: number;
+    /** The callback to call when the timer triggers */
+    callback: (map: GameMap, tile: number) => void;
+}
+
 /**
  * The game map consists of two tile layers (foreground and background) and a cached
  * sprite mapping from tile to sprite (to help with rendering). The map also tracks which
@@ -140,6 +167,8 @@ export class GameMap {
     discovered: boolean[] = [];
     /** True if we're using discovery to black out areas the player hasn't seen yet - turn it off to check cavern generation */
     discoveryEnabled = true;
+    /** The tiles that have a timer running */
+    timers: Timer[] = [];
     /** The tile used to darken background tiles */
     backingTile?: HTMLImageElement;
     /** The tile used to darken background tiles where they have an overhand and need a shadow */
@@ -177,6 +206,7 @@ export class GameMap {
         this.background = [];
         this.discovered = [];
         this.lightMap = [];
+        this.timers = [];
         for (let i = 0; i < this.foreground.length; i++) {
             this.background.push(0);
             this.lightMap.push(1);
@@ -283,7 +313,8 @@ export class GameMap {
         for (let x = 0; x < MAP_WIDTH; x++) {
             for (let y = 0; y < MAP_DEPTH; y++) {
                 const tile = this.getTile(x, y, Layer.FOREGROUND);
-                if (tile === 25) {
+                const block = tiles[tile];
+                if (block && block.light) {
                     this.setLightMap(x, y, 1);
                 }
             }
@@ -675,7 +706,16 @@ export class GameMap {
                 localStorage.setItem("mapbg", JSON.stringify(this.background));
             }
         }
-
+        
+        const tileDef = tiles[tile];
+        if (tileDef && tileDef.timer) {
+            this.timers.push({
+                tileIndex: x + (y * MAP_WIDTH),
+                timer: tileDef.timer.timer,
+                callback: tileDef.timer.callback,
+            });
+        }
+    
         if (tile === 0) {
             const above = this.getTile(x, y - 1, layer);
             const tile = tiles[above];
@@ -765,7 +805,17 @@ export class GameMap {
 
         return this.foreground[x + (y * MAP_WIDTH)];
     }
-
+    
+    updateTimers(): void {
+        this.timers.forEach(timer => {
+            timer.timer--;
+            if (timer.timer <= 0) {
+                timer.callback(this, timer.tileIndex);
+            }
+        });
+        this.timers = this.timers.filter(timer => timer.timer > 0);
+    }
+    
     /**
      * Render the section of the map thats visible on the screen
      * 
