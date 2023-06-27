@@ -58,6 +58,8 @@ import footstep_concrete_003 from "./sfx/footstep_concrete_003.mp3";
 import footstep_concrete_004 from "./sfx/footstep_concrete_004.mp3";
 import footstep_carpet_003 from "./sfx/footstep_carpet_003.mp3";
 
+import select_006 from "./sfx/select_006.mp3";
+
 /** The collection of all sprites loaded by the game */
 const sprites: Record<string, HTMLImageElement> = {};
 /** The collection of all sound effects loaded by the game */
@@ -248,3 +250,6 @@ loadSfx("footstep.002", footstep_concrete_002);
 loadSfx("footstep.003", footstep_concrete_003);
 loadSfx("footstep.004", footstep_concrete_004);
 loadSfx("jump", footstep_carpet_003);
+
+// explosion sounds
+loadSfx("explosion", select_006);
