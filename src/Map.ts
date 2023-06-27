@@ -7,6 +7,7 @@ import leaves_tile from "./img/tiles/leaves.png";
 import sand_tile from "./img/tiles/sand.png";
 import wood_tile from "./img/tiles/wood.png";
 import ladder_tile from "./img/tiles/ladder.png";
+import platform_tile from "./img/tiles/platform.png";
 
 import grass1_tile from "./img/tiles/grass1.png";
 import grass2_tile from "./img/tiles/grass2.png";
@@ -56,37 +57,41 @@ interface Block {
     blocksDiscovery: boolean;
     /** True if this block leaves a copy of itself in the background layer when removed from the foreground, used for caves discovery */
     leaveBackground: boolean;
+	/** True if this would block you when you're falling downward. */
+	blocksDown: boolean;
+
 }
 
 /**
  * The list of tiles that be used in the map
  */
 export const tiles: Record<number, Block> = {
-    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
-    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
-    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false },
-    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
-    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
-    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, ladder: true , needsGround: false, blocksDiscovery: true, leaveBackground: false },
-    9: { sprite: loadImage("tile.grass1", grass1_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false },
-    10: { sprite: loadImage("tile.grass2", grass2_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false },
-    11: { sprite: loadImage("tile.grass3", grass3_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
-    12: { sprite: loadImage("tile.grass4", grass4_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
-    13: { sprite: loadImage("tile.flowerwhite", flowerwhite_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
-    14: { sprite: loadImage("tile.flowerblue", flowerblue_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
-    15: { sprite: loadImage("tile.flowerred", flowerred_tile), blocks: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
-    16: { sprite: loadImage("tile.trunkbottom", trunkbottom_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
-    17: { sprite: loadImage("tile.trunkmid", trunkmid_tile), blocks: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
+    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false },
+    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, blocksDown: false, ladder: true , needsGround: false, blocksDiscovery: true, leaveBackground: false },
+    9: { sprite: loadImage("tile.grass1", grass1_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false },
+    10: { sprite: loadImage("tile.grass2", grass2_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false },
+    11: { sprite: loadImage("tile.grass3", grass3_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    12: { sprite: loadImage("tile.grass4", grass4_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    13: { sprite: loadImage("tile.flowerwhite", flowerwhite_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    14: { sprite: loadImage("tile.flowerblue", flowerblue_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    15: { sprite: loadImage("tile.flowerred", flowerred_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false  },
+    16: { sprite: loadImage("tile.trunkbottom", trunkbottom_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
+    17: { sprite: loadImage("tile.trunkmid", trunkmid_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false  },
 
 
-    18: { sprite: loadImage("tile.stone", stone_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    19: { sprite: loadImage("tile.coal", coal_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    20: { sprite: loadImage("tile.iron", iron_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    21: { sprite: loadImage("tile.silver", silver_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
-    23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    18: { sprite: loadImage("tile.stone", stone_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    19: { sprite: loadImage("tile.coal", coal_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    20: { sprite: loadImage("tile.iron", iron_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    21: { sprite: loadImage("tile.silver", silver_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true },
+    24: { sprite: loadImage("tile.platform_tile", platform_tile), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false },
 };
 
 export enum Layer {
@@ -581,16 +586,28 @@ export class GameMap {
     }
     
     /**
+     * Check if the location specified has a platform in
+     * 
+     * @param x The x coordinate to check
+     * @param y The y coordinate to check
+     * @returns True if the location has a platform
+     */
+    isPlatform(x: number, y: number): boolean {
+        const tile = tiles[this.getTile(x,y,Layer.FOREGROUND)];
+        return (tile && !tile.blocks && tile.blocksDown);
+    }
+    
+    /**
      * Check if the location specified is blocked
      * 
      * @param x The x coordinate to check
      * @param y The y coordinate to check
      * @returns True if the location is blocked
      */
-    isBlocked(x: number, y: number): boolean {
+    isBlocked(x: number, y: number, down?:boolean): boolean {
         const tile = this.getTile(x,y,Layer.FOREGROUND);
         const def = tiles[tile];
-        return (def && def.blocks);
+        return def && (def.blocks || (down === true && def.blocksDown));
     }
     
     /**
@@ -665,8 +682,12 @@ export class GameMap {
                     const bg = this.backgroundSpriteMap[x + (y * MAP_WIDTH)];
                     if (bg) {
                         g.drawImage(bg, x * TILE_SIZE, y * TILE_SIZE);
-                        let overhang = this.getTile(x, y-1, Layer.FOREGROUND);
-                        g.drawImage(overhang ? this.backingTopTile : this.backingTile, x * TILE_SIZE, y * TILE_SIZE);
+						if(this.isPlatform(x, y)) {
+							g.drawImage(this.backingTopTile, x * TILE_SIZE, y * TILE_SIZE);
+						} else {
+							let overhang = this.getTile(x, y-1, Layer.FOREGROUND);
+							g.drawImage(overhang && !this.isPlatform(x, y-1) ? this.backingTopTile : this.backingTile, x * TILE_SIZE, y * TILE_SIZE);
+						}
                     }
                     const sprite = this.foregroundSpriteMap[x + (y * MAP_WIDTH)];
                     if (sprite) {
