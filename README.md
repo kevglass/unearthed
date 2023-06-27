@@ -13,6 +13,12 @@ https://cokeandcode.com/demos/unearthed/
 - Run `npm start`
 - Connect to http://localhost:20000
 
+## Contacts
+
+- You can always get me at cokeandcode (at) gmail (dot) com
+- Theres a discord here if you're that way inclined: https://discord.gg/FE3BFYH3TE
+- Can always hit me up on twitter too https://twitter.com/cokeandcode
+  
 ## Development Guidelines
 
 - Keep it Simple Smartie
