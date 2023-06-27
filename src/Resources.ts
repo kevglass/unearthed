@@ -30,6 +30,8 @@ import undiscovered3_tile from "./img/tiles/undiscovered3.png";
 import undiscovered4_tile from "./img/tiles/undiscovered4.png";
 
 import pick_iron from "./img/holding/pick_iron.png";
+import torch from "./img/holding/torch.png";
+
 import clouds_bg from "./img/bg/clouds.png";
 import hills_bg from "./img/bg/hills.png";
 import square_orange_particle from "./img/particles/square_orange.png";
@@ -196,6 +198,7 @@ loadImage("female.arm", female_arm);
 
 // items
 loadImage("pick.iron", pick_iron);
+loadImage("torch", torch);
 
 // misc resources
 loadImage("clouds", clouds_bg);

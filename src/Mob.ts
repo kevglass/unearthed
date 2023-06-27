@@ -14,6 +14,12 @@ export interface InventItem {
     sprite: string;
     /** The tile to be placed when they use this item - 0 for none, like tools */
     place: number;
+    /** The sprite offset when this item is held */
+    spriteOffsetX: number;
+    /** The sprite offset when this item is held */
+    spriteOffsetY: number;
+    /** The scale of the sprite to apply when its held */
+    spriteScale: number;
 }
 
 /**
@@ -93,14 +99,15 @@ export class Mob {
 
     /** The item in the mob's inventory */
     inventory: InventItem[] = [
-        { sprite: "pick.iron", place: 0 },
-        { sprite: "tile.dirt", place: 1 },
-        { sprite: "tile.brick_grey", place: 3 },
-        { sprite: "tile.brick_red", place: 4 },
-        { sprite: "tile.sand_tile", place: 6 },
-        { sprite: "tile.wood_tile", place: 7 },
-        { sprite: "tile.ladder_tile", place: 8 },
-        { sprite: "tile.platform_tile", place: 24 },
+        { sprite: "pick.iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
+        { sprite: "tile.dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "tile.brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "tile.brick_red", place: 4,spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
+        { sprite: "tile.sand_tile", place: 6, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "tile.wood_tile", place: 7, spriteOffsetX: -70, spriteOffsetY: -130 , spriteScale: 0.7  },
+        { sprite: "tile.ladder_tile", place: 8, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
+        { sprite: "tile.platform_tile", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "torch", place: 25, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
     ];
 
     /** Current state of this mob's controls - based on local controls or network updates */
@@ -354,6 +361,9 @@ export class Mob {
         for (const bone of this.allBones) {
             if (bone.name === HumanBones.HELD) {
                 bone.sprite = this.itemHeld?.sprite;
+                bone.spriteOffsetX = this.itemHeld?.spriteOffsetX;
+                bone.spriteOffsetY = this.itemHeld?.spriteOffsetY;
+                bone.scale = this.itemHeld?.spriteScale ?? 1;
             }
             if (bone.name === HumanBones.HEAD) {
                 bone.sprite = this.head + ".head";

@@ -21,6 +21,8 @@ import flowerblue_tile from "./img/tiles/flowerblue.png";
 import trunkmid_tile from "./img/tiles/trunk_mid.png";
 import trunkbottom_tile from "./img/tiles/trunk_bottom.png";
 
+import torch_tile from "./img/tiles/torchtile.png";
+
 import stone_tile from "./img/tiles/stone.png";
 import coal_tile from "./img/tiles/coal.png";
 import gold_tile from "./img/tiles/gold.png";
@@ -92,6 +94,7 @@ export const tiles: Record<number, Block> = {
     22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
     23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
     24: { sprite: loadImage("tile.platform_tile", platform_tile), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
+    25: { sprite: loadImage("tile.torch", torch_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
 };
 
 export enum Layer {
@@ -208,10 +211,13 @@ export class GameMap {
         y = Math.floor(y);
 
         if ((x < 0) || (x >= MAP_WIDTH)) {
+            return y > SKY_HEIGHT ? 0 : 1;
+        }
+        if (y < 0) {
             return 1;
         }
-        if (y < 0 || y >= MAP_DEPTH) {
-            return 1;
+        if (y >= MAP_DEPTH) {
+            return 0;
         }
 
         return this.lightMap[x + (y * MAP_WIDTH)];
@@ -242,14 +248,14 @@ export class GameMap {
             value -= 0.1;
             if (value > 0) {
                 this.fillLightFrom(x - 1, y - 1, value);
-                this.fillLightFrom(x - 1, y, originalValue);
+                this.fillLightFrom(x - 1, y, originalValue - 0.05);
                 this.fillLightFrom(x - 1, y + 1, value);
 
                 this.fillLightFrom(x, y - 1, value);
                 this.fillLightFrom(x, y + 1, value);
 
                 this.fillLightFrom(x + 1, y - 1, value);
-                this.fillLightFrom(x + 1, y, originalValue);
+                this.fillLightFrom(x + 1, y, originalValue - 0.05);
                 this.fillLightFrom(x + 1, y + 1, value);
             }
         }
@@ -274,6 +280,15 @@ export class GameMap {
                 }
             }
         }
+        for (let x = 0; x < MAP_WIDTH; x++) {
+            for (let y = 0; y < MAP_DEPTH; y++) {
+                const tile = this.getTile(x, y, Layer.FOREGROUND);
+                if (tile === 25) {
+                    this.setLightMap(x, y, 1);
+                }
+            }
+        }
+
         for (let x = 0; x < MAP_WIDTH; x++) {
             for (let y = 0; y < MAP_DEPTH; y++) {
                 this.fillLightFrom(x, y, this.getLightMap(x, y), true);
@@ -799,6 +814,10 @@ export class GameMap {
                             g.drawImage(this.backingTopTile, x * TILE_SIZE, y * TILE_SIZE);
                         } else {
                             let overhang = this.getTile(x, y - 1, Layer.FOREGROUND);
+                            const tileAbove = tiles[overhang];
+                            if (tileAbove && !tileAbove.blocksDown) {
+                                overhang = 0;
+                            }
                             g.drawImage(overhang && !this.isPlatform(x, y - 1) ? this.backingTopTile : this.backingTile, x * TILE_SIZE, y * TILE_SIZE);
                         }
                     }
@@ -836,15 +855,16 @@ export class GameMap {
         const offsetx = screenX - (xp * TILE_SIZE);
         const offsety = screenY - (yp * TILE_SIZE);
 
-        if (!this.lightingImage || this.lightingImage.width != tilesAcross * lightScale || this.lightingImage.height !== tilesDown * lightScale) {
+        if (!this.lightingImage || this.lightingImage.width != tilesAcross * TILE_SIZE || this.lightingImage.height !== tilesDown * TILE_SIZE) {
             this.lightingImage = document.createElement("canvas");
-            this.lightingImage.width = tilesAcross * lightScale;
-            this.lightingImage.height = tilesDown * lightScale;
+            this.lightingImage.width = tilesAcross * TILE_SIZE;
+            this.lightingImage.height = tilesDown * TILE_SIZE;
         }
 
         const context = this.lightingImage.getContext("2d") as CanvasRenderingContext2D;
 
-        context.clearRect(0, 0, tilesAcross * lightScale, tilesDown * lightScale);
+        context.globalCompositeOperation = "source-over";
+        context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
         context.fillStyle = "black";
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
@@ -854,10 +874,28 @@ export class GameMap {
                 if (!this.isDiscovered(x, y)) {
                     context.globalAlpha = 1;
                 }
+
+
                 context.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
             }
         }
         context.globalAlpha = 1;
+
+        // scale the light up
+        context.drawImage(this.lightingImage, 0, 0, tilesAcross*lightScale, tilesDown*lightScale, 0, 0, (tilesAcross * TILE_SIZE), (tilesDown * TILE_SIZE));
+                
+        
+        context.save();
+        const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 256);
+        gradient.addColorStop(0, "rgba(0,0,0,255)");
+        gradient.addColorStop(1, "rgba(0,0,0,0)");
+        context.globalCompositeOperation = 'destination-out';
+        context.fillStyle = gradient;
+        context.translate(this.game.player.x - (screenX - offsetx), this.game.player.y - (screenY - offsety));
+        context.beginPath();
+        context.arc(0, 0, 256, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
 
         // debug for light map
         // const debugSize = 20;
@@ -867,6 +905,6 @@ export class GameMap {
         // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
         // g.drawImage(this.lightingImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
 
-        g.drawImage(this.lightingImage, screenX - offsetx, screenY - offsety, (tilesAcross * TILE_SIZE), (tilesDown * TILE_SIZE));
+        g.drawImage(this.lightingImage, screenX - offsetx, screenY - offsety);
     }
 }
