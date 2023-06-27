@@ -40,7 +40,7 @@ module.exports = {
         loader: "url-loader",
       },
       {
-        test: /\.ogg$/,
+        test: /\.mp3$/,
         loader: "url-loader",
       },
       {

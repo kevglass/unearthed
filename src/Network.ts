@@ -303,6 +303,9 @@ export class Network {
         if (!NETWORKING_ENABLED) {
             return;
         }
+        if (!this.isConnected) {
+            return;
+        }
         
         const data = this.gameMap.getMapData();
         const dataBlocks = new Uint8Array([...data.f, ...data.b]);

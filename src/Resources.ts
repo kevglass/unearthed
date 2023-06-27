@@ -35,18 +35,21 @@ import square_orange_particle from "./img/particles/square_orange.png";
 import square_red_particle from "./img/particles/square_red.png";
 import logo from "./img/logo.png";
 
-import click_002 from "./sfx/ui/click_002.ogg";
+import click_002 from "./sfx/ui/click_002.mp3";
 
-import impactMetal_heavy_000 from "./sfx/ui/impactMetal_heavy_000.ogg";
-import impactMetal_heavy_001 from "./sfx/ui/impactMetal_heavy_001.ogg";
-import impactMetal_heavy_002 from "./sfx/ui/impactMetal_heavy_002.ogg";
-import impactMetal_heavy_003 from "./sfx/ui/impactMetal_heavy_003.ogg";
-import impactMetal_heavy_004 from "./sfx/ui/impactMetal_heavy_004.ogg";
+import impactMetal_heavy_000 from "./sfx/ui/impactMetal_heavy_000.mp3";
+import impactMetal_heavy_001 from "./sfx/ui/impactMetal_heavy_001.mp3";
+import impactMetal_heavy_002 from "./sfx/ui/impactMetal_heavy_002.mp3";
+import impactMetal_heavy_003 from "./sfx/ui/impactMetal_heavy_003.mp3";
+import impactMetal_heavy_004 from "./sfx/ui/impactMetal_heavy_004.mp3";
 
 /** The collection of all sprites loaded by the game */
 const sprites: Record<string, HTMLImageElement> = {};
 /** The collection of all sound effects loaded by the game */
-const sfx: Record<string, HTMLAudioElement> = {};
+const sfx: Record<string, ArrayBuffer> = {};
+/** The audio elements changed to sources for the audio context */
+const audioBuffers: Record<string, AudioBuffer> = {};
+
 /** The number of assets left to load */
 let loadedCount = 0;
 
@@ -71,15 +74,27 @@ export function loadImage(name: string, url: string): HTMLImageElement {
  * 
  * @param name The name to give the sound effect in the cache
  * @param url The URL (normally a webpack reference) to load the sound effect from
- * @returns The newly created audio element
  */
-export function loadSfx(name: string, url: string): HTMLAudioElement {
-    sfx[name] = new Audio();
-    sfx[name].src = url;
+export function loadSfx(name: string, url: string): void {
     loadedCount++;
-    sfx[name].onloadeddata = () => { loadedCount--; };
+
+    var req = new XMLHttpRequest();
+    req.open("GET", url, true);
+    req.responseType = "arraybuffer";
     
-    return sfx[name];
+    req.onload = (event) => {
+      console.log("loaded");
+      var arrayBuffer = req.response; 
+      if (arrayBuffer) {
+        sfx[name] = arrayBuffer;
+      }
+      loadedCount--; 
+    };
+    req.onerror = () => {
+        alert("Error loading: " + name);
+    }
+    
+    req.send();
 }
 
 /**
@@ -93,15 +108,49 @@ export function getSprite(name: string): HTMLImageElement {
 }
 
 /**
- * Get a sound effect from the cache with a specific name
+ * Play a sound effect
  * 
- * @param name The name of the sound effect to retrieve
- * @returns The sound effect or undefined if the sound effect couldn't be found
+ * @param name The nam eof the sound effect to play
  */
-export function getSfx(name: string): HTMLAudioElement {
-    return sfx[name];
+export function playSfx(name: string): void {
+    if (!audioContext) {
+        return;
+    }
+
+    audioContext.resume().catch((e) => {
+      console.log("Resume audio context failed");
+      console.error(e);
+    });
+
+    const effect = sfx[name];
+
+    if (effect) {
+        if (!audioBuffers[name]) {
+            audioContext.decodeAudioData(effect).then((buffer: AudioBuffer) => {
+                audioBuffers[name] = buffer;
+                playBuffer(buffer);
+            });
+        } else {
+            playBuffer(audioBuffers[name]);
+        }
+    }
 }
 
+function playBuffer(buffer: AudioBuffer): void {
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+
+    source.start(0);
+}
+
+let audioContext: AudioContext
+
+export function startAudioOnFirstInput() {
+    if (!audioContext) {
+        audioContext = new AudioContext();
+    }
+}
 /**
  * Check if all the resources managed by this cache have been loaded
  * 

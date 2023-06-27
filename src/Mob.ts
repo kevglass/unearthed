@@ -3,8 +3,8 @@ import { Bone } from "./Bones";
 import { GameMap, Layer, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
+import { playSfx } from "./Resources";
 import { HumanBones } from "./Skeletons";
-import { getSfx } from "./Resources";
 
 /**
  * An item that can be placed in the players inventory
@@ -388,7 +388,7 @@ export class Mob {
                 this.work();
                 this.blockDamage++;
                 if (this.blockDamage % 20 === 0) {
-                    getSfx('mining.' + ['000', '001', '002', '003', '004'][Math.floor(Math.random() * 5)]).play();
+                    playSfx('mining.' + ['000', '001', '002', '003', '004'][Math.floor(Math.random() * 5)]);
                 }
 
                 if (this.blockDamage >= 60) {

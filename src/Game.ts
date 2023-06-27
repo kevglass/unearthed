@@ -5,14 +5,14 @@ import { Mob } from "./Mob";
 import { isMobile } from "./MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./Particles";
-import { getSfx, getSprite, resourcesLoaded } from "./Resources";
+import { getSprite, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
 // fit anywhere else
-//
+//f
 
 /** True if we should be showing bounds when rendering mobs */
 const SHOW_BOUNDS: boolean = false;
@@ -180,6 +180,8 @@ export class Game {
     configureEventHandlers() {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
+            startAudioOnFirstInput();
+            
             // if we're focused on the chat input that takes precedence
             if (document.activeElement === this.ui.chatInput) {
                 return;
@@ -206,7 +208,7 @@ export class Game {
                     }
                 }
                 this.player.itemHeld = this.player.inventory[index];
-                getSfx('click').play();
+                playSfx('click');
             }
             if (event.key === 'e') {
                 let index = 0;
@@ -217,7 +219,7 @@ export class Game {
                     }
                 }
                 this.player.itemHeld = this.player.inventory[index];
-                getSfx('click').play();
+                playSfx('click');
             }
 
             // Pressing X changes the layer we're targeting
@@ -249,6 +251,8 @@ export class Game {
             });
 
             this.canvas.addEventListener("touchstart", (event: TouchEvent) => {
+                startAudioOnFirstInput();
+
                 for (let i = 0; i < event.changedTouches.length; i++) {
                     const touch = event.changedTouches.item(i);
                     if (touch) {
@@ -275,6 +279,8 @@ export class Game {
                 event.preventDefault();
             });
             this.canvas.addEventListener("mousedown", (event: MouseEvent) => {
+                startAudioOnFirstInput();
+
                 this.mouseDown(event.x * ZOOM, event.y * ZOOM, 1);
                 event.preventDefault();
             });
@@ -318,7 +324,7 @@ export class Game {
                 if (index >= 0 && index < this.player.inventory.length) {
                     foundInventButton = true;
                     this.player.itemHeld = this.player.inventory[index];
-                    getSfx('click').play();
+                    playSfx('click');
                 }
             } else {
                 if ((xp === 0 && yp === 1)) {
@@ -614,8 +620,10 @@ export class Game {
             }
             for (let i = 1; i < 10; i++) {
                 if (this.keyDown["" + i]) {
-                    this.player.itemHeld = this.player.inventory[i - 1];
-                    getSfx('click').play();
+                    if (this.player.itemHeld !== this.player.inventory[i - 1]) {
+                        this.player.itemHeld = this.player.inventory[i - 1];
+                        playSfx('click');
+                    }
                 }
             }
 
