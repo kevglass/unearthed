@@ -84,7 +84,6 @@ export function loadImage(name: string, url: string): HTMLImageElement {
     sprites[name].src = url;
     loadedCount++;
     sprites[name].onload = () => { loadedCount--; };
-
     return sprites[name];
 }
 
@@ -133,7 +132,7 @@ export function getSprite(name: string): HTMLImageElement {
  * @param variations The number of variations of the sound effect to choose from
  */
 export function playSfx(name: string, volume: number, variations: number|null = null): void {
-    if (!audioContext) {
+    if (!audioContext || localStorage.getItem('muted') === '1') {
         return;
     }
 
