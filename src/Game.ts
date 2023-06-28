@@ -86,6 +86,8 @@ export class Game {
     network: Network;
     /** The HTML UI overlaying the game */
     ui: HtmlUi;
+	/** True if user muted sounds */
+	muted: boolean = false;
 
     constructor() {
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;

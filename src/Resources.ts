@@ -21,6 +21,8 @@ import down_ui from "./img/ui/down.png";
 import front_ui from "./img/ui/front.png";
 import back_ui from "./img/ui/back.png";
 import arrowup_ui from "./img/ui/arrowup.png";
+import sound_is_on_ui from "./img/ui/soundison.png";
+import sound_is_off_ui from "./img/ui/soundisoff.png";
 
 import backing_tile from "./img/tiles/backing.png";
 import backingtop_tile from "./img/tiles/backingtop.png";
@@ -84,7 +86,6 @@ export function loadImage(name: string, url: string): HTMLImageElement {
     sprites[name].src = url;
     loadedCount++;
     sprites[name].onload = () => { loadedCount--; };
-
     return sprites[name];
 }
 
@@ -219,6 +220,7 @@ loadImage("ui.down", down_ui);
 loadImage("ui.front", front_ui);
 loadImage("ui.back", back_ui);
 loadImage("ui.arrowup", arrowup_ui);
+loadImage("ui.soundison", sound_is_on_ui);
 
 // images that are used for the tilemap rendering but are not tiles
 loadImage("tile.backing", backing_tile);

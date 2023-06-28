@@ -158,6 +158,11 @@ export class HtmlUi {
             document.getElementById("settingsPanel")!.style.display = "none";
         })
 
+        // sound on/off button
+        document.getElementById("soundButton")!.addEventListener("click", () => {
+            this.game.muted = !this.game.muted;
+        })
+
         // special cases for when chatting. Enter will send the message and escape
         // will hide the chat box.
         this.chatInput!.addEventListener("keydown", (event: KeyboardEvent) => {
@@ -187,6 +192,11 @@ export class HtmlUi {
             this.game.connecting = true;
             this.game.waitingForHost = true;
         });
+		
+		// So we see variables in console. And change them without refreshing.
+		if(window.location.href.includes('localhost')) {
+			(window as any).game = game
+		}
     }
 
     /**
