@@ -1,9 +1,11 @@
-
+*{
+	box-sizing: content-box;
+}
 
 @font-face {
     font-family: 'KenneyFont';
     src: url('Kenney High.ttf') format('truetype'); 
-  }  
+}  
 
   
 body {
@@ -70,8 +72,12 @@ input {
 }
 
 #closeButton:active {
+    margin-top: 3px;
+    border-bottom: 2px solid #A00;
+}
+
+#soundButton:active {
     margin-top: 23px;
-    border-bottom: 2px solid #616374;
 }
 
 #startGame {
@@ -86,23 +92,34 @@ input {
     top: 140px;
 }
 
+#soundButton.isoff {
+	background-image: url(soundisoff.png);
+}
+
+#soundButton {
+	width: 65px;
+	height: 65px;
+	position: static;
+	margin: 20px;
+	background-image: url(soundison.png);
+	background-size: cover;
+}
+
 #closeButton {
+	position: absolute;
     outline: 4px solid black;
-    user-select: none;
     color: white;
-    font-size: 28px;
-    line-height: 40px;
-    height: 40px;
-    background: #838796;
-    border-bottom: 5px solid #616374;
+    background: red;
+    font-size: 32px;
+	font-family: arial;
+	font-weight: bold;
+	right: -11px;
+	top: -11px;
+    border-bottom: 5px solid #A00;
     border-radius: 10px;
-    margin-left: 100px;
-    margin-bottom: 20px;
-    margin-top: 20px;
-    width: 200px;
-    -webkit-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
-    -moz-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
-    box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
+	width: 60px;
+	height: 60px;
+    line-height: 60px;
 }
 
 .button {
@@ -114,10 +131,12 @@ input {
     line-height: 40px;
     height: 40px;
     background: #838796;
+	border-width: 0;
     border-bottom: 5px solid #616374;
     border-radius: 10px;
     margin-left: 50px;
     margin-bottom: 10px;
+	padding: 0;
     width: 200px;
     -webkit-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);
     -moz-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);

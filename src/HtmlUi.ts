@@ -160,7 +160,9 @@ export class HtmlUi {
 
         // sound on/off button
         document.getElementById("soundButton")!.addEventListener("click", () => {
-            this.game.muted = !this.game.muted;
+			localStorage.setItem('muted', localStorage.getItem('muted') === '1' ? '0' : '1');
+			
+			this.renderSoundButton();
         })
 
         // special cases for when chatting. Enter will send the message and escape
@@ -197,6 +199,8 @@ export class HtmlUi {
 		if(window.location.href.includes('localhost')) {
 			(window as any).game = game
 		}
+		
+		this.renderSoundButton();
     }
 
     /**
@@ -226,4 +230,18 @@ export class HtmlUi {
     hideChat() {
         this.chatInput!.style.display = "none";
     }
+	
+    /**
+     * Show which sound icon based on current user preference.
+     */
+	renderSoundButton() {
+		let button = document.getElementById("soundButton");
+		if(button) {
+			if(localStorage.getItem('muted') === '1') {
+				button.classList.add('isoff');
+			} else {
+				button.classList.remove('isoff');
+			}
+		}
+	}
 }
