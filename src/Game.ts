@@ -81,7 +81,8 @@ export class Game {
     inventPage = 0;
     /** the time at which the splash screen should be removed - 1 second of Coke and Code */
     finishStartup = Date.now() + 1000;
-
+    /** The message of the day */
+    motd = "Totally not Minecraft";
     /** The game map being maintained */
     gameMap: GameMap;
     /** The network being used */
@@ -391,6 +392,16 @@ export class Game {
             if (x > this.canvas.width - 180 && yp === 1) {
                 // up
                 this.keyDown['w'] = true;
+                this.keyDown['s'] = false;
+                this.jumpTouchId = touchId;
+                return true;
+            }
+            // if we're pressing on the jump control 
+            // pretend S was pressed
+            if (x > this.canvas.width - 360 && yp === 1) {
+                // up
+                this.keyDown['s'] = true;
+                this.keyDown['w'] = false;
                 this.jumpTouchId = touchId;
                 return true;
             }
@@ -433,6 +444,7 @@ export class Game {
         }
         if (touchId === this.jumpTouchId) {
             this.keyDown['w'] = false;
+            this.keyDown['s'] = false;
             this.jumpTouchId = 0;
         }
         if (touchId === this.controllerTouchId) {
@@ -509,7 +521,7 @@ export class Game {
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-        this.g.fillStyle = "#a4ddf0";
+        this.g.fillStyle = "#b7e7fa";
         this.g.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
 
@@ -554,6 +566,7 @@ export class Game {
                 this.g.font = "30px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 30);
+
             } else if (this.limitedPortraitScreen) {
                 this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 300);
                 this.g.font = "30px KenneyFont";
@@ -564,6 +577,18 @@ export class Game {
                 this.g.font = "50px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, 250 + (logo.height * 2));
+
+                this.g.textAlign = "center";
+                this.g.font = "60px KenneyFont";
+                this.g.save();
+                this.g.translate((this.canvas.width / 2) + (logo.width / 2) + 150, 150 + (logo.height * 2));
+                this.g.rotate(-(Math.PI / 8) - (Math.PI / 32) + (Math.sin(Math.PI * this.animTime) * (Math.PI / 32)));
+                this.g.fillStyle = "black";
+                this.g.font
+                this.g.fillText(this.motd, 1, 1);
+                this.g.fillStyle = "#0f0";
+                this.g.fillText(this.motd, 0, 0);
+                this.g.restore();
             }
 
             // draw the sample player 
@@ -653,6 +678,9 @@ export class Game {
             if (this.keyDown["a"]) {
                 this.player.controls.left = true;
             }
+            if (this.keyDown["s"]) {
+                this.player.controls.down = true;
+            }
             if (this.keyDown[" "] || this.keyDown["w"]) {
                 this.player.controls.up = true;
             }
@@ -734,6 +762,7 @@ export class Game {
             this.g.drawImage(getSprite("ui.left"), 20, this.canvas.height - 160, 140, 140);
             this.g.drawImage(getSprite("ui.right"), 180, this.canvas.height - 160, 140, 140);
             this.g.drawImage(getSprite("ui.up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
+            this.g.drawImage(getSprite("ui.down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
         }
 
         // schedule our next frame

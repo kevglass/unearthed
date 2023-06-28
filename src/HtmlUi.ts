@@ -1,6 +1,7 @@
 import { Game } from "./Game";
 import { GameMap, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
+import { isSoundMuted, setSoundMuted } from "./Resources";
 
 /**
  * A controller for everything thats on the HTML layer rather than the canvas. The game
@@ -160,7 +161,7 @@ export class HtmlUi {
 
         // sound on/off button
         document.getElementById("soundButton")!.addEventListener("click", () => {
-			localStorage.setItem('muted', localStorage.getItem('muted') === '1' ? '0' : '1');
+            setSoundMuted(!isSoundMuted());
 			
 			this.renderSoundButton();
         })

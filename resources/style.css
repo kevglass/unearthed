@@ -30,12 +30,16 @@ input {
     color: white;
     font-size: 20px;
     border-radius: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
+}
+
+#mapBar {
+    display: flex;
 }
 
 #settingsPanel {
     width: 400px;
-    height: 380px;
+    height: 220px;
     display: none;
 }
 
@@ -97,29 +101,29 @@ input {
 }
 
 #soundButton {
-	width: 65px;
-	height: 65px;
+	width: 40px;
+	height: 40px;
 	position: static;
 	margin: 20px;
 	background-image: url(soundison.png);
 	background-size: cover;
 }
 
-#closeButton {
-	position: absolute;
+#closeButton {    
+    position: absolute;
     outline: 4px solid black;
     color: white;
     background: red;
-    font-size: 32px;
-	font-family: arial;
-	font-weight: bold;
-	right: -11px;
-	top: -11px;
+    font-size: 20px;
+    font-family: arial;
+    font-weight: bold;
+    right: -11px;
+    top: -11px;
     border-bottom: 5px solid #A00;
     border-radius: 10px;
-	width: 60px;
-	height: 60px;
-    line-height: 60px;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
 }
 
 .button {
@@ -159,7 +163,8 @@ input {
     background: #838796;
     border-bottom: 5px solid #616374;
     border-radius: 10px;
-    margin-left: 100px;
+    margin-right: 10px;
+    margin-left: 10px;
     margin-bottom: 10px;
     width: 200px;
     -webkit-box-shadow: 10px 10px 22px -12px rgba(0, 0, 0, 0.75);

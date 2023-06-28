@@ -126,13 +126,30 @@ export function getSprite(name: string): HTMLImageElement {
 }
 
 /**
+ * Set whether audio should be muted
+ * 
+ * @param muted True if the sound should be muted
+ */
+export function setSoundMuted(muted: boolean): void {
+    localStorage.setItem('muted', muted ? '1' : '0');
+}
+/**
+ * Check if sound is muted
+ * 
+ * @return True if sound is muted
+ */
+export function isSoundMuted() {
+    return localStorage.getItem("muted") === "1";
+}
+
+/**
  * Play a sound effect
  * 
  * @param name The name of the sound effect to play
  * @param variations The number of variations of the sound effect to choose from
  */
 export function playSfx(name: string, volume: number, variations: number|null = null): void {
-    if (!audioContext || localStorage.getItem('muted') === '1') {
+    if (!audioContext || isSoundMuted()) {
         return;
     }
 

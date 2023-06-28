@@ -33,6 +33,8 @@ export interface Controls {
     right: boolean;
     /** True if the player is pressing up key (or equivalent)*/
     up: boolean;
+    /** True if the player is pressing up down (or equivalent)*/
+    down: boolean;
     /** True if the player is pressing mouse button (or equivalent) */
     mouse: boolean;
 }
@@ -117,6 +119,7 @@ export class Mob {
         right: false,
         up: false,
         mouse: false,
+        down: false,
     };
 
     /**
