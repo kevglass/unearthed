@@ -19,6 +19,12 @@
             $keydata = json_decode($key);
             if ($serverPassword === $keydata->serverPassword) {
                     $isHost = "true";
+
+                    $keydata->username = $username;
+                    $jsonString = json_encode($keydata, JSON_PRETTY_PRINT);
+                    $fp = fopen($filename, 'w');
+                    fwrite($fp, $jsonString);
+                    fclose($fp);
             }
         } else {
             if ($serverPassword !== null) {

@@ -551,17 +551,17 @@ export class Game {
             const logo = getSprite("logo");
             if (this.limitedLandscapeScreen) {
                 this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 5);
-                this.g.font = "30px Helvetica";
+                this.g.font = "30px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 30);
             } else if (this.limitedPortraitScreen) {
                 this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 300);
-                this.g.font = "30px Helvetica";
+                this.g.font = "30px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 330);
             } else {
                 this.g.drawImage(logo, (this.canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
-                this.g.font = "50px Helvetica";
+                this.g.font = "50px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, 250 + (logo.height * 2));
             }
@@ -585,7 +585,7 @@ export class Game {
                 this.player.x = 200;
                 this.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
             } else {
-                this.g.font = "80px Helvetica";
+                this.g.font = "80px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
