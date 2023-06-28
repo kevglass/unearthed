@@ -101,7 +101,6 @@ export function loadSfx(name: string, url: string): void {
     req.responseType = "arraybuffer";
     
     req.onload = (event) => {
-      console.log("loaded");
       var arrayBuffer = req.response; 
       if (arrayBuffer) {
         sfx[name] = arrayBuffer;

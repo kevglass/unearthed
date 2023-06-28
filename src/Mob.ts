@@ -98,6 +98,8 @@ export class Mob {
     gameMap: GameMap;
     /** The network this mob is using */
     network: Network;
+    /** We'll ignore blockages until this is zero or we pass this on the Y value */
+    fallThroughUntil: number = 0;
 
     /** The item in the mob's inventory */
     inventory: InventItem[] = [
@@ -289,6 +291,12 @@ export class Mob {
         if (this.vy < 0) {
             return false;
         }
+        if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+            return true;
+        }
+        if (this.fallThroughUntil > 0) {
+            return false;
+        }
         const offset = 10;
         const width = (this.width * 2) - (offset * 2);
 
@@ -313,6 +321,7 @@ export class Mob {
         this.controls.left = false;
         this.controls.right = false;
         this.controls.up = false;
+        this.controls.down = false;
         this.controls.mouse = false;
     }
 
@@ -335,6 +344,19 @@ export class Mob {
             this.vy = -20;
             playSfx("jump", 0.1);
         } 
+    }
+
+    fall(): void {
+        if (this.standingOnSomething()) {
+            if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+                this.vy = 10;
+            } else {
+                const tile = tiles[this.gameMap.getTile(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE), Layer.FOREGROUND)];
+                if (tile && tile.blocksDown && !tile.blocks) {
+                    this.fallThroughUntil = this.y + TILE_SIZE;
+                }
+            }
+        }
     }
 
     /**
@@ -456,9 +478,19 @@ export class Mob {
                 this.vy += 1;
             }
         } else {
-            // otherwise move us out of the collision with the floor and stop falling
-            this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
+            // ladders don't snap to position
+            if (!this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+                // if we have a grace fall from sliding down from a block
+                if (this.fallThroughUntil === 0) {
+                    // otherwise move us out of the collision with the floor and stop falling
+                    this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
+                }
+            }
             this.vy = 0;
+        }
+
+        if (this.controls.down) {
+            this.fall();
         }
 
         // this is particularly poor, if we're using the WALK animation then
@@ -493,6 +525,9 @@ export class Mob {
         // apply vertical velocity (if there is any)
         this.y += this.vy;
 
+        if (this.y > this.fallThroughUntil) {
+            this.fallThroughUntil = 0;
+        }
         // update the state of the  bones for animation
         for (const bone of this.allBones) {
             bone.update(animTime, this.anim);
