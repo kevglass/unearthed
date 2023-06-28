@@ -537,7 +537,7 @@ export class Mob {
         // draw the mob name
         g.textAlign = "center";
         g.fillStyle = "black";
-        g.font = "40px Helvetica";
+        g.font = "40px KenneyFont";
         g.fillText(this.name, 0, -120);
 
         g.restore();

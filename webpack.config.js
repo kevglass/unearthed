@@ -2,7 +2,8 @@ const config = require('./version.json');
 const localProperties = require('./local.properties.json');
 const path = require('path');
 const TsConfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyPlugin = require("copy-webpack-plugin");
 const fs = require('fs');
 
 module.exports = {
@@ -65,6 +66,11 @@ module.exports = {
     path: path.resolve(__dirname, 'dist')
   },
   plugins: [
+    new CopyPlugin({
+      patterns: [
+        { from: "resources", to: "[path][name][ext]" },
+      ]
+    }),
     new HtmlWebpackPlugin({
       template: 'src/index.html',
       inject: false,

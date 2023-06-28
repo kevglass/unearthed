@@ -1,8 +1,8 @@
 
 import { HtmlUi } from "./HtmlUi";
-import { GameMap, Layer, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
-import { isMobile } from "./MobileDetect";
+import { isMobile, isTablet } from "./MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./Particles";
 import { getSprite, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./Resources";
@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 /** True if we should be showing bounds when rendering mobs */
 const SHOW_BOUNDS: boolean = false;
 /** The ZOOM level - higher = less zoomed - I know, I know. */
-const ZOOM: number = isMobile() ? 3 : 2;
+const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
 
@@ -47,6 +47,8 @@ export class Game {
     player: Mob;
     /** The UUID given as the server ID if hosted here or the ID of the server we're connecting to */
     serverId: string;
+    /** The password to secure your local server */
+    serverPassword: string;
     /** The list of mobs in the game world */
     mobs: Mob[] = [];
     /** The keyboard state - maintained through HTML/JS event listeners - keyed on the key itself, e.g. "a" */
@@ -100,6 +102,12 @@ export class Game {
         if (this.serverId === "") {
             this.serverId = uuidv4();
             localStorage.setItem("server", this.serverId);
+        }
+        
+        this.serverPassword = localStorage.getItem("serverPassword") ?? "";
+        if (this.serverPassword === "") {
+            this.serverPassword = uuidv4();
+            localStorage.setItem("serverPassword", this.serverPassword);
         }
 
         // check if we have a username stored locally, if not then generated one
@@ -545,17 +553,17 @@ export class Game {
             const logo = getSprite("logo");
             if (this.limitedLandscapeScreen) {
                 this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 5);
-                this.g.font = "30px Helvetica";
+                this.g.font = "30px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 30);
             } else if (this.limitedPortraitScreen) {
                 this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 300);
-                this.g.font = "30px Helvetica";
+                this.g.font = "30px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 330);
             } else {
                 this.g.drawImage(logo, (this.canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
-                this.g.font = "50px Helvetica";
+                this.g.font = "50px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Version _VERSION_", this.canvas.width / 2, 250 + (logo.height * 2));
             }
@@ -579,7 +587,7 @@ export class Game {
                 this.player.x = 200;
                 this.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
             } else {
-                this.g.font = "80px Helvetica";
+                this.g.font = "80px KenneyFont";
                 this.g.textAlign = "center";
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
@@ -600,7 +608,7 @@ export class Game {
 
             // draw the underground background
             this.g.fillStyle = "#445253";
-            this.g.fillRect(0, SKY_HEIGHT * 128, this.canvas.width * 5, this.canvas.height * 5);
+            this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
             this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
