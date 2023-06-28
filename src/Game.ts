@@ -8,6 +8,7 @@ import { renderAndUpdateParticles } from "./Particles";
 import { getSprite, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
+import { createServerId } from "./createServerId";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -45,7 +46,7 @@ export class Game {
     username: string;
     /** The local player's mob */
     player: Mob;
-    /** The UUID given as the server ID if hosted here or the ID of the server we're connecting to */
+    /** The server ID if hosted here or the ID of the server we're connecting to */
     serverId: string;
     /** The password to secure your local server */
     serverPassword: string;
@@ -98,8 +99,9 @@ export class Game {
         // check if we have a server ID stored locally, if not then generated one
         // and store it
         this.serverId = localStorage.getItem("server") ?? "";
-        if (this.serverId === "") {
-            this.serverId = uuidv4();
+        const isLegacyServerId = this.serverId.length > 5;
+        if (this.serverId === "" || isLegacyServerId) {
+            this.serverId = createServerId();
             localStorage.setItem("server", this.serverId);
         }
         
