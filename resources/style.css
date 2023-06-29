@@ -365,6 +365,21 @@ input {
     margin-left: 2px;
 }
 
+#portalinput {
+    display: none;
+    border-radius: 10px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    font-size: 1.5rem;
+    position: absolute;
+    left: 50%;
+    bottom: 100px;
+    transform: translate(-50%, 0);
+    width: 80%;
+    max-width: 200px;
+    outline: none;
+}
+
 #splash {
     background: #337979;
     position: absolute;
