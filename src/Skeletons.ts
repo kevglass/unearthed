@@ -22,7 +22,7 @@ export enum HumanBones {
  */
 function createHumanSkeleton(): Bone {
     const root = new Bone(HumanBones.ROOT, 0, 0, 0, 0);
-    const body = new Bone(HumanBones.BODY, 0, -40, 0, 3, "skins/a/body", -22, 0, root);
+    const body = new Bone(HumanBones.BODY, -20, -40, 0, 3, "skins/a/body", -22, 0, root);
     const head = new Bone(HumanBones.HEAD, 10, 10, 0.1, 3, "skins/a/head", -32, -64, body);
     const arm1 = new Bone(HumanBones.RIGHT_ARM, 35, 35, 0, 0, "skins/a/arm", -25, -25, body);
     const arm2 = new Bone(HumanBones.LEFT_ARM, 10, 35, 0, 4, "skins/a/arm", -25, -25, body);
