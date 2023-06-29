@@ -4,6 +4,8 @@
 // but its worked out ok.
 //
 
+import { GraphicsImage, HtmlGraphicsImage } from "./Graphics";
+
 function importAll(r: any) {
     let images: any = {};
 
@@ -19,7 +21,7 @@ export const RESOURCES = importAll(require.context('./', true, /.{3}.(png|mp3)$/
 const reportedErrors: Record<string, boolean> = {};
 
 /** The collection of all sprites loaded by the game */
-const sprites: Record<string, HTMLImageElement> = {};
+const sprites: Record<string, GraphicsImage> = {};
 /** The collection of all sound effects loaded by the game */
 const sfx: Record<string, ArrayBuffer> = {};
 /** The audio elements changed to sources for the audio context */
@@ -35,11 +37,12 @@ let loadedCount = 0;
  * @param resource The path to the resource
  * @returns The newly created image/sprite
  */
-function loadImage(name: string, resource: string): HTMLImageElement {
-    sprites[name] = new Image();
-    sprites[name].src = RESOURCES[resource];
+function loadImage(name: string, resource: string): GraphicsImage {
+    const image = new HtmlGraphicsImage(new Image());
+    sprites[name] = image;
+    image.get().src = RESOURCES[resource];
+    image.get().onload = () => { loadedCount--; };
     loadedCount++;
-    sprites[name].onload = () => { loadedCount--; };
     return sprites[name];
 }
 
@@ -76,7 +79,7 @@ function loadSfx(name: string, resource: string): void {
  * @param name The name of the sprite to retrieve
  * @returns The sprite or undefined if the sprite couldn't be found
  */
-export function getSprite(name: string): HTMLImageElement {
+export function getSprite(name: string): GraphicsImage {
     if (!sprites[name] && !reportedErrors[name]) {
         reportedErrors[name] = true;
         console.log("Couldn't locate sprite with name: " + name);

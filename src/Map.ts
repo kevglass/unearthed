@@ -1,6 +1,7 @@
 import { getSprite, playSfx} from "./Resources";
 import { Game } from "./Game";
 import { addParticle, createDirtParticle } from "./Particles";
+import { Graphics, GraphicsImage, HtmlGraphics } from "./Graphics";
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
@@ -19,7 +20,7 @@ export const MAP_DEPTH: number = 230;
  */
 interface Block {
     /** The sprite to draw for the block */
-    sprite: HTMLImageElement;
+    sprite: GraphicsImage;
     /** True if this one blocks movement */
     blocks: boolean;
     /** True if this block act as a ladder */
@@ -149,9 +150,9 @@ export class GameMap {
     /** The background tile map */
     background: number[] = [];
     /** A cache of sprites based on the foreground tiles - used for rendering */
-    foregroundSpriteMap: HTMLImageElement[] = [];
+    foregroundSpriteMap: GraphicsImage[] = [];
     /** A cache of sprites based on the background tiles - used for rendering */
-    backgroundSpriteMap: HTMLImageElement[] = [];
+    backgroundSpriteMap: GraphicsImage[] = [];
     /** The light map associated with this map */
     lightMap: number[] = [];
     /** Map of which tiles have been discovered on this map */
@@ -161,11 +162,11 @@ export class GameMap {
     /** The tiles that have a timer running */
     timers: Timer[] = [];
     /** The tile used to darken background tiles */
-    backingTile?: HTMLImageElement;
+    backingTile?: GraphicsImage;
     /** The tile used to darken background tiles where they have an overhand and need a shadow */
-    backingTopTile?: HTMLImageElement;
+    backingTopTile?: GraphicsImage;
     /** The collection of images that can be used to black out undiscovered areas - these vary to make the black not uniform */
-    undiscovered: HTMLImageElement[] = [];
+    undiscovered: GraphicsImage[] = [];
     /** The central game controller */
     game: Game;
     /** The light overall image */
@@ -819,7 +820,7 @@ export class GameMap {
      * @param screenWidth The width of the screen in world coordinate space
      * @param screenHeight The height of the screen in world coordinate space
      */
-    render(g: CanvasRenderingContext2D, overX: number, overY: number, canAct: boolean,
+    render(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
         const height = this.foreground.length / MAP_WIDTH;
 
@@ -869,7 +870,7 @@ export class GameMap {
 
                     // draw the mouse highlight
                     if (x === overX && y === overY && canAct) {
-                        g.fillStyle = "rgba(255, 255, 255, 0.3)";
+                        g.setFillStyle("rgba(255, 255, 255, 0.3)");
                         g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
                     }
                 }
@@ -886,7 +887,7 @@ export class GameMap {
         }
     }
 
-    drawLightMap(g: CanvasRenderingContext2D, overX: number, overY: number, canAct: boolean,
+    drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
         const lightScale = 1;
         const xp = Math.floor(screenX / TILE_SIZE) - 1;
@@ -907,19 +908,19 @@ export class GameMap {
             this.lightMapImage.height = tilesDown;
         }
 
-        const context = this.lightingImage.getContext("2d") as CanvasRenderingContext2D;
-        const lightMapContext = this.lightMapImage.getContext("2d") as CanvasRenderingContext2D;
+        const context = new HtmlGraphics(this.lightingImage);
+        const lightMapContext = new HtmlGraphics(this.lightMapImage);
 
         lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
-        lightMapContext.globalCompositeOperation = "source-over";
-        lightMapContext.fillStyle = "black";
+        lightMapContext.setCompositeOperation("source-over");
+        lightMapContext.setFillStyle("black");
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
                 const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
                 const light = this.getLightMap(x, y);
-                lightMapContext.globalAlpha = 1 - light;
+                lightMapContext.setGlobalAlpha(1 - light);
                 if (!this.isDiscovered(x, y)) {
-                    lightMapContext.globalAlpha = 1;
+                    lightMapContext.setGlobalAlpha(1);
                 }
 
                 lightMapContext.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
@@ -930,15 +931,15 @@ export class GameMap {
         context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
         context.save();
         context.scale(TILE_SIZE / lightScale, TILE_SIZE / lightScale);
-        context.drawImage(this.lightMapImage, 0, 0);
+        context.drawCanvasImage(lightMapContext, 0, 0);
         context.restore();
 
         context.save();
         const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 256);
         gradient.addColorStop(0, "rgba(0,0,0,255)");
         gradient.addColorStop(1, "rgba(0,0,0,0)");
-        context.globalCompositeOperation = 'destination-out';
-        context.fillStyle = gradient;
+        context.setCompositeOperation("destination-out");
+        context.setGradientFillStyle(gradient);
         context.translate(this.game.player.x - (screenX - offsetx), this.game.player.y - (screenY - offsety));
         context.beginPath();
         context.arc(0, 0, 256, 0, Math.PI * 2);
@@ -953,6 +954,6 @@ export class GameMap {
         // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
         // g.drawImage(this.lightingImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
 
-        g.drawImage(this.lightingImage, screenX - offsetx, screenY - offsety);
+        g.drawCanvasImage(context, screenX - offsetx, screenY - offsety);
     }
 }

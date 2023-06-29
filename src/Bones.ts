@@ -1,4 +1,5 @@
 import { Anim } from "./Animations";
+import { Graphics } from "./Graphics";
 import { getSprite } from "./Resources";
 
 /**
@@ -168,7 +169,7 @@ export class Bone {
      * @param g The graphics context on which to render
      * @param layer The layer we're rendering
      */
-    render(g: CanvasRenderingContext2D, layer: number): void {
+    render(g: Graphics, layer: number): void {
         // render this bone and its children, only actually
         // drawing sprites if we're on the right layer
         g.save();
@@ -196,7 +197,7 @@ export class Bone {
      * @param flip True if we're flipping direction (left/right) - this means
      * render the layers in the opposite order
      */
-    renderBoneOnLayers(g: CanvasRenderingContext2D, flip: boolean = false): void {
+    renderBoneOnLayers(g: Graphics, flip: boolean = false): void {
         if (!flip) {
             g.save();
             g.scale(-1, 1);

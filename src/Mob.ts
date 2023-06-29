@@ -1,5 +1,6 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./Bones";
+import { Graphics } from "./Graphics";
 import { GameMap, Layer, TILE_SIZE, tiles } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./Particles";
@@ -577,7 +578,7 @@ export class Mob {
      * @param g The graphics context to draw on to
      * @param showBounds True if we should show the bounds of the mobs too
      */
-    draw(g: CanvasRenderingContext2D, showBounds: boolean): void {
+    draw(g: Graphics, showBounds: boolean): void {
         g.save();
         g.translate(this.x, this.y);
 
@@ -586,14 +587,14 @@ export class Mob {
 
         // draw the mob bounds
         if (showBounds) {
-            g.fillStyle = "rgba(0,255,0,0.4)";
+            g.setFillStyle("rgba(0,255,0,0.4)");
             g.fillRect(-this.width, -this.height, this.width * 2, this.height * 2);
         }
 
         // draw the mob name
-        g.textAlign = "center";
-        g.fillStyle = "black";
-        g.font = "40px KenneyFont";
+        g.setTextAlign("center");
+        g.setFillStyle("black");
+        g.setFont("40px KenneyFont");
         g.fillText(this.name, 20, -140);
 
         g.restore();

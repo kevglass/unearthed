@@ -1,3 +1,4 @@
+import { Graphics, GraphicsImage } from "./Graphics";
 import { TILE_SIZE } from "./Map";
 import { getSprite } from "./Resources";
 
@@ -32,7 +33,7 @@ export function createDirtParticle(x: number, y: number): Particle {
  */
 export class Particle {
     /** The image to draw for this particle */
-    sprite: HTMLImageElement;
+    sprite: GraphicsImage;
     /** The life remaining in this particle (<0 is dead) */
     life: number;
     /** The x component of velocity */
@@ -54,7 +55,7 @@ export class Particle {
      * @param vx The x component of the initial velocity of this particle
      * @param vy The y component of the initial velocity of this particle
      */
-    constructor(sprite: HTMLImageElement, life: number, x: number, y: number, vx: number, vy: number) {
+    constructor(sprite: GraphicsImage, life: number, x: number, y: number, vx: number, vy: number) {
         this.sprite = sprite;
         this.life = life;
         this.x = x;
@@ -82,10 +83,10 @@ export class Particle {
      * 
      * @param g The graphics context on which to render
      */
-    render(g: CanvasRenderingContext2D): void {
-        g.globalAlpha = Math.min(1, this.life);
+    render(g: Graphics): void {
+        g.setGlobalAlpha(Math.min(1, this.life));
         g.drawImage(this.sprite, this.x, this.y);
-        g.globalAlpha = 1;
+        g.setGlobalAlpha(1);
     }
 }
 
@@ -103,7 +104,7 @@ export function addParticle(p: Particle): void {
  * 
  * @param g The graphics context on which to render
  */
-export function renderAndUpdateParticles(g: CanvasRenderingContext2D) {
+export function renderAndUpdateParticles(g: Graphics) {
     for (const p of [...particles]) {
         if (p.update()) {
             p.render(g);

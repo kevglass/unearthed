@@ -1,4 +1,5 @@
 
+import { Graphics, HtmlGraphics } from "./Graphics";
 import { HtmlUi } from "./HtmlUi";
 import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
 import { Mob } from "./Mob";
@@ -34,7 +35,7 @@ export class Game {
     /** The HTML Canvas element we're rendering to - fullscreen */
     canvas: HTMLCanvasElement;
     /** The graphics context used to render to the canvas */
-    g: CanvasRenderingContext2D;
+    g: Graphics;
     /** True if this browser is acting as game host */
     isHostingTheServer: boolean = true;
     /** True if we're attempting to connect to game network */
@@ -95,10 +96,10 @@ export class Game {
     constructor() {
         loadAllResources();
         initTiles();
-
+        
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
-        this.g = this.canvas.getContext("2d", { alpha: false })!;
+        this.g = new HtmlGraphics(this.canvas);
 
         // check if we have a server ID stored locally, if not then generated one
         // and store it
@@ -107,7 +108,7 @@ export class Game {
             this.serverId = uuidv4();
             localStorage.setItem("server", this.serverId);
         }
-
+        
         this.serverPassword = localStorage.getItem("serverPassword") ?? "";
         if (this.serverPassword === "") {
             this.serverPassword = uuidv4();
@@ -137,8 +138,8 @@ export class Game {
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
-
-        const skinsForValidation = ["a", "b", "c", "d"];
+        
+        const skinsForValidation = ["a","b","c","d"];
         if (localStorage.getItem("head")) {
             this.player.bodyParts.head = localStorage.getItem("head")!;
 
@@ -522,68 +523,68 @@ export class Game {
     private update() {
         const delta = Date.now() - this.lastUpdate;
 
-        for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
+        for (let loop=0;loop<delta / Math.floor(1000 / 60);loop++) {
             this.lastUpdate += Math.floor(1000 / 60);
-            let ox = this.player.x - (this.canvas.width / 2);
-            const oy = this.player.y - (this.canvas.height / 2);
-            ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
+        let ox = this.player.x - (this.canvas.width / 2);
+        const oy = this.player.y - (this.canvas.height / 2);
+        ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-            // update the mouse over indicator
-            this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
-            this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
+        // update the mouse over indicator
+        this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
+        this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
 
-            // check if the mouse over location is somewhere our player can act on
-            const px = Math.floor(this.player.x / TILE_SIZE);
-            const py = Math.floor(this.player.y / TILE_SIZE);
-            const dx = this.player.overX - px;
-            const dy = this.player.overY - py;
+        // check if the mouse over location is somewhere our player can act on
+        const px = Math.floor(this.player.x / TILE_SIZE);
+        const py = Math.floor(this.player.y / TILE_SIZE);
+        const dx = this.player.overX - px;
+        const dy = this.player.overY - py;
 
-            let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
+        let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
 
-            // local player specifics - set the initial state to doing nothing
-            this.player.still();
+        // local player specifics - set the initial state to doing nothing
+        this.player.still();
 
-            // if we were mining but we stopped pressing the button 
-            // then clear the block damage indicator to reset it
-            if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
-                this.player.blockDamage = 0;
-            }
-
-            // if we're pressing down and the we can act on the location and theres
-            // a tile to dig there, then mark us as working
-            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
-                this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
-                this.lastWorkX = this.player.overX;
-                this.lastWorkY = this.player.overY;
-            }
-            // tell the player its got the mouse down for network state update
-            if (this.mouseButtonDown[0] && canAct) {
-                this.player.controls.mouse = true;
-            }
-
-            this.player.localUpdate();
-
-            // update controls for the the player so network state can be sent
-            if (this.keyDown["d"]) {
-                this.player.controls.right = true;
-            }
-            if (this.keyDown["a"]) {
-                this.player.controls.left = true;
-            }
-            if (this.keyDown["s"]) {
-                this.player.controls.down = true;
-            }
-            if (this.keyDown[" "] || this.keyDown["w"]) {
-                this.player.controls.up = true;
-            }
-
-            this.gameMap.updateTimers();
-
-            // finally draw update and draw the mobs
-            for (const mob of [...this.mobs]) {
-                mob.update(this.animTime, !this.placingTilesOnFrontLayer);
-            }
+        // if we were mining but we stopped pressing the button 
+        // then clear the block damage indicator to reset it
+        if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
+            this.player.blockDamage = 0;
         }
+
+        // if we're pressing down and the we can act on the location and theres
+        // a tile to dig there, then mark us as working
+        if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
+            this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
+            this.lastWorkX = this.player.overX;
+            this.lastWorkY = this.player.overY;
+        }
+        // tell the player its got the mouse down for network state update
+        if (this.mouseButtonDown[0] && canAct) {
+            this.player.controls.mouse = true;
+        }
+
+        this.player.localUpdate();
+
+        // update controls for the the player so network state can be sent
+        if (this.keyDown["d"]) {
+            this.player.controls.right = true;
+        }
+        if (this.keyDown["a"]) {
+            this.player.controls.left = true;
+        }
+        if (this.keyDown["s"]) {
+            this.player.controls.down = true;
+        }
+        if (this.keyDown[" "] || this.keyDown["w"]) {
+            this.player.controls.up = true;
+        }
+
+        this.gameMap.updateTimers();
+
+        // finally draw update and draw the mobs
+        for (const mob of [...this.mobs]) {
+            mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+        }
+    }
     }
 
     /**
@@ -628,9 +629,8 @@ export class Game {
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-        this.g.fillStyle = "#b7e7fa";
+        this.g.setFillStyle("#b7e7fa");
         this.g.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
 
         const backgrounds = [{
             sprite: "bg/clouds",
@@ -647,10 +647,10 @@ export class Game {
         for (const bg of backgrounds) {
             const background = getSprite(bg.sprite);
             this.g.save();
-            this.g.translate(-((ox / bg.parallax) % (background.width * bg.scale)), bg.offset);
-            for (let x = 0; x < this.canvas.width * 2; x += (background.width * bg.scale) - bg.scale) {
+            this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
+            for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
                 // draw the background clouds
-                this.g.drawImage(background, x, 0, background.width * bg.scale, background.height * bg.scale);
+                this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
             }
             this.g.restore();
 
@@ -664,36 +664,35 @@ export class Game {
             document.getElementById("serverLink")!.innerHTML = this.waitingForHost ? "Waiting for Host" : "Disconnected";
             requestAnimationFrame(() => { this.loop() });
 
-            this.g.fillStyle = "black";
+            this.g.setFillStyle("black");
 
             // draw the logo and version number
             const logo = getSprite("logo");
             if (this.limitedLandscapeScreen) {
-                this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 5);
-                this.g.font = "30px KenneyFont";
-                this.g.textAlign = "center";
-                this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 30);
+                this.g.drawImage(logo, (this.canvas.width - logo.getWidth()) / 2, 5);
+                this.g.setFont("30px KenneyFont");
+                this.g.setTextAlign("center");
+                this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.getHeight() + 30);
 
             } else if (this.limitedPortraitScreen) {
-                this.g.drawImage(logo, (this.canvas.width - logo.width) / 2, 300);
-                this.g.font = "30px KenneyFont";
-                this.g.textAlign = "center";
-                this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.height + 330);
+                this.g.drawImage(logo, (this.canvas.width - logo.getWidth()) / 2, 300);
+                this.g.setFont("30px KenneyFont");
+                this.g.setTextAlign("center");
+                this.g.fillText("Version _VERSION_", this.canvas.width / 2, logo.getHeight() + 330);
             } else {
-                this.g.drawImage(logo, (this.canvas.width - (logo.width * 2)) / 2, 200, logo.width * 2, logo.height * 2);
-                this.g.font = "50px KenneyFont";
-                this.g.textAlign = "center";
-                this.g.fillText("Version _VERSION_", this.canvas.width / 2, 250 + (logo.height * 2));
+                this.g.drawScaledImage(logo, (this.canvas.width - (logo.getWidth() * 2)) / 2, 200, logo.getWidth() * 2, logo.getHeight() * 2);
+                this.g.setFont("50px KenneyFont");
+                this.g.setTextAlign("center");
+                this.g.fillText("Version _VERSION_", this.canvas.width / 2, 250 + (logo.getHeight() * 2));
 
-                this.g.textAlign = "center";
-                this.g.font = "60px KenneyFont";
+                this.g.setTextAlign("center");
+                this.g.setFont("60px KenneyFont");
                 this.g.save();
-                this.g.translate((this.canvas.width / 2) + (logo.width / 2) + 150, 150 + (logo.height * 2));
+                this.g.translate((this.canvas.width / 2) + (logo.getWidth() / 2) + 150, 150 + (logo.getHeight() * 2));
                 this.g.rotate(-(Math.PI / 8) - (Math.PI / 32) + (Math.sin(Math.PI * this.animTime) * (Math.PI / 32)));
-                this.g.fillStyle = "black";
-                this.g.font
+                this.g.setFillStyle("black");
                 this.g.fillText(this.motd, 1, 1);
-                this.g.fillStyle = "#0f0";
+                this.g.setFillStyle("#0f0");
                 this.g.fillText(this.motd, 0, 0);
                 this.g.restore();
             }
@@ -718,8 +717,8 @@ export class Game {
                 this.player.x = 200;
                 this.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
             } else {
-                this.g.font = "80px KenneyFont";
-                this.g.textAlign = "center";
+                this.g.setFont("80px KenneyFont");
+                this.g.setTextAlign("center");
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
             return;
@@ -738,7 +737,7 @@ export class Game {
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 
             // draw the underground background
-            this.g.fillStyle = "#445253";
+            this.g.setFillStyle("#445253");
             this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
@@ -803,11 +802,11 @@ export class Game {
                 const item = this.player.inventory[index + (this.inventPage * 4)];
                 if (item) {
                     if (item === this.player.itemHeld) {
-                        this.g.drawImage(getSprite("ui/sloton"), xp, yp, 125, 125);
+                        this.g.drawScaledImage(getSprite("ui/sloton"), xp, yp, 125, 125);
                     } else {
-                        this.g.drawImage(getSprite("ui/slotoff"), xp, yp, 125, 125);
+                        this.g.drawScaledImage(getSprite("ui/slotoff"), xp, yp, 125, 125);
                     }
-                    this.g.drawImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
+                    this.g.drawScaledImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
 
                 }
                 index++;
@@ -815,11 +814,11 @@ export class Game {
         }
 
         // draw the tile layer selector
-        this.g.drawImage(getSprite(this.placingTilesOnFrontLayer ? "ui/front" : "ui/back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
+        this.g.drawScaledImage(getSprite(this.placingTilesOnFrontLayer ? "ui/front" : "ui/back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
         if (isMobile()) {
             const xp = this.canvas.width - ((0 + 1) * 130) - 10;
             const yp = this.canvas.height - ((1 + 1) * 130) - 10;
-            this.g.drawImage(getSprite("ui/arrowup"), xp + 20, yp + 50, 80, 80);
+            this.g.drawScaledImage(getSprite("ui/arrowup"), xp + 20, yp + 50, 80, 80);
         }
 
         if (this.limitedPortraitScreen || this.limitedLandscapeScreen) {
@@ -828,10 +827,10 @@ export class Game {
 
         // draw the mobile controls
         if (isMobile()) {
-            this.g.drawImage(getSprite("ui/left"), 20, this.canvas.height - 160, 140, 140);
-            this.g.drawImage(getSprite("ui/right"), 180, this.canvas.height - 160, 140, 140);
-            this.g.drawImage(getSprite("ui/up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
-            this.g.drawImage(getSprite("ui/down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
+            this.g.drawScaledImage(getSprite("ui/left"), 20, this.canvas.height - 160, 140, 140);
+            this.g.drawScaledImage(getSprite("ui/right"), 180, this.canvas.height - 160, 140, 140);
+            this.g.drawScaledImage(getSprite("ui/up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
+            this.g.drawScaledImage(getSprite("ui/down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
         }
 
         // schedule our next frame
