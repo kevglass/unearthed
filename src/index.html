@@ -1,92 +1,90 @@
+<!DOCTYPE html>
 <html>
-
-<head>
-    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="style.css?v=<%= version %>">
-</head>
-
-<body>
-    <canvas id="game"></canvas>
-    <div id="playerList"></div>
-    <div id="settings">Settings</div>
-    <div id="chat">Chat</div>
-    <div id="chatList"></div>
-    <div id="connect" class="panel">
-        <div id="startGame" class="button">Start Game</div>
-        <div id="joinGame" class="button">Join Game</div>
-        <div id="setupButton" class="button">Setup</div>
-    </div>
-    <div id="join" class="panel">
-        <div class="label">Enter Server ID</div>
-        <input id="serverId" class="textfield"></input>
-        <div id="joinButton" class="button">Join</div>
-    </div>
-    <div id="setup" class="panel">
-        <div class="label">Player Name</div>
-        <input id="playerName" class="textfield"></input>
-        <div class="configpanel">
-            <div class="option">
-                <div class="optionLabel">Head</div>
-                <select class="optionSelect" id="headSelect">
-                    <option>a</option>
-                    <option>b</option>
-                    <option>c</option>
-                    <option>d</option>
-                </select>
+    <head>
+        <title>Unearthed</title>
+        <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="style.css?v=<%= version %>">
+    </head>
+    <body>
+        <canvas id="game"></canvas>
+        <div id="playerList"></div>
+        <div id="settings">Settings</div>
+        <div id="chat">Chat</div>
+        <div id="chatList"></div>
+        <div id="connect" class="panel">
+            <div id="startGame" class="button">Start Game</div>
+            <div id="joinGame" class="button">Join Game</div>
+            <div id="setupButton" class="button">Setup</div>
+        </div>
+        <div id="join" class="panel">
+            <div class="label">Enter Server ID</div>
+            <input id="serverId" class="textfield" />
+            <div id="joinButton" class="button">Join</div>
+        </div>
+        <div id="setup" class="panel">
+            <div class="label">Player Name</div>
+            <input id="playerName" class="textfield" />
+            <div class="configpanel">
+                <div class="option">
+                    <div class="optionLabel">Head</div>
+                    <select class="optionSelect" id="headSelect">
+                        <option>a</option>
+                        <option>b</option>
+                        <option>c</option>
+                        <option>d</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <div class="optionLabel">Body</div>
+                    <select class="optionSelect" id="bodySelect">
+                        <option>a</option>
+                        <option>b</option>
+                        <option>c</option>
+                        <option>d</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <div class="optionLabel">Arms</div>
+                    <select class="optionSelect" id="armsSelect">
+                        <option>a</option>
+                        <option>b</option>
+                        <option>c</option>
+                        <option>d</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <div class="optionLabel">Legs</div>
+                    <select class="optionSelect" id="legsSelect">
+                        <option>a</option>
+                        <option>b</option>
+                        <option>c</option>
+                        <option>d</option>
+                    </select>
+                </div>
             </div>
-            <div class="option">
-                <div class="optionLabel">Body</div>
-                <select class="optionSelect" id="bodySelect">
-                    <option>a</option>
-                    <option>b</option>
-                    <option>c</option>
-                    <option>d</option>
-                </select>
-            </div>
-            <div class="option">
-                <div class="optionLabel">Arms</div>
-                <select class="optionSelect" id="armsSelect">
-                    <option>a</option>
-                    <option>b</option>
-                    <option>c</option>
-                    <option>d</option>
-                </select>
-            </div>
-            <div class="option">
-                <div class="optionLabel">Legs</div>
-                <select class="optionSelect" id="legsSelect">
-                    <option>a</option>
-                    <option>b</option>
-                    <option>c</option>
-                    <option>d</option>
-                </select>
+            <div id="doneButton" class="button">Save</div>
+        </div>
+        <div id="settingsPanel" class="panel">
+            <button id="closeButton" class="button">X</button>
+            <button id="soundButton" class="button"></button>
+            <div class="label">Server Link</div>
+            <div id="serverLink"></div>
+            <div id="mapBar">
+                <div id="resetMapButton" class="mapButton">Reset Map</div>
+                <div id="loadMapButton" class="mapButton">Load Map</div>
+                <div id="saveMapButton" class="mapButton">Save Map</div>
             </div>
         </div>
-        <div id="doneButton" class="button">Save</div>
-    </div>
-    <div id="settingsPanel" class="panel">
-        <button id="closeButton" class="button">X</button>
-        <button id="soundButton" class="button"></button>
-        <div class="label">Server Link</div>
-        <div id="serverLink"></div>
-        <div id="mapBar">
-            <div id="resetMapButton" class="mapButton">Reset Map</div>
-            <div id="loadMapButton" class="mapButton">Load Map</div>
-            <div id="saveMapButton" class="mapButton">Save Map</div>
+        <input id="chatinput" type="text" />
+        <div id="tooltip">Test</div>
+
+        <div id="splash">
+            <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png" />
         </div>
-    </div>
-    <input id="chatinput" type="text">
-    </input>
-    <div id="tooltip">Test</div>
-
-    <div id="splash">
-        <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png"></div>
-    </div>
-    <input id="fileInput" type="file" style="visibility:hidden" />
-    <script src="bundle.js?v=<%= version %>"></script>
-</body>
-
+        <input id="fileInput" type="file" style="visibility:hidden" />
+        <script src="bundle.js?v=<%= version %>"></script>
+    </body>
 </html>
