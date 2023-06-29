@@ -173,6 +173,12 @@ export class GameMap {
     lightingImage?: HTMLCanvasElement;
     /** The light map rendered pixel per tile */
     lightMapImage?: HTMLCanvasElement;
+    /** The last location we have rendered a light map for */
+    lastLightMapX = 0;
+    /** The last location we have rendered a light map for */
+    lastLightMapY = 0;
+    /** The temporary light map image for frame by frame updates */
+    tempLightImage?: HTMLCanvasElement;
 
     constructor(game: Game) {
         this.game = game;
@@ -887,22 +893,19 @@ export class GameMap {
         }
     }
 
-    lastLightMapX = 0;
-    lastLightMapY = 0;
-    tempLightImage?: HTMLCanvasElement;
-
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
         const lightScale = 1;
         const xp = Math.floor(screenX / TILE_SIZE) - 1;
         const yp = Math.floor(screenY / TILE_SIZE) - 1;
-        const tilesAcross = Math.floor(screenWidth / TILE_SIZE) + 3;
-        const tilesDown = Math.floor(screenHeight / TILE_SIZE) + 3;
+        const tilesAcross = Math.floor(screenWidth / TILE_SIZE) + 2
+        const tilesDown = Math.floor(screenHeight / TILE_SIZE) + 2;
         const offsetx = screenX - (xp * TILE_SIZE);
         const offsety = screenY - (yp * TILE_SIZE);
 
         let lightMapDirty = false;
 
+        // initialise any temporary storage for the light maps
         if (!this.lightingImage || this.lightingImage.width != tilesAcross * TILE_SIZE || this.lightingImage.height !== tilesDown * TILE_SIZE) {
             this.lightingImage = document.createElement("canvas");
             this.lightingImage.width = tilesAcross * TILE_SIZE;
@@ -919,6 +922,7 @@ export class GameMap {
             lightMapDirty = true;
         }
 
+        // only regenerate the whole light map if we've moved
         if (this.lastLightMapX !== xp || this.lastLightMapY !== yp) {
             lightMapDirty = true;
         }
@@ -928,6 +932,9 @@ export class GameMap {
         const context = new HtmlGraphics(this.lightingImage);
 
         if (lightMapDirty) {
+            // render the light onto a pixel by pixel canvas, then scale it 
+            // up to get soft transitions. In GL we would have done this with 
+            // vertex colours but no such thing in pure Canvas
             const lightMapContext = new HtmlGraphics(this.lightMapImage);
 
             lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
@@ -966,6 +973,7 @@ export class GameMap {
 
 
         if (this.tempLightImage) {
+            // update anything that needs to be changed every frame and not only when we move from tile tile
             const context2 = new HtmlGraphics(this.tempLightImage);
             context2.clearRect(0,0,this.tempLightImage.width, this.tempLightImage.height);
 
