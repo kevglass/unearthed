@@ -58,7 +58,7 @@ export const WALK_ANIM: Anim = {
 export const WORK_ANIM: Anim = {
     name: "work",
     frames: {
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 0 }, { time: 0.25, ang: -2 },{ time: 0.5, ang: 0 }, { time: 0.75, ang: -2 }],
+        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 0 }, { time: 0.5, ang: -2 }],
     }
 }
 

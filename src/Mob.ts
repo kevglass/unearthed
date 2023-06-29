@@ -594,7 +594,7 @@ export class Mob {
         g.textAlign = "center";
         g.fillStyle = "black";
         g.font = "40px KenneyFont";
-        g.fillText(this.name, 0, -120);
+        g.fillText(this.name, 20, -140);
 
         g.restore();
     }

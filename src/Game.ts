@@ -539,7 +539,7 @@ export class Game {
         }
 
         // move the animation forward
-        this.animTime += 0.02;
+        this.animTime += 0.03;
         this.animTime = this.animTime % 1;
 
         // determine the scale of the screen and any limitation
