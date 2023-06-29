@@ -898,8 +898,8 @@ export class GameMap {
         const lightScale = 1;
         const xp = Math.floor(screenX / TILE_SIZE) - 1;
         const yp = Math.floor(screenY / TILE_SIZE) - 1;
-        const tilesAcross = Math.floor(screenWidth / TILE_SIZE) + 2
-        const tilesDown = Math.floor(screenHeight / TILE_SIZE) + 2;
+        const tilesAcross = Math.floor(screenWidth / TILE_SIZE) + 3
+        const tilesDown = Math.floor(screenHeight / TILE_SIZE) + 3;
         const offsetx = screenX - (xp * TILE_SIZE);
         const offsety = screenY - (yp * TILE_SIZE);
 

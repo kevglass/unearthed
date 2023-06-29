@@ -354,7 +354,7 @@ export class Mob {
      * Indicate that the mob wan't to jump (either local controls or network update)
      */
     jump(): void {
-        if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+        if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor(((this.y + (this.height / 2)/TILE_SIZE))))) {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
