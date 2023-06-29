@@ -194,13 +194,13 @@ export class Bone {
      * 
      * @param g The graphics context on which to render
      * @param flip True if we're flipping direction (left/right) - this means
-     * render the layers in the opposite order 
+     * render the layers in the opposite order
      */
     renderBoneOnLayers(g: CanvasRenderingContext2D, flip: boolean = false): void {
-        if (flip) {
+        if (!flip) {
             g.save();
             g.scale(-1, 1);
-            for (let layer = 10; layer >= 0; layer--) {
+            for (let layer = 0; layer < 10; layer++) {
                 this.render(g, layer);
             }
             g.restore();

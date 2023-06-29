@@ -40,6 +40,19 @@ export interface Controls {
 }
 
 /**
+ * The names of the sprites assigned to each body part
+ */
+export interface BodyParts {
+    /** The sprite assigned to the body part */
+    body: string;
+    /** The sprite assigned to the legs part */
+    legs: string;
+    /** The sprite assigned to the head part */
+    head: string;
+    /** The sprite assigned to the arms part */
+    arms: string;
+}
+/**
  * A mob or mobile in the world. Right now this is only players but could be extended
  * to add the monsters and anything else that moves around.
  */
@@ -53,7 +66,7 @@ export class Mob {
     /** The y coordinate of this mob's position in the world */
     y: number = 200;
     /** The width of the bounding box for collision around this mob */
-    width: number = 35;
+    width: number = 50;
     /** The height of the bounding box for collision around this mob */
     height: number = 90;
     /** The y component of velocity of this mob - used for falling and jumping */
@@ -88,10 +101,14 @@ export class Mob {
     lastUpdateSeq: number = 0;
     /** The item thats currently being held */
     itemHeld?: InventItem;
-    /** The skin to apply to the head */
-    head: string = "male";
-    /** The skin to apply to the body */
-    body: string = "male";
+    /** Parts */
+    bodyParts: BodyParts = {
+        body: "a",
+        head: "a",
+        arms: "a",
+        legs: "a",
+    };
+
     /** True if this mob is locally controlled */
     local: boolean = false;
     /** The game map this mob is on */
@@ -186,8 +203,7 @@ export class Mob {
         this.working = state.working;
         this.name = state.name;
         this.itemHeld = state.itemHeld;
-        this.head = state.head;
-        this.body = state.body;
+        this.bodyParts = state.bodyParts;
     }
 
     /**
@@ -212,8 +228,7 @@ export class Mob {
             overY: this.overY,
             name: this.name,
             itemHeld: this.itemHeld,
-            head: this.head,
-            body: this.body
+            bodyParts: this.bodyParts,
         };
     }
 
@@ -392,13 +407,16 @@ export class Mob {
                 bone.scale = this.itemHeld?.spriteScale ?? 1;
             }
             if (bone.name === HumanBones.HEAD) {
-                bone.sprite = "skins/" + this.head + "/head";
+                bone.sprite = "skins/" + this.bodyParts.head + "/head";
             }
             if (bone.name === HumanBones.LEFT_ARM || bone.name === HumanBones.RIGHT_ARM) {
-                bone.sprite = "skins/" + this.body + "/arm";
+                bone.sprite = "skins/" + this.bodyParts.arms + "/arm";
             }
             if (bone.name === HumanBones.BODY) {
-                bone.sprite = "skins/" + this.body + "/body";
+                bone.sprite = "skins/" + this.bodyParts.body + "/body";
+            }
+            if (bone.name === HumanBones.LEFT_LEG || bone.name === HumanBones.RIGHT_LEG) {
+                bone.sprite = "skins/" + this.bodyParts.body + "/leg";
             }
         }
 
@@ -550,7 +568,7 @@ export class Mob {
         }
 
         // apply whatever head tilt we have now
-        this.rootBone.findNamedBone(HumanBones.HEAD)!.ang = this.headTilt;
+        this.rootBone.findNamedBone(HumanBones.HEAD)!.ang = -this.headTilt;
     }
 
     /**

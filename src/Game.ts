@@ -135,26 +135,60 @@ export class Game {
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
+        
+        const skinsForValidation = ["a","b","c","d"];
         if (localStorage.getItem("head")) {
-            this.player.head = localStorage.getItem("head")!;
+            this.player.bodyParts.head = localStorage.getItem("head")!;
+
+            if (skinsForValidation.includes(this.player.bodyParts.head)) {
+                this.player.bodyParts.head = "a";
+            }
         }
         if (localStorage.getItem("body")) {
-            this.player.body = localStorage.getItem("body")!;
+            this.player.bodyParts.body = localStorage.getItem("body")!;
+
+            if (skinsForValidation.includes(this.player.bodyParts.body)) {
+                this.player.bodyParts.body = "a";
+            }
+        }
+        if (localStorage.getItem("legs")) {
+            this.player.bodyParts.legs = localStorage.getItem("legs")!;
+
+            if (skinsForValidation.includes(this.player.bodyParts.legs)) {
+                this.player.bodyParts.legs = "a";
+            }
+        }
+        if (localStorage.getItem("arms")) {
+            this.player.bodyParts.arms = localStorage.getItem("arms")!;
+
+            if (skinsForValidation.includes(this.player.bodyParts.arms)) {
+                this.player.bodyParts.arms = "a";
+            }
         }
 
         const bodySelect = document.getElementById("bodySelect") as HTMLSelectElement;
         const headSelect = document.getElementById("headSelect") as HTMLSelectElement;
-        bodySelect.value = this.player.body;
-        headSelect.value = this.player.head;
+        const armsSelect = document.getElementById("armsSelect") as HTMLSelectElement;
+        const legsSelect = document.getElementById("legsSelect") as HTMLSelectElement;
+        bodySelect.value = this.player.bodyParts.body;
+        headSelect.value = this.player.bodyParts.head;
 
         // configure the listeners on the setup dialog to configure the main player
         bodySelect.addEventListener("change", (event) => {
-            this.player.body = bodySelect.value;
-            localStorage.setItem("body", this.player.body);
+            this.player.bodyParts.body = bodySelect.value;
+            localStorage.setItem("body", this.player.bodyParts.body);
         });
         headSelect.addEventListener("change", (event) => {
-            this.player.head = headSelect.value;
-            localStorage.setItem("head", this.player.head);
+            this.player.bodyParts.head = headSelect.value;
+            localStorage.setItem("head", this.player.bodyParts.head);
+        });
+        armsSelect.addEventListener("change", (event) => {
+            this.player.bodyParts.arms = armsSelect.value;
+            localStorage.setItem("arms", this.player.bodyParts.arms);
+        });
+        legsSelect.addEventListener("change", (event) => {
+            this.player.bodyParts.legs = legsSelect.value;
+            localStorage.setItem("legs", this.player.bodyParts.legs);
         });
 
         // set up the mobs list ready to kick off
@@ -505,7 +539,7 @@ export class Game {
         }
 
         // move the animation forward
-        this.animTime += 0.03;
+        this.animTime += 0.02;
         this.animTime = this.animTime % 1;
 
         // determine the scale of the screen and any limitation
@@ -605,7 +639,8 @@ export class Game {
                 }
                 this.g.scale(1.5, 1.5);
                 this.player.still();
-                this.player.update(0, false)
+                this.player.controls.right = true;
+                this.player.update(this.animTime, false)
                 this.player.x = 0;
                 this.player.flip = true;
                 this.player.y = 0;

@@ -28,9 +28,9 @@ export interface Anim {
 export const IDLE_ANIM: Anim = {
     frames: {
         [HumanBones.LEFT_LEG]: [{ time: 0, ang: 0 },],
-        [HumanBones.RIGHT_LEG]: [{ time: 0, ang: 0 },],
-        [HumanBones.LEFT_ARM]: [{ time: 0, ang: 0 },],
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 1 },],
+        [HumanBones.RIGHT_LEG]: [{ time: 0, ang: -0 },],
+        [HumanBones.LEFT_ARM]: [{ time: 0, ang: 0.5 },],
+        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: -0.5 },],
     },
     name: "idle"
 }
@@ -39,13 +39,16 @@ export const IDLE_ANIM: Anim = {
 // simply moves the arms and legs back and forward between two extremes of rotation
 // that looked decent. Note that the left/right arm/leg are moved in the opposite 
 // direction to each other to give the sense of walking.
+let extent = 1;
+let intent = 1;
+
 export const WALK_ANIM: Anim = {
     name: "walk",
     frames: {
-        [HumanBones.LEFT_LEG]: [{ time: 0, ang: -1 }, { time: 0.5, ang: 1 }],
-        [HumanBones.RIGHT_LEG]: [{ time: 0, ang: 1 }, { time: 0.5, ang: -1 }],
-        [HumanBones.LEFT_ARM]: [{ time: 0, ang: -1 }, { time: 0.5, ang: 1 }],
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 1 }, { time: 0.5, ang: -1 }],
+        [HumanBones.LEFT_LEG]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
+        [HumanBones.RIGHT_LEG]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
+        [HumanBones.LEFT_ARM]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
+        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
     }
 }
 
@@ -55,7 +58,7 @@ export const WALK_ANIM: Anim = {
 export const WORK_ANIM: Anim = {
     name: "work",
     frames: {
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 0 }, { time: 0.5, ang: 2 }],
+        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 0 }, { time: 0.25, ang: -2 },{ time: 0.5, ang: 0 }, { time: 0.75, ang: -2 }],
     }
 }
 
