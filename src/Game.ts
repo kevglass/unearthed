@@ -256,7 +256,7 @@ export class Game implements ControllerListener {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             // if we're focused on the chat input that takes precedence
-            if (document.activeElement === this.ui.chatInput) {
+            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput) {
                 return;
             }
 

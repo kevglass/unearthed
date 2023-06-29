@@ -10,6 +10,8 @@ import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resou
 export class HtmlUi {
     /** The input element used to accept user network chat */
     chatInput: HTMLInputElement;
+    /** The input element holding the players name */
+    playernameInput: HTMLInputElement;
     /** The button in the setting dialog for resetting the map */
     resetMapButton: HTMLDivElement;
     /** The button in the setting dialog for loading the map */
@@ -35,6 +37,7 @@ export class HtmlUi {
         this.saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
         this.fileInput = document.getElementById("fileInput") as HTMLInputElement;
         this.chatInput = document.getElementById("chatinput") as HTMLInputElement;
+        this.playernameInput = document.getElementById("playerName") as HTMLInputElement;
 
         //
         // The file input is used to show the file selector in the browser. We programmatically
@@ -122,7 +125,7 @@ export class HtmlUi {
 
         // done button from the settings panel. Apply the settings and go back to main menu
         document.getElementById("doneButton")!.addEventListener("click", () => {
-            this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
+            this.game.username = this.playernameInput.value;
             this.game.player.name = this.game.username;
             localStorage.setItem("username", this.game.username);
             document.getElementById("connect")!.style.display = "block";
