@@ -1,4 +1,4 @@
-import { Bone } from "./Bones";
+import { Bone } from "./engine/Bones";
 
 /**
  * The bones that build up the human skeleton

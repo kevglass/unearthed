@@ -1,5 +1,5 @@
 import { Graphics, GraphicsImage } from "./Graphics";
-import { TILE_SIZE } from "./Map";
+import { TILE_SIZE } from "../Map";
 import { getSprite } from "./Resources";
 
 // 

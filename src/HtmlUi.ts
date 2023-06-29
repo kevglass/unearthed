@@ -1,7 +1,7 @@
 import { Game } from "./Game";
 import { GameMap, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
-import { isSoundMuted, setSoundMuted } from "./Resources";
+import { isSoundMuted, setSoundMuted } from "./engine/Resources";
 
 /**
  * A controller for everything thats on the HTML layer rather than the canvas. The game

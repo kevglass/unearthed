@@ -1,15 +1,15 @@
 
-import { Graphics, HtmlGraphics } from "./Graphics";
+import { Graphics, HtmlGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
 import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./MobileDetect";
 import { Network } from "./Network";
-import { renderAndUpdateParticles } from "./Particles";
-import { getSprite, loadAllResources, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./Resources";
+import { renderAndUpdateParticles } from "./engine/Particles";
+import { getSprite, loadAllResources, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./engine/Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
-import { createServerId } from "./createServerId";
+import { createServerId } from "./util/createServerId";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't

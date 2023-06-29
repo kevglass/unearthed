@@ -1,4 +1,4 @@
-import { Anim } from "./Animations";
+import { Anim } from "../Animations";
 import { Graphics } from "./Graphics";
 import { getSprite } from "./Resources";
 

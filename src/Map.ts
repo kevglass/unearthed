@@ -1,7 +1,7 @@
-import { getSprite, playSfx} from "./Resources";
+import { getSprite, playSfx} from "./engine/Resources";
 import { Game } from "./Game";
-import { addParticle, createDirtParticle } from "./Particles";
-import { Graphics, GraphicsImage, HtmlGraphics } from "./Graphics";
+import { addParticle, createDirtParticle } from "./engine/Particles";
+import { Graphics, GraphicsImage, HtmlGraphics } from "./engine/Graphics";
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
