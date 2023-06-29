@@ -2,3 +2,9 @@ node_modules
 dist
 local.properties.json
 media
+
+# Jetbrains IDE's
+.idea/*
+
+# Visual Studio Code
+.vscode/*
