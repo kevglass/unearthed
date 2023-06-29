@@ -1,15 +1,15 @@
-*{
+* {
 	box-sizing: content-box;
+}
+
+@font-face {
+    font-family: 'KenneyFont';
+    src: url('Kenney High.ttf') format('truetype');
 }
 
 :root {
     font-family: 'KenneyFont', monospace;
     font-size: 20px;
-}
-
-@font-face {
-    font-family: 'KenneyFont';
-    src: url('Kenney High.ttf') format('truetype'); 
 }
   
 body {
