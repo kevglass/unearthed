@@ -2,20 +2,23 @@
 	box-sizing: content-box;
 }
 
+:root {
+    font-family: 'KenneyFont', monospace;
+    font-size: 20px;
+}
+
 @font-face {
     font-family: 'KenneyFont';
     src: url('Kenney High.ttf') format('truetype'); 
-}  
-
+}
   
 body {
-    font-family: 'KenneyFont', monospace;
     padding: 0;
     margin: 0;
     overflow: hidden;
 }
 
-input { 
+input {
     font-family: 'KenneyFont', monospace;
 }
 
@@ -28,7 +31,7 @@ input {
     background: rgba(0, 0, 0, 0.5);
     padding: 5px;
     color: white;
-    font-size: 20px;
+    font-size: 1rem;
     border-radius: 10px;
     margin-bottom: 10px;
 }
@@ -114,8 +117,8 @@ input {
     outline: 4px solid black;
     color: white;
     background: red;
-    font-size: 20px;
-    font-family: arial;
+    font-size: 1rem;
+    font-family: Arial, sans-serif;
     font-weight: bold;
     right: -11px;
     top: -11px;
@@ -131,8 +134,8 @@ input {
     outline: 4px solid black;
     user-select: none;
     color: white;
-    font-size: 28px;
-    line-height: 40px;
+    font-size: 1.4rem;
+    line-height: 2rem;
     height: 40px;
     background: #838796;
 	border-width: 0;
@@ -157,8 +160,8 @@ input {
     outline: 4px solid black;
     user-select: none;
     color: white;
-    font-size: 28px;
-    line-height: 40px;
+    font-size: 1.4rem;
+    line-height: 2rem;
     height: 40px;
     background: #838796;
     border-bottom: 5px solid #616374;
@@ -202,11 +205,11 @@ input {
 }
 
 .label {
-    font-size: 28px;
+    font-size: 1.4rem;
 }
 
 input {
-    font-size: 28px;
+    font-size: 1.4rem;
     margin-top: 20px;
     margin-bottom: 20px;
     width: 200px;
@@ -261,7 +264,7 @@ input {
 
 .option {
     display: flex;
-    font-size: 30px;
+    font-size: 1.5rem;
     width: 100%;
     justify-content: space-between;
     margin-bottom: 5px;
@@ -278,7 +281,7 @@ input {
     border-radius: 10px;
     color: white;
     background: rgba(0, 0, 0, 0.5);
-    font-size: 30px;
+    font-size: 1.5rem;
     position: absolute;
     left: 50%;
     bottom: 100px;
@@ -322,10 +325,7 @@ input {
     border-bottom-right-radius: 10px;
     color: white;
     background: rgba(0, 0, 0, 0.5);
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-top: 5px;
-    padding-bottom: 5px;
+    padding: 5px 10px;
     margin-left: 2px;
 }
 
