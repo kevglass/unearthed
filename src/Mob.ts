@@ -1,7 +1,7 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./engine/Bones";
 import { Graphics } from "./engine/Graphics";
-import { GameMap, Layer, TILE_SIZE, tiles } from "./Map";
+import { GameMap, Layer, SKY_HEIGHT, TILE_SIZE, tiles } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
@@ -403,6 +403,15 @@ export class Mob {
     localUpdate(): void {
         this.lastUpdate = Date.now();
         this.local = true;
+    }
+
+    /**
+     * Reset this mob to starting poisition
+     */
+    reset(): void {
+        this.vy = 0;
+        this.x = 200;
+        this.y = (SKY_HEIGHT - 6) * TILE_SIZE;
     }
 
     /**

@@ -15,14 +15,149 @@ import { Controller, ControllerListener } from "./engine/Controller";
 //
 // The main game controller and state. This is catch-all for anything that didn't
 // fit anywhere else
-//f
+//
 
 /** True if we should be showing bounds when rendering mobs */
 const SHOW_BOUNDS: boolean = false;
 /** The ZOOM level - higher = less zoomed - I know, I know. */
 const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
-const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
+const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
+
+/**
+ * A step in controller configuration. A message will be displayed
+ * to the user and the control waited for
+ */
+interface ControllerSetupStep {
+    /**
+     * Get the message to display to the user during this step
+     * 
+     * @return The message to display to the user
+     */
+    getLabel(): string;
+
+    /**
+     * Check if this step has been completed. 
+     * 
+     * @param game The game context to perform the check
+     * @return True if the step is completed
+     */
+    check(game: Game): boolean;
+}
+
+class AxisSetupStep implements ControllerSetupStep {
+    label: string;
+    axis: number;
+    hasBeenClear: boolean = false;
+
+    constructor(label: string, axis: number) {
+        this.label = label;
+        this.axis = axis;
+    }
+
+    /**
+     * Get the message to display to the user during this step
+     * 
+     * @return The message to display to the user
+     */
+    getLabel(): string {
+        return this.label;
+    }
+
+    /**
+     * Check if this step has been completed. 
+     * 
+     * @param game The game context to perform the check
+     * @return True if the step is completed
+     */
+    check(game: Game): boolean {
+        const active = game.gamepad.getActiveAxis();
+        if (this.hasBeenClear) {
+            if (active >= 0) {
+                game.gamepad.axesConfigured[this.axis] = active;
+                return true;
+            }
+        } else if (active === -1) {
+            this.hasBeenClear = true;
+        }
+
+        return false;
+    }
+}
+
+class ButtonSetupStep implements ControllerSetupStep {
+    label: string;
+    button: string;
+    hasBeenClear: boolean = false;
+
+    /**
+     * Get the message to display to the user during this step
+     * 
+     * @return The message to display to the user
+     */
+    constructor(label: string, button: string) {
+        this.label = label;
+        this.button = button;
+    }
+
+    /**
+     * Get the message to display to the user during this step
+     * 
+     * @return The message to display to the user
+     */
+    getLabel(): string {
+        return this.label;
+    }
+
+
+    /**
+     * Check if this step has been completed. 
+     * 
+     * @param game The game context to perform the check
+     * @return True if the step is completed
+     */
+    check(game: Game): boolean {
+        const active = game.gamepad.getActiveButton();
+        if (this.hasBeenClear) {
+            if (active >= 0) {
+                (game.controllerButtons as any)[this.button] = active;
+                return true;
+            }
+        } else if (active === -1) {
+            this.hasBeenClear = true;
+        }
+
+        return false;
+    }
+}
+
+/**
+ * The index of controller buttons that are configured
+ */
+interface ControllerButtons {
+    /** The next item button */
+    next: number;
+    /** The previous item button */
+    prev: number;
+    /** The jump button */
+    jump: number;
+    /** The toggle place layer button */
+    layer: number;
+}
+
+/**
+ * The steps for the user to follow for configuring a controller
+ */
+const CONTROLLER_SETUP_STEPS: ControllerSetupStep[] = [
+    new AxisSetupStep("Push Move Right Control!", 0),
+    new AxisSetupStep("Push Move Up Control!", 1),
+    new AxisSetupStep("Push Dig Right Control!", 2),
+    new AxisSetupStep("Push Dig Up Control!", 3),
+    new ButtonSetupStep("Press Jump Button!", "jump"),
+    new ButtonSetupStep("Press Previous Item Button!", "prev"),
+    new ButtonSetupStep("Press Next Item Button!", "next"),
+    new ButtonSetupStep("Press Layer Switch Button!", "layer"),
+];
 
 /**
  * The main game controller. This needs breaking up a bit more yet.
@@ -98,6 +233,15 @@ export class Game implements ControllerListener {
     lastUpdate: number = Date.now();
     /** True if we used the gamepad to dig - allows us to reset state when its released */
     gamepadUsedToDig: boolean = false;
+    /** The controller setup step */
+    controllerSetupStep: number = -1;
+
+    controllerButtons: ControllerButtons = {
+        jump: 0,
+        next: 1,
+        prev: 2,
+        layer: 3
+    };
 
     constructor() {
         loadAllResources();
@@ -124,6 +268,8 @@ export class Game implements ControllerListener {
             this.serverPassword = uuidv4();
             localStorage.setItem("serverPassword", this.serverPassword);
         }
+
+        this.loadControllerSetup();
 
         // check if we have a username stored locally, if not then generated one
         // and store it
@@ -224,11 +370,16 @@ export class Game implements ControllerListener {
     }
 
     buttonPressed(button: number): void {
-        if (button === 5 || button === 7) {
-            this.nextInventItem();
-        }
-        if (button === 6 || button === 8) {
-            this.nextInventItem();
+        if (this.network.connected()) {
+            if (button === this.controllerButtons.next) {
+                this.nextInventItem();
+            }
+            if (button === this.controllerButtons.prev) {
+                this.prevInventItem();
+            }
+            if (button === this.controllerButtons.layer) {
+                this.togglePlacementLayer();
+            }
         }
     }
 
@@ -236,6 +387,12 @@ export class Game implements ControllerListener {
         if ((button > 0) && (button < 4)) {
             this.mouseButtonDown[0] = false;
         }
+    }
+
+    startControllerSetup(): void {
+        document.getElementById("connect")!.style.display = "none";
+        document.getElementById("settingsPanel")!.style.display = "none";
+        this.controllerSetupStep = 0;
     }
 
     /**
@@ -249,12 +406,22 @@ export class Game implements ControllerListener {
         this.timeTooltipShown = Date.now();
     }
 
+    togglePlacementLayer(): void {
+        this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
+    }
+
     /**
      * Configure the event handlers that manage keyboard, mouse and touch state.
      */
     configureEventHandlers() {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
+            if (this.controllerSetupStep >= 0) {
+                this.controllerSetupStep = -1;
+                document.getElementById("settingsPanel")!.style.display = "block";
+                return;
+            }
+
             // if we're focused on the chat input that takes precedence
             if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput) {
                 return;
@@ -281,7 +448,7 @@ export class Game implements ControllerListener {
 
             // Pressing X changes the layer we're targeting
             if (event.key === 'x') {
-                this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
+                this.togglePlacementLayer();
             }
 
         });
@@ -555,81 +722,113 @@ export class Game implements ControllerListener {
 
         this.gamepad.update();
 
-        for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
-            this.lastUpdate += Math.floor(1000 / 60);
-            let ox = this.player.x - (this.canvas.width / 2);
-            const oy = this.player.y - (this.canvas.height / 2);
-            ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
+        if (this.network.connected()) {
+            for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
+                this.lastUpdate += Math.floor(1000 / 60);
+                let ox = this.player.x - (this.canvas.width / 2);
+                const oy = this.player.y - (this.canvas.height / 2);
+                ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-            // update the mouse over indicator
-            this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
-            this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
+                // update the mouse over indicator
+                this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
+                this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
 
-            // the second dpad can be used to dig
-            const gpx = (this.gamepad.altRight ? 1 : 0) + (this.gamepad.altLeft ? -1 : 0);
-            const gpy = (this.gamepad.altDown ? 1 : 0) + (this.gamepad.altUp ? -1 : 0);
-            if (gpx !== 0 || gpy !== 0) {
-                this.player.overX = Math.floor(this.player.x / TILE_SIZE) + gpx;
-                this.player.overY = Math.floor(this.player.y / TILE_SIZE) + gpy;
-                this.mouseButtonDown[0] = true;
-                this.gamepadUsedToDig = true;
-            } else if (this.gamepadUsedToDig) {
-                this.mouseButtonDown[0] = false;
-                this.gamepadUsedToDig = false;
+                // the second dpad can be used to dig
+                const gpx = (this.gamepad.altRight ? 1 : 0) + (this.gamepad.altLeft ? -1 : 0);
+                const gpy = (this.gamepad.altDown ? 1 : 0) + (this.gamepad.altUp ? -1 : 0);
+                if (gpx !== 0 || gpy !== 0) {
+                    this.player.overX = Math.floor(this.player.x / TILE_SIZE) + gpx;
+                    this.player.overY = Math.floor(this.player.y / TILE_SIZE) + gpy;
+                    this.mouseButtonDown[0] = true;
+                    this.gamepadUsedToDig = true;
+                } else if (this.gamepadUsedToDig) {
+                    this.mouseButtonDown[0] = false;
+                    this.gamepadUsedToDig = false;
+                }
+
+                // check if the mouse over location is somewhere our player can act on
+                const px = Math.floor(this.player.x / TILE_SIZE);
+                const py = Math.floor(this.player.y / TILE_SIZE);
+                const dx = this.player.overX - px;
+                const dy = this.player.overY - py;
+
+                let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
+
+                // local player specifics - set the initial state to doing nothing
+                this.player.still();
+
+                // if we were mining but we stopped pressing the button 
+                // then clear the block damage indicator to reset it
+                if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
+                    this.player.blockDamage = 0;
+                }
+
+                // if we're pressing down and the we can act on the location and theres
+                // a tile to dig there, then mark us as working
+                if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
+                    this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
+                    this.lastWorkX = this.player.overX;
+                    this.lastWorkY = this.player.overY;
+                }
+                // tell the player its got the mouse down for network state update
+                if (this.mouseButtonDown[0] && canAct) {
+                    this.player.controls.mouse = true;
+                }
+
+                this.player.localUpdate();
+
+                // update controls for the the player so network state can be sent
+                if (this.keyDown["d"] || this.gamepad.right) {
+                    this.player.controls.right = true;
+                }
+                if (this.keyDown["a"] || this.gamepad.left) {
+                    this.player.controls.left = true;
+                }
+                if (this.keyDown["s"] || this.gamepad.down) {
+                    this.player.controls.down = true;
+                }
+                if (this.keyDown[" "] || this.keyDown["w"] || this.gamepad.up || this.gamepad.buttons[this.controllerButtons.jump]) {
+                    this.player.controls.up = true;
+                }
+
+                this.gameMap.updateTimers();
+
+                // finally draw update and draw the mobs
+                for (const mob of [...this.mobs]) {
+                    mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+                }
             }
+        } else {
+            this.lastUpdate = Date.now();
+        }
+    }
 
-            // check if the mouse over location is somewhere our player can act on
-            const px = Math.floor(this.player.x / TILE_SIZE);
-            const py = Math.floor(this.player.y / TILE_SIZE);
-            const dx = this.player.overX - px;
-            const dy = this.player.overY - py;
-
-            let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
-
-            // local player specifics - set the initial state to doing nothing
-            this.player.still();
-
-            // if we were mining but we stopped pressing the button 
-            // then clear the block damage indicator to reset it
-            if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
-                this.player.blockDamage = 0;
-            }
-
-            // if we're pressing down and the we can act on the location and theres
-            // a tile to dig there, then mark us as working
-            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
-                this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
-                this.lastWorkX = this.player.overX;
-                this.lastWorkY = this.player.overY;
-            }
-            // tell the player its got the mouse down for network state update
-            if (this.mouseButtonDown[0] && canAct) {
-                this.player.controls.mouse = true;
-            }
-
-            this.player.localUpdate();
-
-            // update controls for the the player so network state can be sent
-            if (this.keyDown["d"] || this.gamepad.right) {
-                this.player.controls.right = true;
-            }
-            if (this.keyDown["a"] || this.gamepad.left) {
-                this.player.controls.left = true;
-            }
-            if (this.keyDown["s"] || this.gamepad.down) {
-                this.player.controls.down = true;
-            }
-            if (this.keyDown[" "] || this.keyDown["w"] || this.gamepad.up || this.gamepad.buttons[0]) {
-                this.player.controls.up = true;
-            }
-
-            this.gameMap.updateTimers();
-
-            // finally draw update and draw the mobs
-            for (const mob of [...this.mobs]) {
-                mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+    /**
+     * Load any controller configuration stored in local storage
+     */
+    private loadControllerSetup(): void {
+        const config = localStorage.getItem("controller");
+        if (config) {
+            try {
+                const setup = JSON.parse(config);
+                this.gamepad.axesConfigured = setup.axes;
+                this.controllerButtons = setup.buttons;
+            } catch (e) {
+                // do nothing, invalid JSON
             }
         }
+    }
+
+    /**
+     * Save the current controller configuration to local storage
+     */
+    private saveControllerSetup(): void {
+        const setup = {
+            axes: this.gamepad.axesConfigured,
+            buttons: this.controllerButtons,
+        };
+
+        localStorage.setItem("controller", JSON.stringify(setup));
     }
 
     /**
@@ -700,6 +899,36 @@ export class Game implements ControllerListener {
             this.g.restore();
         }
 
+        if (this.controllerSetupStep >= 0) {
+            requestAnimationFrame(() => { this.loop() });
+
+            this.g.setFillStyle("rgba(0,0,0,0.2");
+            this.g.fillRect(0, 270, this.canvas.width, 400);
+            this.g.setTextAlign("center");
+            this.g.setFillStyle("black");
+            this.g.save();
+            this.g.translate(5, 5);
+            this.g.setFont("120px KenneyFont");
+            this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), this.canvas.width / 2, 400);
+            this.g.setFont("60px KenneyFont");
+            this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
+            this.g.restore();
+            this.g.setFillStyle("white");
+            this.g.setFont("120px KenneyFont");
+            this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), (this.canvas.width / 2), 400);
+            this.g.setFont("60px KenneyFont");
+            this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
+
+            if (CONTROLLER_SETUP_STEPS[this.controllerSetupStep].check(this)) {
+                this.controllerSetupStep++;
+                if (this.controllerSetupStep >= CONTROLLER_SETUP_STEPS.length) {
+                    this.controllerSetupStep = -1;
+                    this.saveControllerSetup();
+                    document.getElementById("settingsPanel")!.style.display = "block";
+                }
+            }
+            return;
+        }
 
         // if the network hasn't been started we're at the main menu
         if (!this.network.connected()) {
@@ -789,7 +1018,7 @@ export class Game implements ControllerListener {
                 this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
                 this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
             }
-            
+
             // check if the mouse over location is somewhere our player can act on
             const px = Math.floor(this.player.x / TILE_SIZE);
             const py = Math.floor(this.player.y / TILE_SIZE);

@@ -103,6 +103,19 @@ input {
 	background-image: url(soundisoff.png);
 }
 
+#controllerButton:active {
+    margin-top: 23px;
+}
+
+#controllerButton {
+	width: 40px;
+	height: 40px;
+	position: static;
+	margin: 20px;
+	background-image: url(gamepad.png);
+	background-size: cover;
+}
+
 #soundButton {
 	width: 40px;
 	height: 40px;

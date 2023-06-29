@@ -106,6 +106,7 @@ export class HtmlUi {
             this.network.startNetwork(this.game.isHostingTheServer);
             this.game.connecting = true;
             this.game.waitingForHost = true;
+            this.game.player.reset();
             document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + this.game.serverId;
         });
         // join game button - just show the join game dialog
@@ -119,6 +120,7 @@ export class HtmlUi {
         document.getElementById("setupButton")!.addEventListener("click", () => {
             confirmAudioContext();
 
+            this.game.player.reset();
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("setup")!.style.display = "block";
         });
@@ -166,6 +168,7 @@ export class HtmlUi {
         // close button hide the settings panel
         document.getElementById("closeButton")!.addEventListener("click", () => {
             document.getElementById("settingsPanel")!.style.display = "none";
+            document.getElementById("connect")!.style.display = "block";
         })
 
         // sound on/off button
@@ -174,6 +177,12 @@ export class HtmlUi {
 			
 			this.renderSoundButton();
         })
+
+        document.getElementById("controllerButton")!.addEventListener("click", () => {
+            this.game.startControllerSetup();
+        })
+
+        
 
         // special cases for when chatting. Enter will send the message and escape
         // will hide the chat box.
