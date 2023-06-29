@@ -176,8 +176,7 @@ export class Network {
                         });
                         this.hadMap = true;
         
-                        this.localPlayer!.x = 200;
-                        this.localPlayer!.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+                        this.localPlayer?.reset();
                     }
                 }
             } else {
