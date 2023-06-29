@@ -303,11 +303,11 @@ export class Mob {
      * 
      * @returns True if this mob can't move down
      */
-    standingOnSomething(): boolean {
+    standingOnSomething(includeLadders: boolean = true): boolean {
         if (this.vy < 0) {
             return false;
         }
-        if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+        if (includeLadders && this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
             return true;
         }
         if (this.fallThroughUntil > 0) {
@@ -509,16 +509,6 @@ export class Mob {
             if (this.vy < TILE_SIZE / 2) {
                 this.vy += 1;
             }
-        } else {
-            // ladders don't snap to position
-            if (!this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
-                // if we have a grace fall from sliding down from a block
-                if (this.fallThroughUntil === 0) {
-                    // otherwise move us out of the collision with the floor and stop falling
-                    this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
-                }
-            }
-            this.vy = 0;
         }
 
         if (this.controls.down) {
@@ -555,7 +545,18 @@ export class Mob {
         }
 
         // apply vertical velocity (if there is any)
-        this.y += this.vy;
+        this.y += this.vy
+
+        if (this.standingOnSomething()) {
+            if (this.standingOnSomething(false) || !this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+                // if we have a grace fall from sliding down from a block
+                if (this.fallThroughUntil === 0) {
+                    // otherwise move us out of the collision with the floor and stop falling
+                    this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
+                }
+            }
+            this.vy = 0;;
+        }
 
         if (this.y > this.fallThroughUntil) {
             this.fallThroughUntil = 0;

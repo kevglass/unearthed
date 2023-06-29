@@ -3,7 +3,7 @@ import { Graphics, HtmlGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
 import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
 import { Mob } from "./Mob";
-import { isMobile, isTablet } from "./MobileDetect";
+import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./engine/Particles";
 import { getSprite, loadAllResources, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./engine/Resources";

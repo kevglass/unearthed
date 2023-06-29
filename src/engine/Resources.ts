@@ -15,7 +15,7 @@ function importAll(r: any) {
     return images;
 }
 
-export const RESOURCES = importAll(require.context('./', true, /.{3}.(png|mp3)$/));
+export const RESOURCES = importAll(require.context('../', true, /.{3}.(png|mp3)$/));
 
 /** A list of all the reported errors for resources so we only show them once */
 const reportedErrors: Record<string, boolean> = {};
