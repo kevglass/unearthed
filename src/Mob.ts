@@ -103,16 +103,16 @@ export class Mob {
 
     /** The item in the mob's inventory */
     inventory: InventItem[] = [
-        { sprite: "pick.iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
-        { sprite: "tile.dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "tile.brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "tile.brick_red", place: 4,spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
-        { sprite: "tile.sand_tile", place: 6, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "tile.wood_tile", place: 7, spriteOffsetX: -70, spriteOffsetY: -130 , spriteScale: 0.7  },
-        { sprite: "tile.ladder_tile", place: 8, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
-        { sprite: "tile.platform_tile", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
-        { sprite: "tile.tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
+        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
+        { sprite: "tiles/dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "tiles/brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "tiles/brick_red", place: 4,spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
+        { sprite: "tiles/sand", place: 6, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "tiles/wood", place: 7, spriteOffsetX: -70, spriteOffsetY: -130 , spriteScale: 0.7  },
+        { sprite: "tiles/ladder", place: 8, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
+        { sprite: "tiles/platform", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
+        { sprite: "holding/torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
+        { sprite: "tiles/tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
     ];
 
     /** Current state of this mob's controls - based on local controls or network updates */
@@ -392,13 +392,13 @@ export class Mob {
                 bone.scale = this.itemHeld?.spriteScale ?? 1;
             }
             if (bone.name === HumanBones.HEAD) {
-                bone.sprite = this.head + ".head";
+                bone.sprite = "skins/" + this.head + "/head";
             }
             if (bone.name === HumanBones.LEFT_ARM || bone.name === HumanBones.RIGHT_ARM) {
-                bone.sprite = this.body + ".arm";
+                bone.sprite = "skins/" + this.body + "/arm";
             }
             if (bone.name === HumanBones.BODY) {
-                bone.sprite = this.body + ".body";
+                bone.sprite = "skins/" + this.body + "/body";
             }
         }
 

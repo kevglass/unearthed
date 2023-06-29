@@ -17,7 +17,7 @@ let particles: Particle[] = [];
  * @returns The created particle for chaining.
  */
 export function createDirtParticle(x: number, y: number): Particle {
-    const sprite = Math.random() > 0.5 ? getSprite("red.particle") : getSprite("orange.particle");
+    const sprite = Math.random() > 0.5 ? getSprite("particles/red") : getSprite("particles/orange");
     const vx = (Math.random() - 0.5) * 10;
     const vy = (-Math.random()) * 10;
     x += (Math.random() - 0.5) * (TILE_SIZE / 3);

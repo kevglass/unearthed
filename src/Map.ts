@@ -1,35 +1,4 @@
-import {getSprite, loadImage, playSfx} from "./Resources";
-import dirt_tile from "./img/tiles/dirt.png";
-import dirt_grass_tile from "./img/tiles/dirt_grass.png";
-import brick_grey_tile from "./img/tiles/brick_grey.png";
-import brick_red_tile from "./img/tiles/brick_red.png";
-import leaves_tile from "./img/tiles/leaves.png";
-import sand_tile from "./img/tiles/sand.png";
-import wood_tile from "./img/tiles/wood.png";
-import ladder_tile from "./img/tiles/ladder.png";
-import platform_tile from "./img/tiles/platform.png";
-import tnt_tile from "./img/tiles/tnt.png";
-
-import grass1_tile from "./img/tiles/grass1.png";
-import grass2_tile from "./img/tiles/grass2.png";
-import grass3_tile from "./img/tiles/grass3.png";
-import grass4_tile from "./img/tiles/grass4.png";
-
-import flowerwhite_tile from "./img/tiles/flowerwhite.png";
-import flowerred_tile from "./img/tiles/flowerred.png";
-import flowerblue_tile from "./img/tiles/flowerblue.png";
-
-import trunkmid_tile from "./img/tiles/trunk_mid.png";
-import trunkbottom_tile from "./img/tiles/trunk_bottom.png";
-
-import torch_tile from "./img/tiles/torchtile.png";
-
-import stone_tile from "./img/tiles/stone.png";
-import coal_tile from "./img/tiles/coal.png";
-import gold_tile from "./img/tiles/gold.png";
-import iron_tile from "./img/tiles/iron.png";
-import silver_tile from "./img/tiles/silver.png";
-import diamond_tile from "./img/tiles/diamond.png";
+import { getSprite, playSfx} from "./Resources";
 import { Game } from "./Game";
 import { addParticle, createDirtParticle } from "./Particles";
 
@@ -99,35 +68,43 @@ const EXPLOSION_MUTATOR = (map: GameMap, tile: number): void => {
 /**
  * The list of tiles that be used in the map
  */
-export const tiles: Record<number, Block> = {
-    1: { sprite: loadImage("tile.dirt", dirt_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    2: { sprite: loadImage("tile.dirt_grass", dirt_grass_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    3: { sprite: loadImage("tile.brick_grey", brick_grey_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-    4: { sprite: loadImage("tile.brick_red", brick_red_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-    5: { sprite: loadImage("tile.leaves_tile", leaves_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    6: { sprite: loadImage("tile.sand_tile", sand_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-    7: { sprite: loadImage("tile.wood_tile", wood_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-    8: { sprite: loadImage("tile.ladder_tile", ladder_tile), blocks: false, blocksDown: false, ladder: true, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-    9: { sprite: loadImage("tile.grass1", grass1_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    10: { sprite: loadImage("tile.grass2", grass2_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    11: { sprite: loadImage("tile.grass3", grass3_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    12: { sprite: loadImage("tile.grass4", grass4_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    13: { sprite: loadImage("tile.flowerwhite", flowerwhite_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    14: { sprite: loadImage("tile.flowerblue", flowerblue_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    15: { sprite: loadImage("tile.flowerred", flowerred_tile), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    16: { sprite: loadImage("tile.trunkbottom", trunkbottom_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    17: { sprite: loadImage("tile.trunkmid", trunkmid_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+export let tiles: Record<number, Block> = {};
 
-    18: { sprite: loadImage("tile.stone", stone_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    19: { sprite: loadImage("tile.coal", coal_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    20: { sprite: loadImage("tile.iron", iron_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    21: { sprite: loadImage("tile.silver", silver_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    22: { sprite: loadImage("tile.gold", gold_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    23: { sprite: loadImage("tile.diamond", diamond_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-    24: { sprite: loadImage("tile.platform_tile", platform_tile), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-    25: { sprite: loadImage("tile.tnt", tnt_tile), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
-    26: { sprite: loadImage("tile.torch", torch_tile), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
-};
+/**
+ * Initialise our tiles array once resources have been loaded
+ */
+export function initTiles() {
+    tiles = 
+    {
+        1: { sprite: getSprite("tiles/dirt"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        2: { sprite: getSprite("tiles/dirt_grass"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        3: { sprite: getSprite("tiles/brick_grey"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        4: { sprite: getSprite("tiles/brick_red"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        5: { sprite: getSprite("tiles/leaves"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        6: { sprite: getSprite("tiles/sand"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        7: { sprite: getSprite("tiles/wood"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        8: { sprite: getSprite("tiles/ladder"), blocks: false, blocksDown: false, ladder: true, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
+        9: { sprite: getSprite("tiles/grass1"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        10: { sprite: getSprite("tiles/grass2"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        11: { sprite: getSprite("tiles/grass3"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        12: { sprite: getSprite("tiles/grass4"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        13: { sprite: getSprite("tiles/flowerwhite"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        14: { sprite: getSprite("tiles/flowerblue"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        15: { sprite: getSprite("tiles/flowerred"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        16: { sprite: getSprite("tiles/trunk_bottom"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        17: { sprite: getSprite("tiles/trunk_mid"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+    
+        18: { sprite: getSprite("tiles/stone"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        19: { sprite: getSprite("tiles/coal"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        20: { sprite: getSprite("tiles/iron"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        21: { sprite: getSprite("tiles/silver"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        22: { sprite: getSprite("tiles/gold"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        23: { sprite: getSprite("tiles/diamond"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        24: { sprite: getSprite("tiles/platform"), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
+        25: { sprite: getSprite("tiles/tnt"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
+        26: { sprite: getSprite("tiles/torchtile"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
+    };
+}
 
 export enum Layer {
     FOREGROUND = 0,
@@ -196,8 +173,6 @@ export class GameMap {
 
     constructor(game: Game) {
         this.game = game;
-
-
     }
 
     /**
@@ -849,16 +824,16 @@ export class GameMap {
         // if we haven't seen the discovery and background tiles yet then
         // look them up so they can be used in rendering
         if (!this.backingTile) {
-            this.backingTile = getSprite("tile.backing");
+            this.backingTile = getSprite("tiles/backing");
         }
         if (!this.backingTopTile) {
-            this.backingTopTile = getSprite("tile.backingtop");
+            this.backingTopTile = getSprite("tiles/backingtop");
         }
         if (this.undiscovered.length === 0) {
-            this.undiscovered.push(getSprite("tile.undiscovered1"));
-            this.undiscovered.push(getSprite("tile.undiscovered2"));
-            this.undiscovered.push(getSprite("tile.undiscovered3"));
-            this.undiscovered.push(getSprite("tile.undiscovered4"));
+            this.undiscovered.push(getSprite("tiles/undiscovered1"));
+            this.undiscovered.push(getSprite("tiles/undiscovered2"));
+            this.undiscovered.push(getSprite("tiles/undiscovered3"));
+            this.undiscovered.push(getSprite("tiles/undiscovered4"));
         }
 
         const xp = Math.floor(screenX / TILE_SIZE) - 1;

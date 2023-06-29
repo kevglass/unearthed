@@ -1,11 +1,11 @@
 
 import { HtmlUi } from "./HtmlUi";
-import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./Particles";
-import { getSprite, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./Resources";
+import { getSprite, loadAllResources, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -91,6 +91,9 @@ export class Game {
     ui: HtmlUi;
 
     constructor() {
+        loadAllResources();
+        initTiles();
+        
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
         this.g = this.canvas.getContext("2d")!;
@@ -526,12 +529,12 @@ export class Game {
 
 
         const backgrounds = [{
-            sprite: "clouds",
+            sprite: "bg/clouds",
             parallax: 6,
             scale: 2,
             offset: 0
         }, {
-            sprite: "hills",
+            sprite: "bg/hills",
             parallax: 3,
             scale: 2,
             offset: 400
@@ -734,9 +737,9 @@ export class Game {
                 const item = this.player.inventory[index + (this.inventPage * 4)];
                 if (item) {
                     if (item === this.player.itemHeld) {
-                        this.g.drawImage(getSprite("ui.sloton"), xp, yp, 125, 125);
+                        this.g.drawImage(getSprite("ui/sloton"), xp, yp, 125, 125);
                     } else {
-                        this.g.drawImage(getSprite("ui.slotoff"), xp, yp, 125, 125);
+                        this.g.drawImage(getSprite("ui/slotoff"), xp, yp, 125, 125);
                     }
                     this.g.drawImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
 
@@ -746,11 +749,11 @@ export class Game {
         }
 
         // draw the tile layer selector
-        this.g.drawImage(getSprite(this.placingTilesOnFrontLayer ? "ui.front" : "ui.back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
+        this.g.drawImage(getSprite(this.placingTilesOnFrontLayer ? "ui/front" : "ui/back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
         if (isMobile()) {
             const xp = this.canvas.width - ((0 + 1) * 130) - 10;
             const yp = this.canvas.height - ((1 + 1) * 130) - 10;
-            this.g.drawImage(getSprite("ui.arrowup"), xp + 20, yp + 50, 80, 80);
+            this.g.drawImage(getSprite("ui/arrowup"), xp + 20, yp + 50, 80, 80);
         }
 
         if (this.limitedPortraitScreen || this.limitedLandscapeScreen) {
@@ -759,10 +762,10 @@ export class Game {
 
         // draw the mobile controls
         if (isMobile()) {
-            this.g.drawImage(getSprite("ui.left"), 20, this.canvas.height - 160, 140, 140);
-            this.g.drawImage(getSprite("ui.right"), 180, this.canvas.height - 160, 140, 140);
-            this.g.drawImage(getSprite("ui.up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
-            this.g.drawImage(getSprite("ui.down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
+            this.g.drawImage(getSprite("ui/left"), 20, this.canvas.height - 160, 140, 140);
+            this.g.drawImage(getSprite("ui/right"), 180, this.canvas.height - 160, 140, 140);
+            this.g.drawImage(getSprite("ui/up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
+            this.g.drawImage(getSprite("ui/down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
         }
 
         // schedule our next frame
