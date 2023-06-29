@@ -473,6 +473,7 @@ export class Mob {
                     }
                     this.blockDamage = 0;
                     playSfx('mining_break', 0.6, 5);
+                    this.gameMap.game.gamepad.vibrate();
                 } else {
                     if (this.blockDamage % 20 === 0) {
                         playSfx('mining', 0.5, 5);

@@ -114,6 +114,23 @@ export class Controller {
     }
 
     /**
+     * Vibrate the controller if supported
+     */
+    vibrate(): void {
+        const gamepads = navigator.getGamepads();
+        if (gamepads.length > 0 && gamepads[0]) {
+            const pad = gamepads[0];
+            
+            pad.vibrationActuator?.playEffect("dual-rumble", {
+                startDelay: 0,
+                duration: 200,
+                weakMagnitude: 1.0,
+                strongMagnitude: 1.0,
+            });
+        }
+    }
+
+    /**
      * Update the gamepad state
      */
     update(): void {
