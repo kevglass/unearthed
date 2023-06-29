@@ -319,7 +319,20 @@ export class Mob {
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
             if (this.gameMap.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, true)) {
-                return true;
+                const tile = tiles[this.gameMap.getTile((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, Layer.FOREGROUND)];
+                // platforms are only standable for the first quarter of the tile
+                let platformFall = false;
+                if (tile && !tile.blocks && tile.blocksDown) {
+                    const ty = (this.y + this.height);
+                    const dy = ty - (Math.floor(ty / TILE_SIZE) * TILE_SIZE)
+
+                    if (dy > TILE_SIZE / 4) {
+                        platformFall = true;
+                    }
+                }   
+                if (!platformFall) {
+                    return true;
+                }
             }
         }
 
