@@ -145,28 +145,28 @@ export class Game {
         if (localStorage.getItem("head")) {
             this.player.bodyParts.head = localStorage.getItem("head")!;
 
-            if (skinsForValidation.includes(this.player.bodyParts.head)) {
+            if (!skinsForValidation.includes(this.player.bodyParts.head)) {
                 this.player.bodyParts.head = "a";
             }
         }
         if (localStorage.getItem("body")) {
             this.player.bodyParts.body = localStorage.getItem("body")!;
 
-            if (skinsForValidation.includes(this.player.bodyParts.body)) {
+            if (!skinsForValidation.includes(this.player.bodyParts.body)) {
                 this.player.bodyParts.body = "a";
             }
         }
         if (localStorage.getItem("legs")) {
             this.player.bodyParts.legs = localStorage.getItem("legs")!;
 
-            if (skinsForValidation.includes(this.player.bodyParts.legs)) {
+            if (!skinsForValidation.includes(this.player.bodyParts.legs)) {
                 this.player.bodyParts.legs = "a";
             }
         }
         if (localStorage.getItem("arms")) {
             this.player.bodyParts.arms = localStorage.getItem("arms")!;
 
-            if (skinsForValidation.includes(this.player.bodyParts.arms)) {
+            if (!skinsForValidation.includes(this.player.bodyParts.arms)) {
                 this.player.bodyParts.arms = "a";
             }
         }
