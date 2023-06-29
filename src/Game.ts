@@ -1,7 +1,7 @@
 
 import { Graphics, HtmlGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
-import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
+import {GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles, tiles} from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
@@ -256,7 +256,7 @@ export class Game implements ControllerListener {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             // if we're focused on the chat input that takes precedence
-            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput) {
+            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput || document.activeElement === this.ui.portalInput) {
                 return;
             }
 
@@ -266,7 +266,7 @@ export class Game implements ControllerListener {
             // if the user hits enter and we're connected to the game
             // then show the chat box
             if (this.network.connected()) {
-                if (event.key === "Enter") {
+                if (event.key === "Enter" && this.ui.portalInput!.style.display !== 'block') {
                     this.ui.showChat();
                 }
             }
@@ -284,6 +284,9 @@ export class Game implements ControllerListener {
                 this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
             }
 
+            if (event.key === 'r') {
+                this.triggerPortal();
+            }
         });
 
         // mouse up, just maintain state
@@ -539,6 +542,26 @@ export class Game implements ControllerListener {
         }
         if (touchId === this.controllerTouchId || touchId === this.jumpTouchId) {
             this.evalControlArea(x, y, touchId);
+        }
+    }
+
+    /**
+     * Triggers the portal to assign it a code
+     */
+    private triggerPortal() {
+        const x = Math.floor(this.player.x / TILE_SIZE);
+        const y = Math.floor(this.player.y / TILE_SIZE);
+        const tileIndex = x + y * MAP_WIDTH;
+        const portal = this.gameMap.portals.find(portal => portal.tileIndex === tileIndex);
+        if (portal) {
+            if (portal.code === null) {
+                this.ui.showPortal();
+            } else {
+                const portalTile = tiles[this.gameMap.getTile(x, y, Layer.FOREGROUND)];
+                if (portalTile.portal) {
+                    portalTile.portal(portal);
+                }
+            }
         }
     }
 

@@ -25,6 +25,8 @@ interface Block {
     blocks: boolean;
     /** True if this block act as a ladder */
     ladder: boolean;
+    /** The portal information if this block is a portal */
+    portal?: (portal: Portal) => void;
     /** True if this block needs ground under it to exist - like flowers - automatically destroy if nothing there */
     needsGround: boolean;
     /** True if this one blocks the discovery process - leaves for instance don't */
@@ -104,6 +106,7 @@ export function initTiles() {
         24: { sprite: getSprite("tiles/platform"), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
         25: { sprite: getSprite("tiles/tnt"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
         26: { sprite: getSprite("tiles/torchtile"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
+        27: { sprite: getSprite("tiles/portal"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => { const url = new URL(location.href); url.searchParams.set('portal', '1'); url.searchParams.set('server', portal?.code ?? ''); window.open(url.href) }},
     };
 }
 
@@ -141,6 +144,13 @@ interface Timer {
     callback: (map: GameMap, timer: Timer) => void;
 }
 
+interface Portal {
+    /** The tile index in the map */
+    tileIndex: number;
+    /** The code of the target server this portal links to */
+    code: string | null;
+}
+
 /**
  * The game map consists of two tile layers (foreground and background) and a cached
  * sprite mapping from tile to sprite (to help with rendering). The map also tracks which
@@ -161,8 +171,10 @@ export class GameMap {
     discovered: boolean[] = [];
     /** True if we're using discovery to black out areas the player hasn't seen yet - turn it off to check cavern generation */
     discoveryEnabled = true;
-    /** The tiles that have a timer running */
+    /** A list of all running timers */
     timers: Timer[] = [];
+    /** A list of all portals */
+    portals: Portal[] = [];
     /** The tile used to darken background tiles */
     backingTile?: GraphicsImage;
     /** The tile used to darken background tiles where they have an overhand and need a shadow */
@@ -207,6 +219,7 @@ export class GameMap {
         this.discovered = [];
         this.lightMap = [];
         this.timers = [];
+        this.portals = [];
         for (let i = 0; i < this.foreground.length; i++) {
             this.background.push(0);
             this.lightMap.push(1);
@@ -335,6 +348,7 @@ export class GameMap {
     loadFromStorage(): boolean {
         const existingMap = localStorage.getItem("map");
         const existingBG = localStorage.getItem("mapbg");
+        const existingPortals = localStorage.getItem("portals");
         if (existingMap) {
             const savedMap = JSON.parse(existingMap);
             if (savedMap.length >= DEFAULT_MAP.length) {
@@ -344,6 +358,10 @@ export class GameMap {
                     const savedMap = JSON.parse(existingBG);
                     if (savedMap.length >= DEFAULT_MAP.length) {
                         this.background = savedMap;
+                    }
+                    
+                    if (existingPortals) {
+                        this.portals = JSON.parse(existingPortals);
                     }
                 }
 
@@ -709,16 +727,36 @@ export class GameMap {
 
         // Remove any timers on this tile
         this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileIndex !== x + (y * MAP_WIDTH));
-        const tileDef = tiles[tile];
-        if (tileDef && tileDef.timer) {
-            this.timers.push({
-                tileIndex: x + (y * MAP_WIDTH),
-                layer,
-                timer: tileDef.timer.timer,
-                callback: tileDef.timer.callback,
-            });
+        
+        // Remove any portals on this tile
+        this.portals = this.portals.filter(portal => portal.tileIndex !== x + (y * MAP_WIDTH));
+        if (this.game.isHostingTheServer) {
+            localStorage.setItem("portals", JSON.stringify(this.portals));
         }
-    
+
+        // Add metadata for the placed block
+        const tileDef = tiles[tile];
+        if (tileDef) {
+            if (tileDef.timer) {
+                this.timers.push({
+                    tileIndex: x + (y * MAP_WIDTH),
+                    layer,
+                    timer: tileDef.timer.timer,
+                    callback: tileDef.timer.callback,
+                });
+            }
+            
+            if (tileDef.portal) {
+                this.portals.push({
+                    tileIndex: x + (y * MAP_WIDTH),
+                    code: null,
+                });
+                if (this.game.isHostingTheServer) {
+                    localStorage.setItem("portals", JSON.stringify(this.portals));
+                }
+            }
+        }
+        
         if (tile === 0) {
             const above = this.getTile(x, y - 1, layer);
             const tile = tiles[above];
@@ -896,6 +934,14 @@ export class GameMap {
                 }
             }
         }
+        
+        // render portal codes
+        this.portals.forEach(portal => {
+            g.setTextAlign("center");
+            g.setFillStyle("black");
+            g.setFont("40px KenneyFont");
+            g.fillText(portal?.code ?? '', portal.tileIndex % MAP_WIDTH * TILE_SIZE + TILE_SIZE / 2, Math.floor(portal.tileIndex / MAP_WIDTH) * TILE_SIZE - 16);
+        });
     }
 
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,

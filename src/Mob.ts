@@ -1,7 +1,7 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./engine/Bones";
 import { Graphics } from "./engine/Graphics";
-import { GameMap, Layer, TILE_SIZE, tiles } from "./Map";
+import {GameMap, Layer, MAP_WIDTH, TILE_SIZE, tiles} from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
@@ -131,6 +131,7 @@ export class Mob {
         { sprite: "tiles/platform", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
         { sprite: "holding/torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
         { sprite: "tiles/tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
+        { sprite: "tiles/portal", place: 27, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
     ];
 
     /** Current state of this mob's controls - based on local controls or network updates */
