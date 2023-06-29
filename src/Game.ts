@@ -408,6 +408,12 @@ export class Game implements ControllerListener {
 
     togglePlacementLayer(): void {
         this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
+
+        if (this.placingTilesOnFrontLayer) {
+            playSfx("foreground", 0.3);
+        } else {
+            playSfx("background", 0.3);
+        }
     }
 
     /**
