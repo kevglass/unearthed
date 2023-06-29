@@ -36,7 +36,7 @@ interface Block {
     /** True if this block prevents lights passing */
     blocksLight: boolean;
     /** The timer object with the number of ticks it takes for the block's effect to happen and the callback that defines the effect */
-    timer?: { timer: number, callback: (map: GameMap, tile: number) => void }|null;
+    timer?: { timer: number, callback: (map: GameMap, timer: Timer) => void }|null;
     /** Does this block light the area */
     light?: boolean;
     /** True if we can't place this block in the background */
@@ -47,16 +47,16 @@ interface Block {
  * A callback to explode a tile location 
  * 
  * @param map The map the explosion is taking place on
- * @param tile The tile index the explosion is taking place at
+ * @param timer The timer that triggered the explosion
  */
-const EXPLOSION_MUTATOR = (map: GameMap, tile: number): void => {
-    for (let x = tile % MAP_WIDTH - 1; x <= tile % MAP_WIDTH + 1; x++) {
-        for (let y = Math.floor(tile / MAP_WIDTH) - 1; y <= Math.floor(tile / MAP_WIDTH) + 1; y++) {
+const EXPLOSION_MUTATOR = (map: GameMap, timer: Timer): void => {
+    for (let x = timer.tileIndex % MAP_WIDTH - 1; x <= timer.tileIndex % MAP_WIDTH + 1; x++) {
+        for (let y = Math.floor(timer.tileIndex / MAP_WIDTH) - 1; y <= Math.floor(timer.tileIndex / MAP_WIDTH) + 1; y++) {
             if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
                 continue;
             }
-            if (map.getTile(x,y, Layer.FOREGROUND) !== 0) {
-                map.setTile(x, y, 0, Layer.FOREGROUND);
+            if (map.getTile(x,y, timer.layer) !== 0) {
+                map.setTile(x, y, 0, timer.layer);
                 for (let i=0;i<5;i++) {
                     addParticle(createDirtParticle((x+ 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
                 }
@@ -133,10 +133,12 @@ for (let i = 0; i < totalSize; i++) {
 interface Timer {
     /** The tile index in the map */
     tileIndex: number;
+    /** The layer the timer is for */
+    layer: number;
     /** The number of ticks until the timer triggers */
     timer: number;
     /** The callback to call when the timer triggers */
-    callback: (map: GameMap, tile: number) => void;
+    callback: (map: GameMap, timer: Timer) => void;
 }
 
 /**
@@ -704,11 +706,14 @@ export class GameMap {
                 localStorage.setItem("mapbg", JSON.stringify(this.background));
             }
         }
-        
+
+        // Remove any timers on this tile
+        this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileIndex !== x + (y * MAP_WIDTH));
         const tileDef = tiles[tile];
         if (tileDef && tileDef.timer) {
             this.timers.push({
                 tileIndex: x + (y * MAP_WIDTH),
+                layer,
                 timer: tileDef.timer.timer,
                 callback: tileDef.timer.callback,
             });
@@ -808,7 +813,7 @@ export class GameMap {
         this.timers.forEach(timer => {
             timer.timer--;
             if (timer.timer <= 0) {
-                timer.callback(this, timer.tileIndex);
+                timer.callback(this, timer);
             }
         });
         this.timers = this.timers.filter(timer => timer.timer > 0);
