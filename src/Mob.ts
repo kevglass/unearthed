@@ -66,7 +66,7 @@ export class Mob {
     /** The y coordinate of this mob's position in the world */
     y: number = 200;
     /** The width of the bounding box for collision around this mob */
-    width: number = 50;
+    width: number = 40;
     /** The height of the bounding box for collision around this mob */
     height: number = 90;
     /** The y component of velocity of this mob - used for falling and jumping */

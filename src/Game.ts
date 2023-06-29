@@ -89,14 +89,16 @@ export class Game {
     network: Network;
     /** The HTML UI overlaying the game */
     ui: HtmlUi;
+    /** The time of the last update */
+    lastUpdate: number = Date.now();
 
     constructor() {
         loadAllResources();
         initTiles();
-        
+
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
-        this.g = this.canvas.getContext("2d")!;
+        this.g = this.canvas.getContext("2d", { alpha: false })!;
 
         // check if we have a server ID stored locally, if not then generated one
         // and store it
@@ -105,7 +107,7 @@ export class Game {
             this.serverId = uuidv4();
             localStorage.setItem("server", this.serverId);
         }
-        
+
         this.serverPassword = localStorage.getItem("serverPassword") ?? "";
         if (this.serverPassword === "") {
             this.serverPassword = uuidv4();
@@ -135,8 +137,8 @@ export class Game {
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
-        
-        const skinsForValidation = ["a","b","c","d"];
+
+        const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {
             this.player.bodyParts.head = localStorage.getItem("head")!;
 
@@ -514,6 +516,74 @@ export class Game {
      */
     startLoop() {
         requestAnimationFrame(() => { this.loop() });
+        setInterval(() => { this.update(); }, Math.floor(1000 / 60));
+    }
+
+    private update() {
+        const delta = Date.now() - this.lastUpdate;
+
+        for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
+            this.lastUpdate += Math.floor(1000 / 60);
+            let ox = this.player.x - (this.canvas.width / 2);
+            const oy = this.player.y - (this.canvas.height / 2);
+            ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
+
+            // update the mouse over indicator
+            this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
+            this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
+
+            // check if the mouse over location is somewhere our player can act on
+            const px = Math.floor(this.player.x / TILE_SIZE);
+            const py = Math.floor(this.player.y / TILE_SIZE);
+            const dx = this.player.overX - px;
+            const dy = this.player.overY - py;
+
+            let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
+
+            // local player specifics - set the initial state to doing nothing
+            this.player.still();
+
+            // if we were mining but we stopped pressing the button 
+            // then clear the block damage indicator to reset it
+            if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
+                this.player.blockDamage = 0;
+            }
+
+            // if we're pressing down and the we can act on the location and theres
+            // a tile to dig there, then mark us as working
+            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
+                this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
+                this.lastWorkX = this.player.overX;
+                this.lastWorkY = this.player.overY;
+            }
+            // tell the player its got the mouse down for network state update
+            if (this.mouseButtonDown[0] && canAct) {
+                this.player.controls.mouse = true;
+            }
+
+            this.player.localUpdate();
+
+            // update controls for the the player so network state can be sent
+            if (this.keyDown["d"]) {
+                this.player.controls.right = true;
+            }
+            if (this.keyDown["a"]) {
+                this.player.controls.left = true;
+            }
+            if (this.keyDown["s"]) {
+                this.player.controls.down = true;
+            }
+            if (this.keyDown[" "] || this.keyDown["w"]) {
+                this.player.controls.up = true;
+            }
+
+            this.gameMap.updateTimers();
+
+            // finally draw update and draw the mobs
+            for (const mob of [...this.mobs]) {
+                mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+            }
+        }
     }
 
     /**
@@ -686,42 +756,6 @@ export class Game {
             // render the whole game map
             this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
 
-            // local player specifics - set the initial state to doing nothing
-            this.player.still();
-
-            // if we were mining but we stopped pressing the button 
-            // then clear the block damage indicator to reset it
-            if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
-                this.player.blockDamage = 0;
-            }
-
-            // if we're pressing down and the we can act on the location and theres
-            // a tile to dig there, then mark us as working
-            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
-                this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
-                this.lastWorkX = this.player.overX;
-                this.lastWorkY = this.player.overY;
-            }
-            // tell the player its got the mouse down for network state update
-            if (this.mouseButtonDown[0] && canAct) {
-                this.player.controls.mouse = true;
-            }
-
-            this.player.localUpdate();
-
-            // update controls for the the player so network state can be sent
-            if (this.keyDown["d"]) {
-                this.player.controls.right = true;
-            }
-            if (this.keyDown["a"]) {
-                this.player.controls.left = true;
-            }
-            if (this.keyDown["s"]) {
-                this.player.controls.down = true;
-            }
-            if (this.keyDown[" "] || this.keyDown["w"]) {
-                this.player.controls.up = true;
-            }
             for (let i = 1; i < 10; i++) {
                 if (this.keyDown["" + i]) {
                     if (this.player.itemHeld !== this.player.inventory[i - 1]) {
@@ -730,12 +764,9 @@ export class Game {
                     }
                 }
             }
-            
-            this.gameMap.updateTimers();
 
             // finally draw update and draw the mobs
             for (const mob of [...this.mobs]) {
-                mob.update(this.animTime, !this.placingTilesOnFrontLayer);
                 mob.draw(this.g, SHOW_BOUNDS);
 
                 if (Date.now() - mob.lastUpdate > 10000) {

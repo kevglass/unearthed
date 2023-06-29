@@ -168,8 +168,10 @@ export class GameMap {
     undiscovered: HTMLImageElement[] = [];
     /** The central game controller */
     game: Game;
-
+    /** The light overall image */
     lightingImage?: HTMLCanvasElement;
+    /** The light map rendered pixel per tile */
+    lightMapImage?: HTMLCanvasElement;
 
     constructor(game: Game) {
         this.game = game;
@@ -899,31 +901,38 @@ export class GameMap {
             this.lightingImage.width = tilesAcross * TILE_SIZE;
             this.lightingImage.height = tilesDown * TILE_SIZE;
         }
+        if (!this.lightMapImage || this.lightMapImage.width != tilesAcross || this.lightMapImage.height !== tilesDown) {
+            this.lightMapImage = document.createElement("canvas");
+            this.lightMapImage.width = tilesAcross;
+            this.lightMapImage.height = tilesDown;
+        }
 
         const context = this.lightingImage.getContext("2d") as CanvasRenderingContext2D;
+        const lightMapContext = this.lightMapImage.getContext("2d") as CanvasRenderingContext2D;
 
-        context.globalCompositeOperation = "source-over";
-        context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
-        context.fillStyle = "black";
+        lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
+        lightMapContext.globalCompositeOperation = "source-over";
+        lightMapContext.fillStyle = "black";
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
                 const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
                 const light = this.getLightMap(x, y);
-                context.globalAlpha = 1 - light;
+                lightMapContext.globalAlpha = 1 - light;
                 if (!this.isDiscovered(x, y)) {
-                    context.globalAlpha = 1;
+                    lightMapContext.globalAlpha = 1;
                 }
 
-
-                context.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
+                lightMapContext.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
             }
         }
-        context.globalAlpha = 1;
 
         // scale the light up
-        context.drawImage(this.lightingImage, 0, 0, tilesAcross*lightScale, tilesDown*lightScale, 0, 0, (tilesAcross * TILE_SIZE), (tilesDown * TILE_SIZE));
-                
-        
+        context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
+        context.save();
+        context.scale(TILE_SIZE / lightScale, TILE_SIZE / lightScale);
+        context.drawImage(this.lightMapImage, 0, 0);
+        context.restore();
+
         context.save();
         const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 256);
         gradient.addColorStop(0, "rgba(0,0,0,255)");
