@@ -887,6 +887,10 @@ export class GameMap {
         }
     }
 
+    lastLightMapX = 0;
+    lastLightMapY = 0;
+    tempLightImage?: HTMLCanvasElement;
+
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
         const lightScale = 1;
@@ -897,63 +901,89 @@ export class GameMap {
         const offsetx = screenX - (xp * TILE_SIZE);
         const offsety = screenY - (yp * TILE_SIZE);
 
+        let lightMapDirty = false;
+
         if (!this.lightingImage || this.lightingImage.width != tilesAcross * TILE_SIZE || this.lightingImage.height !== tilesDown * TILE_SIZE) {
             this.lightingImage = document.createElement("canvas");
             this.lightingImage.width = tilesAcross * TILE_SIZE;
             this.lightingImage.height = tilesDown * TILE_SIZE;
+            this.tempLightImage = document.createElement("canvas");
+            this.tempLightImage.width = tilesAcross * TILE_SIZE;
+            this.tempLightImage.height = tilesDown * TILE_SIZE;
+            lightMapDirty = true;
         }
         if (!this.lightMapImage || this.lightMapImage.width != tilesAcross || this.lightMapImage.height !== tilesDown) {
             this.lightMapImage = document.createElement("canvas");
             this.lightMapImage.width = tilesAcross;
             this.lightMapImage.height = tilesDown;
+            lightMapDirty = true;
         }
+
+        if (this.lastLightMapX !== xp || this.lastLightMapY !== yp) {
+            lightMapDirty = true;
+        }
+        this.lastLightMapX = xp;
+        this.lastLightMapY = yp;
 
         const context = new HtmlGraphics(this.lightingImage);
-        const lightMapContext = new HtmlGraphics(this.lightMapImage);
 
-        lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
-        lightMapContext.setCompositeOperation("source-over");
-        lightMapContext.setFillStyle("black");
-        for (let x = xp; x < xp + tilesAcross; x++) {
-            for (let y = yp; y < yp + tilesDown; y++) {
-                const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
-                const light = this.getLightMap(x, y);
-                lightMapContext.setGlobalAlpha(1 - light);
-                if (!this.isDiscovered(x, y)) {
-                    lightMapContext.setGlobalAlpha(1);
+        if (lightMapDirty) {
+            const lightMapContext = new HtmlGraphics(this.lightMapImage);
+
+            lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
+            lightMapContext.setCompositeOperation("source-over");
+            lightMapContext.setFillStyle("black");
+            for (let x = xp; x < xp + tilesAcross; x++) {
+                for (let y = yp; y < yp + tilesDown; y++) {
+                    const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
+                    const light = this.getLightMap(x, y);
+                    lightMapContext.setGlobalAlpha(1 - light);
+                    if (!this.isDiscovered(x, y)) {
+                        lightMapContext.setGlobalAlpha(1);
+                    }
+
+                    lightMapContext.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
                 }
-
-                lightMapContext.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
             }
+
+            // scale the light up
+            context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
+            context.save();
+            context.scale(TILE_SIZE / lightScale, TILE_SIZE / lightScale);
+            context.drawCanvasImage(lightMapContext, 0, 0);
+            context.restore();
+
+            context.save();
+
+            // debug for light map
+            // const debugSize = 20;
+            // g.fillStyle = "white";
+            // g.strokeStyle = "green";
+            // g.lineWidth = 2;
+            // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
+            // g.drawImage(this.lightingImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
         }
 
-        // scale the light up
-        context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
-        context.save();
-        context.scale(TILE_SIZE / lightScale, TILE_SIZE / lightScale);
-        context.drawCanvasImage(lightMapContext, 0, 0);
-        context.restore();
 
-        context.save();
-        const gradient = context.createRadialGradient(0, 0, 0, 0, 0, 256);
-        gradient.addColorStop(0, "rgba(0,0,0,255)");
-        gradient.addColorStop(1, "rgba(0,0,0,0)");
-        context.setCompositeOperation("destination-out");
-        context.setGradientFillStyle(gradient);
-        context.translate(this.game.player.x - (screenX - offsetx), this.game.player.y - (screenY - offsety));
-        context.beginPath();
-        context.arc(0, 0, 256, 0, Math.PI * 2);
-        context.fill();
-        context.restore();
+        if (this.tempLightImage) {
+            const context2 = new HtmlGraphics(this.tempLightImage);
+            context2.clearRect(0,0,this.tempLightImage.width, this.tempLightImage.height);
 
-        // debug for light map
-        // const debugSize = 20;
-        // g.fillStyle = "white";
-        // g.strokeStyle = "green";
-        // g.lineWidth = 2;
-        // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
-        // g.drawImage(this.lightingImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
+            context2.drawCanvasImage(context, 0, 0);
+            const gradient = context2.createRadialGradient(0, 0, 0, 0, 0, 256);
+            gradient.addColorStop(0, "rgba(0,0,0,255)");
+            gradient.addColorStop(1, "rgba(0,0,0,0)");
+            context2.save();
+            context2.setCompositeOperation("destination-out");
+            context2.setGradientFillStyle(gradient);
+            context2.translate(this.game.player.x - (screenX - offsetx), this.game.player.y - (screenY - offsety));
+            context2.beginPath();
+            context2.arc(0, 0, 256, 0, Math.PI * 2);
+            context2.fill();
+            context2.restore();
 
-        g.drawCanvasImage(context, screenX - offsetx, screenY - offsety);
+            g.drawCanvasImage(context2, Math.floor(screenX - offsetx), Math.floor(screenY - offsety));
+        }
+
     }
 }
