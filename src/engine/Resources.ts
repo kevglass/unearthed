@@ -105,6 +105,21 @@ export function isSoundMuted() {
 }
 
 /**
+ * Confirm the audio context - 
+ */
+export function confirmAudioContext(): void {
+    try {
+      audioContext.resume().catch((e) => {
+        console.log("Resume audio context failed");
+        console.error(e);
+      });
+    } catch (e) {
+      console.log("Resume audio context failed");
+      console.error(e);
+    }
+}
+
+/**
  * Play a sound effect
  * 
  * @param name The name of the sound effect to play
@@ -115,10 +130,7 @@ export function playSfx(name: string, volume: number, variations: number | null 
         return;
     }
 
-    audioContext.resume().catch((e) => {
-        console.log("Resume audio context failed");
-        console.error(e);
-    });
+    confirmAudioContext();
 
     const variationName = variations ? `${name}_${(Math.floor(Math.random() * variations)).toString().padStart(3, '0')}` : name;
     const effect = sfx[variationName];
@@ -152,13 +164,8 @@ function playBuffer(buffer: AudioBuffer, volume: number = 1): void {
     source.start(0);
 }
 
-let audioContext: AudioContext
+let audioContext: AudioContext = new AudioContext();
 
-export function startAudioOnFirstInput() {
-    if (!audioContext) {
-        audioContext = new AudioContext();
-    }
-}
 /**
  * Check if all the resources managed by this cache have been loaded
  * 

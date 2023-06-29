@@ -6,10 +6,11 @@ import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./engine/Particles";
-import { getSprite, loadAllResources, playSfx, resourcesLoaded, startAudioOnFirstInput } from "./engine/Resources";
+import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded } from "./engine/Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
+import { Controller, ControllerListener } from "./engine/Controller";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -26,7 +27,7 @@ const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", 
 /**
  * The main game controller. This needs breaking up a bit more yet.
  */
-export class Game {
+export class Game implements ControllerListener {
     /** The HTML div we display the tooltip in */
     tooltipDiv: HTMLDivElement;
     /** The last time the tool tip was shown, used to time it out */
@@ -71,6 +72,8 @@ export class Game {
     controllerTouchId = 0;
     /** The touch ID thats being used to jump- used in mobile touch controls */
     jumpTouchId = 0;
+    /** The gamepad controller wrapper */
+    gamepad: Controller;
     /** True if we're currently configured to place tiles on the foreground layer */
     placingTilesOnFrontLayer: boolean = true;
     /** The time of the last rendered frame */
@@ -93,11 +96,16 @@ export class Game {
     ui: HtmlUi;
     /** The time of the last update */
     lastUpdate: number = Date.now();
+    /** True if we used the gamepad to dig - allows us to reset state when its released */
+    gamepadUsedToDig: boolean = false;
 
     constructor() {
         loadAllResources();
         initTiles();
-        
+
+        this.gamepad = new Controller();
+        this.gamepad.addListener(this);
+
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
         this.g = new HtmlGraphics(this.canvas);
@@ -110,7 +118,7 @@ export class Game {
             this.serverId = createServerId();
             localStorage.setItem("server", this.serverId);
         }
-        
+
         this.serverPassword = localStorage.getItem("serverPassword") ?? "";
         if (this.serverPassword === "") {
             this.serverPassword = uuidv4();
@@ -140,8 +148,8 @@ export class Game {
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
-        
-        const skinsForValidation = ["a","b","c","d"];
+
+        const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {
             this.player.bodyParts.head = localStorage.getItem("head")!;
 
@@ -215,6 +223,21 @@ export class Game {
         this.configureEventHandlers();
     }
 
+    buttonPressed(button: number): void {
+        if (button === 5 || button === 7) {
+            this.nextInventItem();
+        }
+        if (button === 6 || button === 8) {
+            this.nextInventItem();
+        }
+    }
+
+    buttonReleased(button: number): void {
+        if ((button > 0) && (button < 4)) {
+            this.mouseButtonDown[0] = false;
+        }
+    }
+
     /**
      * Show a tool tip for a few seconds
      * 
@@ -232,8 +255,6 @@ export class Game {
     configureEventHandlers() {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
-            startAudioOnFirstInput();
-
             // if we're focused on the chat input that takes precedence
             if (document.activeElement === this.ui.chatInput) {
                 return;
@@ -252,26 +273,10 @@ export class Game {
 
             // Pressing Q/E cycles through cycles through the inventory
             if (event.key === 'q') {
-                let index = 0;
-                if (this.player.itemHeld) {
-                    index = this.player.inventory.indexOf(this.player.itemHeld) + 1;
-                    if (index >= this.player.inventory.length) {
-                        index = 0;
-                    }
-                }
-                this.player.itemHeld = this.player.inventory[index];
-                playSfx('click', 1);
+                this.prevInventItem();
             }
             if (event.key === 'e') {
-                let index = 0;
-                if (this.player.itemHeld) {
-                    index = this.player.inventory.indexOf(this.player.itemHeld) - 1;
-                    if (index < 0) {
-                        index = this.player.inventory.length - 1;
-                    }
-                }
-                this.player.itemHeld = this.player.inventory[index];
-                playSfx('click', 1);
+                this.nextInventItem();
             }
 
             // Pressing X changes the layer we're targeting
@@ -303,8 +308,6 @@ export class Game {
             });
 
             this.canvas.addEventListener("touchstart", (event: TouchEvent) => {
-                startAudioOnFirstInput();
-
                 for (let i = 0; i < event.changedTouches.length; i++) {
                     const touch = event.changedTouches.item(i);
                     if (touch) {
@@ -331,8 +334,6 @@ export class Game {
                 event.preventDefault();
             });
             this.canvas.addEventListener("mousedown", (event: MouseEvent) => {
-                startAudioOnFirstInput();
-
                 this.mouseDown(event.x * ZOOM, event.y * ZOOM, 1);
                 event.preventDefault();
             });
@@ -344,6 +345,30 @@ export class Game {
         }
     }
 
+    prevInventItem() {
+        let index = 0;
+        if (this.player.itemHeld) {
+            index = this.player.inventory.indexOf(this.player.itemHeld) + 1;
+            if (index >= this.player.inventory.length) {
+                index = 0;
+            }
+        }
+        this.player.itemHeld = this.player.inventory[index];
+        playSfx('click', 1);
+    }
+
+    nextInventItem() {
+        let index = 0;
+        if (this.player.itemHeld) {
+            index = this.player.inventory.indexOf(this.player.itemHeld) - 1;
+            if (index < 0) {
+                index = this.player.inventory.length - 1;
+            }
+        }
+        this.player.itemHeld = this.player.inventory[index];
+        playSfx('click', 1);
+    }
+
     /**
      * Mouse or Touch has been pressed
      * 
@@ -353,6 +378,8 @@ export class Game {
      * multi-touch controls on mobile.
      */
     mouseDown(x: number, y: number, touchId: number) {
+        confirmAudioContext();
+
         let foundInventButton = false;
         let foundControlButton = false;
 
@@ -364,7 +391,6 @@ export class Game {
         if (this.limitedLandscapeScreen) {
             x -= (-(this.canvas.width / 2) + 370);
         }
-
 
         // if we've touched in the inventory area work out which item
         // we hit and apply it
@@ -480,6 +506,8 @@ export class Game {
      * multi-touch controls on mobile.
      */
     private mouseUp(x: number, y: number, touchId: number) {
+        confirmAudioContext();
+
         if (touchId === this.mainAreaTouchId) {
             this.mainAreaTouchId = 0;
             this.mouseButtonDown[0] = false;
@@ -525,68 +553,83 @@ export class Game {
     private update() {
         const delta = Date.now() - this.lastUpdate;
 
-        for (let loop=0;loop<delta / Math.floor(1000 / 60);loop++) {
+        this.gamepad.update();
+
+        for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
             this.lastUpdate += Math.floor(1000 / 60);
-        let ox = this.player.x - (this.canvas.width / 2);
-        const oy = this.player.y - (this.canvas.height / 2);
-        ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
+            let ox = this.player.x - (this.canvas.width / 2);
+            const oy = this.player.y - (this.canvas.height / 2);
+            ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-        // update the mouse over indicator
-        this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
-        this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
+            // update the mouse over indicator
+            this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
+            this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
 
-        // check if the mouse over location is somewhere our player can act on
-        const px = Math.floor(this.player.x / TILE_SIZE);
-        const py = Math.floor(this.player.y / TILE_SIZE);
-        const dx = this.player.overX - px;
-        const dy = this.player.overY - py;
+            // the second dpad can be used to dig
+            const gpx = (this.gamepad.altRight ? 1 : 0) + (this.gamepad.altLeft ? -1 : 0);
+            const gpy = (this.gamepad.altDown ? 1 : 0) + (this.gamepad.altUp ? -1 : 0);
+            if (gpx !== 0 || gpy !== 0) {
+                this.player.overX = Math.floor(this.player.x / TILE_SIZE) + gpx;
+                this.player.overY = Math.floor(this.player.y / TILE_SIZE) + gpy;
+                this.mouseButtonDown[0] = true;
+                this.gamepadUsedToDig = true;
+            } else if (this.gamepadUsedToDig) {
+                this.mouseButtonDown[0] = false;
+                this.gamepadUsedToDig = false;
+            }
 
-        let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
+            // check if the mouse over location is somewhere our player can act on
+            const px = Math.floor(this.player.x / TILE_SIZE);
+            const py = Math.floor(this.player.y / TILE_SIZE);
+            const dx = this.player.overX - px;
+            const dy = this.player.overY - py;
 
-        // local player specifics - set the initial state to doing nothing
-        this.player.still();
+            let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
 
-        // if we were mining but we stopped pressing the button 
-        // then clear the block damage indicator to reset it
-        if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
-            this.player.blockDamage = 0;
+            // local player specifics - set the initial state to doing nothing
+            this.player.still();
+
+            // if we were mining but we stopped pressing the button 
+            // then clear the block damage indicator to reset it
+            if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
+                this.player.blockDamage = 0;
+            }
+
+            // if we're pressing down and the we can act on the location and theres
+            // a tile to dig there, then mark us as working
+            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
+                this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
+                this.lastWorkX = this.player.overX;
+                this.lastWorkY = this.player.overY;
+            }
+            // tell the player its got the mouse down for network state update
+            if (this.mouseButtonDown[0] && canAct) {
+                this.player.controls.mouse = true;
+            }
+
+            this.player.localUpdate();
+
+            // update controls for the the player so network state can be sent
+            if (this.keyDown["d"] || this.gamepad.right) {
+                this.player.controls.right = true;
+            }
+            if (this.keyDown["a"] || this.gamepad.left) {
+                this.player.controls.left = true;
+            }
+            if (this.keyDown["s"] || this.gamepad.down) {
+                this.player.controls.down = true;
+            }
+            if (this.keyDown[" "] || this.keyDown["w"] || this.gamepad.up || this.gamepad.buttons[0]) {
+                this.player.controls.up = true;
+            }
+
+            this.gameMap.updateTimers();
+
+            // finally draw update and draw the mobs
+            for (const mob of [...this.mobs]) {
+                mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+            }
         }
-
-        // if we're pressing down and the we can act on the location and theres
-        // a tile to dig there, then mark us as working
-        if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
-            this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
-            this.lastWorkX = this.player.overX;
-            this.lastWorkY = this.player.overY;
-        }
-        // tell the player its got the mouse down for network state update
-        if (this.mouseButtonDown[0] && canAct) {
-            this.player.controls.mouse = true;
-        }
-
-        this.player.localUpdate();
-
-        // update controls for the the player so network state can be sent
-        if (this.keyDown["d"]) {
-            this.player.controls.right = true;
-        }
-        if (this.keyDown["a"]) {
-            this.player.controls.left = true;
-        }
-        if (this.keyDown["s"]) {
-            this.player.controls.down = true;
-        }
-        if (this.keyDown[" "] || this.keyDown["w"]) {
-            this.player.controls.up = true;
-        }
-
-        this.gameMap.updateTimers();
-
-        // finally draw update and draw the mobs
-        for (const mob of [...this.mobs]) {
-            mob.update(this.animTime, !this.placingTilesOnFrontLayer);
-        }
-    }
     }
 
     /**
@@ -655,7 +698,6 @@ export class Game {
                 this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
             }
             this.g.restore();
-
         }
 
 
@@ -743,9 +785,11 @@ export class Game {
             this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
-            this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
-            this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
-
+            if (!this.gamepadUsedToDig) {
+                this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
+                this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
+            }
+            
             // check if the mouse over location is somewhere our player can act on
             const px = Math.floor(this.player.x / TILE_SIZE);
             const py = Math.floor(this.player.y / TILE_SIZE);

@@ -1,7 +1,7 @@
 import { Game } from "./Game";
 import { GameMap, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
-import { isSoundMuted, setSoundMuted } from "./engine/Resources";
+import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resources";
 
 /**
  * A controller for everything thats on the HTML layer rather than the canvas. The game
@@ -96,6 +96,8 @@ export class HtmlUi {
 
         // start the game button - start the network on our server ID
         document.getElementById("startGame")!.addEventListener("click", () => {
+            confirmAudioContext();
+
             this.game.isHostingTheServer = true;
             document.getElementById("connect")!.style.display = "none";
             this.network.startNetwork(this.game.isHostingTheServer);
@@ -105,11 +107,15 @@ export class HtmlUi {
         });
         // join game button - just show the join game dialog
         document.getElementById("joinGame")!.addEventListener("click", () => {
+            confirmAudioContext();
+            
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("join")!.style.display = "block";
         });
         // join game button - just show the setup dialog
         document.getElementById("setupButton")!.addEventListener("click", () => {
+            confirmAudioContext();
+
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("setup")!.style.display = "block";
         });
