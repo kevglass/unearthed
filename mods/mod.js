@@ -4,7 +4,7 @@ const mod = {
     version: 2,
 
     onGameStart: (game) => {
-        game.replaceImage("tiles/tnt", game.getModResource("tntalt.png"));
+        game.addImage("tiles/tnt", game.getModResource("tntalt.png"));
     },
 
     onWorldStart: (game) => {

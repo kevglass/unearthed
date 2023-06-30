@@ -1,7 +1,7 @@
 
 import { Graphics, HtmlGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
-import {GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles, tiles} from "./Map";
+import {GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
@@ -14,6 +14,8 @@ import { Controller, ControllerListener } from "./engine/Controller";
 import { ControllerButtons, CONTROLLER_SETUP_STEPS } from "./ControllerSetup";
 import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
+import { initTiles, BLOCKS } from "./Block";
+import { initInventory } from "./InventItem";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -117,6 +119,7 @@ export class Game implements ControllerListener {
     constructor() {
         loadAllResources();
         initTiles();
+        initInventory();
 
         this.serverSettings = new ServerSettings(this);
 
@@ -237,7 +240,7 @@ export class Game implements ControllerListener {
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
         }
 
-        console.log("Connect to think server on: " + this.serverId)
+        console.log("Connect to this server on: " + this.serverId)
         document.getElementById("serverLink")!.innerHTML = this.serverId;
 
         this.configureEventHandlers();
@@ -640,7 +643,7 @@ export class Game implements ControllerListener {
             if (portal.code === null) {
                 this.ui.showPortal();
             } else {
-                const portalTile = tiles[this.gameMap.getTile(x, y, Layer.FOREGROUND)];
+                const portalTile = BLOCKS[this.gameMap.getTile(x, y, Layer.FOREGROUND)];
                 if (portalTile.portal) {
                     portalTile.portal(portal);
                 }
@@ -663,6 +666,10 @@ export class Game implements ControllerListener {
 
         if (this.network.connected() && this.controllerSetupStep === -1) {
             for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
+                if (this.isHostingTheServer) {
+                    this.mods.tick();
+                }
+
                 this.lastUpdate += Math.floor(1000 / 60);
                 let ox = this.player.x - (this.canvas.width / 2);
                 const oy = this.player.y - (this.canvas.height / 2);
@@ -775,9 +782,6 @@ export class Game implements ControllerListener {
      * The main game loop
      */
     private loop() {
-        if (resourcesLoaded()) {
-            this.mods.init();
-        }
         // if we've finished the splash screen hide it
         if (Date.now() > this.finishStartup) {
             document.getElementById("splash")!.style.display = "none";

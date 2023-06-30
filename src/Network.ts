@@ -127,10 +127,12 @@ export class Network {
         // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
         // provider that uses kev's hidden livekit key. 
         const request = new XMLHttpRequest();
-        request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(this.game.username!) +
+        request.open("GET", "https://cokeandcode.com/demos/unearthed/room3.php?username=" + encodeURIComponent(this.game.username!) +
             "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
         request.send();
-        const token = request.responseText;
+        const token = request.responseText.split("&")[0];
+        const host = request.responseText.split("&")[1];
+        console.log("Central Server confirms this is host: " + host);
 
         this.thisIsTheHostServer = hosting;
         const wsURL = "wss://talesofyore.livekit.cloud"
@@ -209,6 +211,11 @@ export class Network {
 
                     }
                     this.serverConfig = message.data;
+                    if (this.serverConfig) {
+                        this.game.serverSettings.loadModsFrom(this.serverConfig);
+                        this.game.mods.init();
+                        this.game.mods.worldStarted();
+                    }
 
                     if (!this.serverConfig?.editable) {
                         this.addChat("", "Editing Disabled");
@@ -295,7 +302,11 @@ export class Network {
         console.log("Network started");
         this.isConnected = true;
 
-        this.game.mods.worldStarted();
+        // if we're the server, we initialise mods there
+        if (this.thisIsTheHostServer) {
+            this.game.mods.init();
+            this.game.mods.worldStarted();
+        }
     }
 
     /**

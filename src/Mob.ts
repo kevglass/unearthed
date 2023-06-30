@@ -1,27 +1,13 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./engine/Bones";
 import { Graphics } from "./engine/Graphics";
-import { GameMap, Layer, SKY_HEIGHT, TILE_SIZE, tiles } from "./Map";
+import { GameMap, Layer, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
 import { HumanBones } from "./Skeletons";
-
-/**
- * An item that can be placed in the players inventory
- */
-export interface InventItem {
-    /** The sprite to draw for the item - both as the bone and the UI */
-    sprite: string;
-    /** The tile to be placed when they use this item - 0 for none, like tools */
-    place: number;
-    /** The sprite offset when this item is held */
-    spriteOffsetX: number;
-    /** The sprite offset when this item is held */
-    spriteOffsetY: number;
-    /** The scale of the sprite to apply when its held */
-    spriteScale: number;
-}
+import { BLOCKS } from "./Block";
+import { DEFAULT_INVENTORY, InventItem } from "./InventItem";
 
 /**
  * The control state for the mob - this is passed across the network
@@ -120,19 +106,7 @@ export class Mob {
     fallThroughUntil: number = 0;
 
     /** The item in the mob's inventory */
-    inventory: InventItem[] = [
-        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
-        { sprite: "tiles/dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "tiles/brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "tiles/brick_red", place: 4,spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
-        { sprite: "tiles/sand", place: 6, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "tiles/wood", place: 7, spriteOffsetX: -70, spriteOffsetY: -130 , spriteScale: 0.7  },
-        { sprite: "tiles/ladder", place: 8, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7   },
-        { sprite: "tiles/platform", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
-        { sprite: "holding/torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
-        { sprite: "tiles/tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
-        { sprite: "tiles/portal", place: 27, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
-    ];
+    inventory: InventItem[] = [...DEFAULT_INVENTORY]
 
     /** Current state of this mob's controls - based on local controls or network updates */
     controls: Controls = {
@@ -320,7 +294,7 @@ export class Mob {
         const stepSize = width / 5;
         for (let s=offset;s<=width+offset;s+=stepSize) {
             if (this.gameMap.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, true)) {
-                const tile = tiles[this.gameMap.getTile((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, Layer.FOREGROUND)];
+                const tile = BLOCKS[this.gameMap.getTile((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, Layer.FOREGROUND)];
                 // platforms are only standable for the first quarter of the tile
                 let platformFall = false;
                 if (tile && !tile.blocks && tile.blocksDown) {
@@ -381,7 +355,7 @@ export class Mob {
             if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
                 this.vy = 10;
             } else {
-                const tile = tiles[this.gameMap.getTile(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE), Layer.FOREGROUND)];
+                const tile = BLOCKS[this.gameMap.getTile(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE), Layer.FOREGROUND)];
                 if (tile && tile.blocksDown && !tile.blocks) {
                     this.fallThroughUntil = this.y + TILE_SIZE;
                 }
@@ -494,7 +468,7 @@ export class Mob {
                 }
             }
             if (this.controls.mouse && this.itemHeld.place !== 0 && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
-                const block = tiles[this.itemHeld.place];
+                const block = BLOCKS[this.itemHeld.place];
                 if (layer !== Layer.BACKGROUND || (block && !block.backgroundDisabled)) {
                     if (this.local) {
                         this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);

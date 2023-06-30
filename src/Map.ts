@@ -2,6 +2,7 @@ import { getSprite, playSfx} from "./engine/Resources";
 import { Game } from "./Game";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { Graphics, GraphicsImage, HtmlGraphics } from "./engine/Graphics";
+import { Block, Portal, Timer, BLOCKS } from "./Block";
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
@@ -14,101 +15,6 @@ export const MAP_DEPTH: number = 230;
 
 // NOTE: The MAP_WIDTH * MAP_DEPTH * 2 can not be greater than 64k since it won't
 // fit in a network packet at the moment
-
-/**
- * Definition of a block that can appear in the map
- */
-interface Block {
-    /** The id of the sprite to draw for the block */
-    sprite: string;
-    /** True if this one blocks movement */
-    blocks: boolean;
-    /** True if this block act as a ladder */
-    ladder: boolean;
-    /** The portal information if this block is a portal */
-    portal?: (portal: Portal) => void;
-    /** True if this block needs ground under it to exist - like flowers - automatically destroy if nothing there */
-    needsGround: boolean;
-    /** True if this one blocks the discovery process - leaves for instance don't */
-    blocksDiscovery: boolean;
-    /** True if this block leaves a copy of itself in the background layer when removed from the foreground, used for caves discovery */
-    leaveBackground: boolean;
-    /** True if this would block you when you're falling downward. */
-    blocksDown: boolean;
-    /** True if this block prevents lights passing */
-    blocksLight: boolean;
-    /** The timer object with the number of ticks it takes for the block's effect to happen and the callback that defines the effect */
-    timer?: { timer: number, callback: (map: GameMap, timer: Timer) => void }|null;
-    /** Does this block light the area */
-    light?: boolean;
-    /** True if we can't place this block in the background */
-    backgroundDisabled?: boolean;
-}
-
-/**
- * A callback to explode a tile location 
- * 
- * @param map The map the explosion is taking place on
- * @param timer The timer that triggered the explosion
- */
-const EXPLOSION_MUTATOR = (map: GameMap, timer: Timer): void => {
-    for (let x = timer.tileIndex % MAP_WIDTH - 1; x <= timer.tileIndex % MAP_WIDTH + 1; x++) {
-        for (let y = Math.floor(timer.tileIndex / MAP_WIDTH) - 1; y <= Math.floor(timer.tileIndex / MAP_WIDTH) + 1; y++) {
-            if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
-                continue;
-            }
-            if (map.getTile(x,y, timer.layer) !== 0) {
-                map.setTile(x, y, 0, timer.layer);
-                for (let i=0;i<5;i++) {
-                    addParticle(createDirtParticle((x+ 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
-                }
-            }
-        }
-    }
-    playSfx("explosion", 1);
-}
-
-/**
- * The list of tiles that be used in the map
- */
-export let tiles: Record<number, Block> = {};
-
-/**
- * Initialise our tiles array once resources have been loaded
- */
-export function initTiles() {
-    tiles = 
-    {
-        1: { sprite: "tiles/dirt",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        2: { sprite: "tiles/dirt_grass",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        3: { sprite: "tiles/brick_grey",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        4: { sprite: "tiles/brick_red",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        5: { sprite: "tiles/leaves",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        6: { sprite: "tiles/sand",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        7: { sprite: "tiles/wood",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        8: { sprite: "tiles/ladder",blocks: false, blocksDown: false, ladder: true, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-        9: { sprite: "tiles/grass1",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        10: { sprite: "tiles/grass2",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        11: { sprite: "tiles/grass3",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        12: { sprite: "tiles/grass4",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        13: { sprite: "tiles/flowerwhite",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        14: { sprite: "tiles/flowerblue",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        15: { sprite: "tiles/flowerred",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        16: { sprite: "tiles/trunk_bottom",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        17: { sprite: "tiles/trunk_mid",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-    
-        18: { sprite: "tiles/stone",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        19: { sprite: "tiles/coal",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        20: { sprite: "tiles/iron",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        21: { sprite: "tiles/silver",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        22: { sprite: "tiles/gold",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        23: { sprite: "tiles/diamond",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        24: { sprite: "tiles/platform",blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-        25: { sprite: "tiles/tnt",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
-        26: { sprite: "tiles/torchtile",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
-        27: { sprite: "tiles/portal",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => { const url = new URL(location.href); url.searchParams.set('portal', '1'); url.searchParams.set('server', portal?.code ?? ''); window.open(url.href) }},
-    };
-}
 
 export enum Layer {
     FOREGROUND = 0,
@@ -131,24 +37,6 @@ for (let i = 0; i < MAP_WIDTH; i++) {
 const totalSize = (MAP_DEPTH * MAP_WIDTH) - DEFAULT_MAP.length;
 for (let i = 0; i < totalSize; i++) {
     DEFAULT_MAP.push(1);
-}
-
-interface Timer {
-    /** The tile index in the map */
-    tileIndex: number;
-    /** The layer the timer is for */
-    layer: number;
-    /** The number of ticks until the timer triggers */
-    timer: number;
-    /** The callback to call when the timer triggers */
-    callback: (map: GameMap, timer: Timer) => void;
-}
-
-interface Portal {
-    /** The tile index in the map */
-    tileIndex: number;
-    /** The code of the target server this portal links to */
-    code: string | null;
 }
 
 export interface GameMapMetaData {
@@ -288,7 +176,7 @@ export class GameMap {
         if (current < value || force) {
             this.setLightMap(x, y, value);
 
-            const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
+            const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
             if (tile && tile.blocksLight) {
                 return;
             }
@@ -324,7 +212,7 @@ export class GameMap {
             for (let y = 0; y < MAP_DEPTH; y++) {
                 this.setLightMap(x, y, 1);
 
-                const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
+                const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
                 if (tile && tile.blocksLight) {
                     break;
                 }
@@ -333,7 +221,7 @@ export class GameMap {
         for (let x = 0; x < MAP_WIDTH; x++) {
             for (let y = 0; y < MAP_DEPTH; y++) {
                 const tile = this.getTile(x, y, Layer.FOREGROUND);
-                const block = tiles[tile];
+                const block = BLOCKS[tile];
                 if (block && block.light) {
                     this.setLightMap(x, y, 1);
                 }
@@ -653,7 +541,7 @@ export class GameMap {
 
             if (!this.discovered[x + (y * MAP_WIDTH)] || force) {
                 this.discovered[x + (y * MAP_WIDTH)] = true;
-                const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
+                const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
                 if (!tile || !tile.blocks || !tile.blocksDiscovery) {
                     toCheck.push({ x: x - 1, y: y });
                     toCheck.push({ x: x - 1, y: y - 1 });
@@ -695,7 +583,7 @@ export class GameMap {
 
         if (layer === 0) {
             this.foreground[x + (y * MAP_WIDTH)] = tile;
-            const sprite = tiles[tile]?.sprite;
+            const sprite = BLOCKS[tile]?.sprite;
 
             if (this.game.isHostingTheServer) {
                 localStorage.setItem("map", JSON.stringify(this.foreground));
@@ -706,7 +594,7 @@ export class GameMap {
             }
         } else if (layer === 1) {
             this.background[x + (y * MAP_WIDTH)] = tile;
-            const sprite = tiles[tile]?.sprite;
+            const sprite = BLOCKS[tile]?.sprite;
             if (this.game.isHostingTheServer) {
                 localStorage.setItem("mapbg", JSON.stringify(this.background));
             }
@@ -722,7 +610,7 @@ export class GameMap {
         }
 
         // Add metadata for the placed block
-        const tileDef = tiles[tile];
+        const tileDef = BLOCKS[tile];
         if (tileDef) {
             if (tileDef.timer) {
                 this.timers.push({
@@ -746,7 +634,7 @@ export class GameMap {
         
         if (tile === 0) {
             const above = this.getTile(x, y - 1, layer);
-            const tile = tiles[above];
+            const tile = BLOCKS[above];
             if (tile && tile.needsGround) {
                 this.setTile(x, y - 1, 0, layer);
             }
@@ -754,7 +642,7 @@ export class GameMap {
             if (layer === 0) {
                 const behind = this.getTile(x, y, Layer.BACKGROUND);
                 if (behind === 0) {
-                    const tile = tiles[before];
+                    const tile = BLOCKS[before];
                     if (tile && tile.leaveBackground) {
                         this.setTile(x, y, before, Layer.BACKGROUND);
                     }
@@ -775,8 +663,8 @@ export class GameMap {
     isLadder(x: number, y: number): boolean {
         const tile1 = this.getTile(x, y, Layer.FOREGROUND);
         const tile2 = this.getTile(x, y, Layer.BACKGROUND);
-        const def1 = tiles[tile1];
-        const def2 = tiles[tile2];
+        const def1 = BLOCKS[tile1];
+        const def2 = BLOCKS[tile2];
         return (def1 && def1.ladder) || (!def1 && def2 && def2.ladder);
     }
 
@@ -788,7 +676,7 @@ export class GameMap {
      * @returns True if the location has a platform
      */
     isPlatform(x: number, y: number): boolean {
-        const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
+        const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
         return (tile && !tile.blocks && tile.blocksDown);
     }
 
@@ -801,7 +689,7 @@ export class GameMap {
      */
     isBlocked(x: number, y: number, down?: boolean): boolean {
         const tile = this.getTile(x, y, Layer.FOREGROUND);
-        const def = tiles[tile];
+        const def = BLOCKS[tile];
         return def && (def.blocks || (down === true && def.blocksDown));
     }
 
@@ -885,23 +773,23 @@ export class GameMap {
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
                 if (this.isDiscovered(x, y)) {
-                    const bg = getSprite(tiles[this.getTile(x, y, Layer.BACKGROUND)]?.sprite);
+                    const bg = BLOCKS[this.getTile(x, y, Layer.BACKGROUND)]?.sprite;
                     if (bg) {
-                        g.drawImage(bg , x * TILE_SIZE, y * TILE_SIZE);
+                        g.drawImage(getSprite(bg) , x * TILE_SIZE, y * TILE_SIZE);
                         if (this.isPlatform(x, y)) {
                             g.drawImage(this.backingTopTile, x * TILE_SIZE, y * TILE_SIZE);
                         } else {
                             let overhang = this.getTile(x, y - 1, Layer.FOREGROUND);
-                            const tileAbove = tiles[overhang];
+                            const tileAbove = BLOCKS[overhang];
                             if (tileAbove && !tileAbove.blocksDown) {
                                 overhang = 0;
                             }
                             g.drawImage(overhang && !this.isPlatform(x, y - 1) ? this.backingTopTile : this.backingTile, x * TILE_SIZE, y * TILE_SIZE);
                         }
                     }
-                    const sprite = getSprite(tiles[this.getTile(x, y, Layer.FOREGROUND)]?.sprite);
+                    const sprite = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)]?.sprite;
                     if (sprite) {
-                        g.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE);
+                        g.drawImage(getSprite(sprite), x * TILE_SIZE, y * TILE_SIZE);
                     }
 
                     // draw the mouse highlight
@@ -980,7 +868,7 @@ export class GameMap {
             lightMapContext.setFillStyle("black");
             for (let x = xp; x < xp + tilesAcross; x++) {
                 for (let y = yp; y < yp + tilesDown; y++) {
-                    const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];
+                    const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
                     const light = this.getLightMap(x, y);
                     lightMapContext.setGlobalAlpha(1 - light);
                     if (!this.isDiscovered(x, y)) {
