@@ -74,7 +74,7 @@ input {
 
 #serverSettingsPanel {
     width: 400px;
-    height: 320px;
+    height: 370px;
     display: none;
 }
 
@@ -453,4 +453,39 @@ input {
 
 .settingButton {
     width: 60px;
+}
+
+#mods {
+    margin-top: 20px;
+    width: 400px;
+    display: flex;
+    margin-left: 20px;
+}
+
+#modsList {    
+    width: 280px;
+    height: 140px;
+    background: white;
+    padding: 5px;
+    border-radius: 5px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+#modControls {
+    display: flex;
+    flex-direction: column;
+}
+
+.mod {
+    width: 300px;
+    text-align: left;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding-left: 10px;
+}
+
+.modSelected {
+    background: black;
+    color: white;
 }

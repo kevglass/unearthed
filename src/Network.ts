@@ -295,6 +295,8 @@ export class Network {
 
         console.log("Network started");
         this.isConnected = true;
+
+        this.game.mods.worldStarted();
     }
 
     /**

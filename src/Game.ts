@@ -13,6 +13,7 @@ import { createServerId } from "./util/createServerId";
 import { Controller, ControllerListener } from "./engine/Controller";
 import { ControllerButtons, CONTROLLER_SETUP_STEPS } from "./ControllerSetup";
 import { ServerSettings } from "./ServerSettings";
+import { ConfiguredMods } from "./mods/ConfiguredMods";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -118,7 +119,6 @@ export class Game implements ControllerListener {
         initTiles();
 
         this.serverSettings = new ServerSettings(this);
-        this.serverSettings.load();
 
         this.gamepad = new Controller();
         this.gamepad.addListener(this);
@@ -164,6 +164,7 @@ export class Game implements ControllerListener {
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
+        this.serverSettings.load();
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
@@ -257,6 +258,10 @@ export class Game implements ControllerListener {
                 this.trigger();
             }
         }
+    }
+
+    get mods(): ConfiguredMods {
+        return this.serverSettings.getConfiguredMods();
     }
 
     buttonReleased(button: number): void {

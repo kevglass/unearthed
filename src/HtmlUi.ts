@@ -2,6 +2,7 @@ import { Game } from "./Game";
 import {GameMap, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE} from "./Map";
 import { Network } from "./Network";
 import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resources";
+import { ServerMod } from "./mods/Mods";
 
 /**
  * A controller for everything thats on the HTML layer rather than the canvas. The game
@@ -29,15 +30,26 @@ export class HtmlUi {
     /** The central game controller */
     game: Game;
 
+    /** The visual list of mods */
+    modsList: HTMLDivElement;
+    /** The mod selected from the list */
+    selectedMod?: ServerMod;
+    /** The div of the mod selected */
+    selectedModDiv?: HTMLDivElement;
+    /** The file input element used to upload mods */
+    modInput: HTMLInputElement;
+
     constructor(game: Game, network: Network, gameMap: GameMap) {
         this.game = game;
         this.network = network;
         this.gameMap = gameMap;
 
+        this.modsList = document.getElementById("modsList") as HTMLDivElement;
         this.resetMapButton = document.getElementById("resetMapButton") as HTMLDivElement;
         this.loadMapButton = document.getElementById("loadMapButton") as HTMLDivElement;
         this.saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
         this.fileInput = document.getElementById("fileInput") as HTMLInputElement;
+        this.modInput = document.getElementById("modInput") as HTMLInputElement;
         this.chatInput = document.getElementById("chatinput") as HTMLInputElement;
         this.portalInput = document.getElementById("portalinput") as HTMLInputElement;
         this.playernameInput = document.getElementById("playerName") as HTMLInputElement;
@@ -81,6 +93,17 @@ export class HtmlUi {
                     this.network.sendMapUpdate(undefined);
                 }
                 reader.readAsArrayBuffer(this.fileInput.files[0]);
+            }
+        });
+
+        this.modInput.addEventListener('change', () => {
+            if (this.modInput.files) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const modScript = reader.result as string;
+                    this.game.serverSettings.addMod(modScript);
+                }
+                reader.readAsText(this.modInput.files[0]);
             }
         });
 
@@ -288,6 +311,18 @@ export class HtmlUi {
             this.renderChangeWorldButton();
         });
         this.renderChangeWorldButton();
+
+        document.getElementById("addMod")!.addEventListener("click", () => {
+            this.modInput.click();
+        });
+        document.getElementById("removeMod")!.addEventListener("click", () => {
+            if (this.selectedMod) {
+                this.game.serverSettings.removeMod(this.selectedMod);
+                this.selectedModDiv?.parentNode?.removeChild(this.selectedModDiv);
+                this.selectedMod = undefined;
+                this.selectedModDiv = undefined;
+            }
+        });
     }
 
     renderChangeWorldButton() {
@@ -390,5 +425,27 @@ export class HtmlUi {
                 button.classList.remove('isFullscreen');
             }
         }
+    }
+
+    addMod(mod: ServerMod) {
+        const modDiv = document.createElement("div");
+        modDiv.classList.add("mod");
+        modDiv.id = "mod" + Date.now();
+        modDiv.innerHTML = mod.name + " ("+mod.version+")";
+        modDiv.addEventListener("click", () => {
+            this.selectMod(mod, modDiv);
+        })
+        this.modsList.appendChild(modDiv);
+    }
+
+    selectMod(mod: ServerMod, div: HTMLDivElement) {
+        const list = document.getElementsByClassName("modSelected");
+        for (let i=0;i<list.length;i++) {
+            list.item(i)?.classList.remove("modSelected");
+        }
+
+        div.classList.add("modSelected");
+        this.selectedMod = mod;
+        this.selectedModDiv = div;
     }
 }

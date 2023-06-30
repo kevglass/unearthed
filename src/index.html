@@ -110,6 +110,15 @@
                 <div class="settingLabel">Edit World</div>
                 <div id="changeWorldButton" class="settingButton mapButton">Yes</div>
             </div>
+            <div class="label">Game Mods</div>
+            <div id="mods">
+                <div id="modsList">
+                </div>
+                <div id="modControls">
+                    <div id="addMod" class="settingButton mapButton">Add</div>
+                    <div id="removeMod" class="settingButton mapButton">Del</div>
+                </div>
+            </div>
             <div id="mapBar">
                 <div id="resetMapButton" class="mapButton">Reset Map</div>
                 <div id="loadMapButton" class="mapButton">Load Map</div>
@@ -124,6 +133,7 @@
             <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png" />
         </div>
         <input id="fileInput" type="file" style="visibility:hidden" />
+        <input id="modInput" type="file" style="visibility:hidden" />
         <script src="bundle.js?v=<%= version %>"></script>
     </body>
 </html>
