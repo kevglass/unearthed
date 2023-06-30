@@ -332,13 +332,17 @@ export class Network {
     }
 
     sendServerSettings(serverSettings: ServerConfig): void {
-        const message = { type: "serverConfig", data: serverSettings };
-        this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+        if (this.connected()) {
+            const message = { type: "serverConfig", data: serverSettings };
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+        }
     }
 
     sendMetaData(metaData: GameMapMetaData): void {
-        const message = { type: "mapMeta", data: metaData };
-        this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+        if (this.connected()) {
+            const message = { type: "mapMeta", data: metaData };
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+        }
     }
 
     /**
