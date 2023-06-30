@@ -355,7 +355,9 @@ export class GameMap {
     saveMetaData(): void {
         if (this.game.isHostingTheServer) {
             localStorage.setItem("mapmeta", JSON.stringify(this.metaData));
-            this.game.network.sendMetaData(this.metaData);
+            if (this.game.network && this.game.network.connected()) {
+                this.game.network.sendMetaData(this.metaData);
+            }
         }
     }
 
