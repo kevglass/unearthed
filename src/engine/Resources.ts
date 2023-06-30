@@ -4,7 +4,7 @@
 // but its worked out ok.
 //
 
-import { GraphicsImage, HtmlGraphicsImage } from "./Graphics";
+import { GraphicsImage } from "./Graphics";
 
 function importAll(r: any) {
     let images: any = {};
@@ -21,7 +21,7 @@ export const RESOURCES = importAll(require.context('../', true, /.{3}.(png|mp3)$
 const reportedErrors: Record<string, boolean> = {};
 
 /** The collection of all sprites loaded by the game */
-const sprites: Record<string, GraphicsImage> = {};
+export const sprites: Record<string, GraphicsImage> = {};
 /** The collection of all sound effects loaded by the game */
 const sfx: Record<string, ArrayBuffer> = {};
 /** The audio elements changed to sources for the audio context */
@@ -38,7 +38,7 @@ let loadedCount = 0;
  * @returns The newly created image/sprite
  */
 function loadImage(name: string, resource: string): GraphicsImage {
-    const image = new HtmlGraphicsImage(new Image());
+    const image = new GraphicsImage(name, new Image());
     sprites[name] = image;
     image.get().src = RESOURCES[resource];
     image.get().onload = () => { loadedCount--; };

@@ -1,12 +1,12 @@
 
-import { Graphics, HtmlGraphics } from "./engine/Graphics";
+import { Graphics, HtmlGraphics, WebglGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
 import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./engine/Particles";
-import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded } from "./engine/Resources";
+import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded, sprites } from "./engine/Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
@@ -108,7 +108,8 @@ export class Game implements ControllerListener {
 
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
-        this.g = new HtmlGraphics(this.canvas);
+        this.g = new WebglGraphics(this.canvas);
+        //this.g = new HtmlGraphics(this.canvas);
 
         // check if we have a server ID stored locally, if not then generated one
         // and store it
@@ -657,6 +658,10 @@ export class Game implements ControllerListener {
         // move the animation forward
         this.animTime += 0.03;
         this.animTime = this.animTime % 1;
+		
+		if(resourcesLoaded() && !this.g.isReady()) {
+			this.g.doneLoadingImages(sprites)
+		}
 
         // determine the scale of the screen and any limitation
         // on the viewing area
@@ -673,9 +678,8 @@ export class Game implements ControllerListener {
         let ox = this.player.x - (this.canvas.width / 2);
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
-
-        this.g.setFillStyle("#b7e7fa");
-        this.g.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		
+		this.g.clearScreen(0xb7, 0xe7, 0xfa);
 
         const backgrounds = [{
             sprite: "bg/clouds",
@@ -699,8 +703,7 @@ export class Game implements ControllerListener {
             }
             this.g.restore();
         }
-
-
+		
         // if the network hasn't been started we're at the main menu
         if (!this.network.connected()) {
             // update the sample player
@@ -708,7 +711,7 @@ export class Game implements ControllerListener {
             document.getElementById("serverLink")!.innerHTML = this.waitingForHost ? "Waiting for Host" : "Disconnected";
             requestAnimationFrame(() => { this.loop() });
 
-            this.g.setFillStyle("black");
+            this.g.setFillColor(0, 0, 0, 1);
 
             // draw the logo and version number
             const logo = getSprite("logo");
@@ -734,9 +737,9 @@ export class Game implements ControllerListener {
                 this.g.save();
                 this.g.translate((this.canvas.width / 2) + (logo.getWidth() / 2) + 150, 150 + (logo.getHeight() * 2));
                 this.g.rotate(-(Math.PI / 8) - (Math.PI / 32) + (Math.sin(Math.PI * this.animTime) * (Math.PI / 32)));
-                this.g.setFillStyle("black");
+				this.g.setFillColor(0, 0, 0, 1);
                 this.g.fillText(this.motd, 1, 1);
-                this.g.setFillStyle("#0f0");
+				this.g.setFillColor(0, 255, 0, 1);
                 this.g.fillText(this.motd, 0, 0);
                 this.g.restore();
             }
@@ -765,6 +768,8 @@ export class Game implements ControllerListener {
                 this.g.setTextAlign("center");
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
+			this.g.restore();
+			this.g.render();
             return;
         }
 
@@ -781,7 +786,7 @@ export class Game implements ControllerListener {
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 
             // draw the underground background
-            this.g.setFillStyle("#445253");
+            this.g.setFillColor(0x44, 0x52, 0x53, 1);
             this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
@@ -819,13 +824,14 @@ export class Game implements ControllerListener {
                 }
             }
 
-            this.gameMap.drawLightMap(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
+            //this.gameMap.drawLightMap(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
         }
 
         renderAndUpdateParticles(this.g);
 
         this.g.restore();
 
+		
         // Draw the UI components
 
         // if we have limited screen real estate adjust the positions of the UI
@@ -879,6 +885,8 @@ export class Game implements ControllerListener {
             this.g.drawScaledImage(getSprite("ui/down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
         }
 
+		this.g.render();
+		
         // schedule our next frame
         this.lastFrame = Date.now();
         requestAnimationFrame(() => { this.loop() });

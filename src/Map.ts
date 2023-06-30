@@ -881,8 +881,9 @@ export class GameMap {
 
                     // draw the mouse highlight
                     if (x === overX && y === overY && canAct) {
-                        g.setFillStyle("rgba(255, 255, 255, 0.3)");
+                        g.setFillColor(255, 255, 255, .3);
                         g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                        g.setFillColor(255, 255, 255, 1);
                     }
                 }
             }
@@ -944,7 +945,7 @@ export class GameMap {
 
             lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
             lightMapContext.setCompositeOperation("source-over");
-            lightMapContext.setFillStyle("black");
+            lightMapContext.setFillColor(0, 0, 0, 1);
             for (let x = xp; x < xp + tilesAcross; x++) {
                 for (let y = yp; y < yp + tilesDown; y++) {
                     const tile = tiles[this.getTile(x, y, Layer.FOREGROUND)];

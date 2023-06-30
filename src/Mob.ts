@@ -601,13 +601,13 @@ export class Mob {
 
         // draw the mob bounds
         if (showBounds) {
-            g.setFillStyle("rgba(0,255,0,0.4)");
+            g.setFillColor(0, 255, 0, 0.4);
             g.fillRect(-this.width, -this.height, this.width * 2, this.height * 2);
         }
 
         // draw the mob name
         g.setTextAlign("center");
-        g.setFillStyle("black");
+        g.setFillColor(0, 0, 0, 1);
         g.setFont("40px KenneyFont");
         g.fillText(this.name, 0, -140);
 
