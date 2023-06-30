@@ -728,7 +728,7 @@ export class Game implements ControllerListener {
 
         this.gamepad.update();
 
-        if (this.network.connected()) {
+        if (this.network.connected() && this.controllerSetupStep === -1) {
             for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
                 this.lastUpdate += Math.floor(1000 / 60);
                 let ox = this.player.x - (this.canvas.width / 2);
