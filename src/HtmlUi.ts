@@ -1,5 +1,5 @@
 import { Game } from "./Game";
-import { GameMap, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import {GameMap, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE} from "./Map";
 import { Network } from "./Network";
 import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resources";
 
@@ -10,6 +10,8 @@ import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resou
 export class HtmlUi {
     /** The input element used to accept user network chat */
     chatInput: HTMLInputElement;
+    /** The input element used to set portal codes */
+    portalInput: HTMLInputElement;
     /** The input element holding the players name */
     playernameInput: HTMLInputElement;
     /** The button in the setting dialog for resetting the map */
@@ -37,6 +39,7 @@ export class HtmlUi {
         this.saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
         this.fileInput = document.getElementById("fileInput") as HTMLInputElement;
         this.chatInput = document.getElementById("chatinput") as HTMLInputElement;
+        this.portalInput = document.getElementById("portalinput") as HTMLInputElement;
         this.playernameInput = document.getElementById("playerName") as HTMLInputElement;
 
         //
@@ -49,16 +52,32 @@ export class HtmlUi {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const rawData = new Uint8Array(reader.result as ArrayBuffer);
-                    const fullArray: number[] = Array.from(rawData);
-                    const len: number = fullArray.length / 2;
-                    this.gameMap.setMapData({
-                        f: fullArray.slice(0, len),
-                        b: fullArray.slice(len)
-                    });
+                    if (rawData[0] === 255) {
+                        // new file format with room for meta
+                        const lengthOfMeta = ((rawData[1] << 8) & 0xFF00) + rawData[2];
+                        const decoder = new TextDecoder();
+                        const metaAsText = decoder.decode(rawData.slice(3, 3+lengthOfMeta));
+                        const meta = JSON.parse(metaAsText);
+                        const fullArray: number[] = Array.from(rawData.slice(3+lengthOfMeta));
+                        const len: number = meta.mapSize;
+                        this.gameMap.setMapData({
+                            f: fullArray.slice(0, len),
+                            b: fullArray.slice(len)
+                        });
+                        Object.assign(this.gameMap.metaData, meta);
+                    } else {
+                        const fullArray: number[] = Array.from(rawData);
+                        const len: number = fullArray.length / 2;
+                        this.gameMap.setMapData({
+                            f: fullArray.slice(0, len),
+                            b: fullArray.slice(len)
+                        });
+                    }
 
                     this.game.player.x = 200;
                     this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
                     document.getElementById("settingsPanel")!.style.display = "none";
+                    this.game.gameMap.save();
                     this.network.sendMapUpdate(undefined);
                 }
                 reader.readAsArrayBuffer(this.fileInput.files[0]);
@@ -81,10 +100,16 @@ export class HtmlUi {
         //
         this.saveMapButton.addEventListener("click", () => {
             const data = this.gameMap.getMapData();
-            const dataBlocks = new Uint8Array([...data.f, ...data.b]);
+            const encoder = new TextEncoder();
+            // copy the metadata
+            const meta = JSON.parse(JSON.stringify(this.gameMap.metaData));
+            meta.mapSize = data.f.length;
+            const metaAsBytes = Array.from(encoder.encode(JSON.stringify(meta)));
+            const dataBlocks = new Uint8Array([255, metaAsBytes.length >> 8, (metaAsBytes.length & 0xFF), ...metaAsBytes, ...data.f, ...data.b]);
             const blob = new Blob([dataBlocks], {
                 type: "application/octet-stream"
             });
+            console.log(dataBlocks);
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -205,20 +230,28 @@ export class HtmlUi {
                 this.hideChat();
             }
         });
-
+        
+        this.portalInput!.addEventListener("keydown", (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                this.hidePortal();
+            }
+            if (event.key === "Enter") {
+                const tileIndex = Math.floor(this.game.player.x / TILE_SIZE) + (Math.floor(this.game.player.y / TILE_SIZE) * MAP_WIDTH);
+                const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
+                if (portal) {
+                    portal.code = this.portalInput.value;
+                    if (this.game.isHostingTheServer) {
+                        localStorage.setItem("portals", JSON.stringify(this.game.gameMap.metaData.portals));
+                    }
+                }
+                this.hidePortal();
+            }
+        });
+        
         // Joining the game is starting the game with a network that
         // acts as a client
         document.getElementById("joinButton")!.addEventListener("click", () => {
-            this.game.isHostingTheServer = false;
-            this.game.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
-            this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
-            this.game.player.name = this.game.username;
-            this.network.updatePlayerList(this.game.mobs);
-
-            document.getElementById("join")!.style.display = "none";
-            this.network.startNetwork(this.game.isHostingTheServer);
-            this.game.connecting = true;
-            this.game.waitingForHost = true;
+            this.joinAsClient();
         });
 
         // So we see variables in console. And change them without refreshing.
@@ -227,6 +260,19 @@ export class HtmlUi {
         }
 
         this.renderSoundButton();
+    }
+    
+    joinAsClient() {
+        this.game.isHostingTheServer = false;
+        this.game.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
+        this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
+        this.game.player.name = this.game.username;
+        this.network.updatePlayerList(this.game.mobs);
+
+        document.getElementById("join")!.style.display = "none";
+        this.network.startNetwork(this.game.isHostingTheServer);
+        this.game.connecting = true;
+        this.game.waitingForHost = true;
     }
 
     setFullscreen(fs: boolean) {
@@ -272,6 +318,19 @@ export class HtmlUi {
         this.chatInput!.style.display = "none";
     }
 
+    /**
+     * Show the portal input
+     */
+    showPortal() {
+        this.portalInput!.style.display = "block";
+        this.portalInput!.focus();
+    }
+    
+    hidePortal() {
+        this.portalInput.value = "";
+        document.getElementById("portalinput")!.style.display = "none";
+    }
+	
     /**
      * Show which sound icon based on current user preference.
      */

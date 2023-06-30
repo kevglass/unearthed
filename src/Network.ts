@@ -1,7 +1,7 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
-import { GameMap, SKY_HEIGHT, TILE_SIZE } from './Map';
+import { GameMap, GameMapMetaData, SKY_HEIGHT, TILE_SIZE } from './Map';
 import { Game } from './Game';
 
 //
@@ -191,6 +191,11 @@ export class Network {
                     }
                 }
 
+                // The server has given us updated meta data for the map
+                if (message.type === "mapMeta" && !hosting) {
+                    Object.assign(this.gameMap.metaData, message.data);
+                }
+
                 // simple chat message, just display it
                 if (message.type === "chatMessage") {
                     this.addChat(message.who, message.message);
@@ -305,6 +310,11 @@ export class Network {
         list.appendChild(line);
     }
     
+    sendMetaData(metaData: GameMapMetaData): void {
+        const message = { type: "mapMeta", data: metaData };
+        this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+    }
+
     /**
      * Send the state of block/tile map out across the network. This can either be
      * because a client requested it (then the target will be set) or at the start 
@@ -327,6 +337,8 @@ export class Network {
         } else {
             this.room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map" });
         }
+
+        this.sendMetaData(this.gameMap.metaData);
     }
     
     /**
