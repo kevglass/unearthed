@@ -47,7 +47,7 @@ function loadImage(name: string, resource: string): GraphicsImage {
 }
 
 export function loadImageFromUrl(name: string, url: string): GraphicsImage {
-    const image = new HtmlGraphicsImage(new Image());
+    const image = new GraphicsImage(name, new Image());
     sprites[name] = image;
     image.get().src = url;
     image.get().onload = () => { loadedCount--; };

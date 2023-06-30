@@ -837,22 +837,24 @@ export class Game implements ControllerListener {
 
         for (const bg of backgrounds) {
             const background = getSprite(bg.sprite);
-            this.g.save();
-            this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
-            for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
-                // draw the background clouds
-                this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
-            }
-            this.g.restore();
+			if(background.getWidth()) {
+				this.g.save();
+				this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
+				for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
+					// draw the background clouds
+					this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
+				}
+				this.g.restore();
+			}
         }
 
         if (this.controllerSetupStep >= 0) {
             requestAnimationFrame(() => { this.loop() });
 
-            this.g.setFillStyle("rgba(0,0,0,0.2");
+            this.g.setFillColor(0, 0, 0, 0.2);
             this.g.fillRect(0, 270, this.canvas.width, 400);
             this.g.setTextAlign("center");
-            this.g.setFillStyle("black");
+            this.g.setFillColor(0, 0, 0, 1);
             this.g.save();
             this.g.translate(5, 5);
             this.g.setFont("120px KenneyFont");
@@ -860,7 +862,7 @@ export class Game implements ControllerListener {
             this.g.setFont("60px KenneyFont");
             this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
             this.g.restore();
-            this.g.setFillStyle("white");
+            this.g.setFillColor(255, 255, 255, 1);
             this.g.setFont("120px KenneyFont");
             this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), (this.canvas.width / 2), 400);
             this.g.setFont("60px KenneyFont");

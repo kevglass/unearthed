@@ -926,7 +926,7 @@ export class GameMap {
         // render portal codes
         this.metaData.portals.forEach(portal => {
             g.setTextAlign("center");
-            g.setFillStyle("black");
+            g.setFillColor(0, 0, 0, 1);
             g.setFont("40px KenneyFont");
             g.fillText(portal?.code ?? '', portal.tileIndex % MAP_WIDTH * TILE_SIZE + TILE_SIZE / 2, Math.floor(portal.tileIndex / MAP_WIDTH) * TILE_SIZE - 16);
         });
