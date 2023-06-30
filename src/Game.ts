@@ -243,7 +243,7 @@ export class Game implements ControllerListener {
     }
 
     buttonPressed(button: number): void {
-        if (this.network.connected() && this.controllerSetupStep === 1) {
+        if (this.network.connected() && this.controllerSetupStep === -1) {
             if (button === this.controllerButtons.next) {
                 this.nextInventItem();
             }
