@@ -26,12 +26,12 @@ export class HtmlUi {
     gameMap: GameMap;
     /** The central game controller */
     game: Game;
-    
+
     constructor(game: Game, network: Network, gameMap: GameMap) {
         this.game = game;
         this.network = network;
         this.gameMap = gameMap;
-        
+
         this.resetMapButton = document.getElementById("resetMapButton") as HTMLDivElement;
         this.loadMapButton = document.getElementById("loadMapButton") as HTMLDivElement;
         this.saveMapButton = document.getElementById("saveMapButton") as HTMLDivElement;
@@ -112,7 +112,7 @@ export class HtmlUi {
         // join game button - just show the join game dialog
         document.getElementById("joinGame")!.addEventListener("click", () => {
             confirmAudioContext();
-            
+
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("join")!.style.display = "block";
         });
@@ -168,21 +168,28 @@ export class HtmlUi {
         // close button hide the settings panel
         document.getElementById("closeButton")!.addEventListener("click", () => {
             document.getElementById("settingsPanel")!.style.display = "none";
-            document.getElementById("connect")!.style.display = "block";
+            if (!this.game.network.connected()) {
+                document.getElementById("connect")!.style.display = "block";
+            }
         })
 
         // sound on/off button
         document.getElementById("soundButton")!.addEventListener("click", () => {
             setSoundMuted(!isSoundMuted());
-			
-			this.renderSoundButton();
+
+            this.renderSoundButton();
+        })
+
+        // sound on/off button
+        document.getElementById("fullscreenButton")!.addEventListener("click", () => {
+            this.setFullscreen(!this.isFullscreen());
         })
 
         document.getElementById("controllerButton")!.addEventListener("click", () => {
             this.game.startControllerSetup();
         })
 
-        
+
 
         // special cases for when chatting. Enter will send the message and escape
         // will hide the chat box.
@@ -198,7 +205,7 @@ export class HtmlUi {
                 this.hideChat();
             }
         });
-        
+
         // Joining the game is starting the game with a network that
         // acts as a client
         document.getElementById("joinButton")!.addEventListener("click", () => {
@@ -207,21 +214,36 @@ export class HtmlUi {
             this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
             this.game.player.name = this.game.username;
             this.network.updatePlayerList(this.game.mobs);
-        
+
             document.getElementById("join")!.style.display = "none";
             this.network.startNetwork(this.game.isHostingTheServer);
             this.game.connecting = true;
             this.game.waitingForHost = true;
         });
-		
-		// So we see variables in console. And change them without refreshing.
-		if(window.location.href.includes('localhost')) {
-			(window as any).game = game
-		}
-		
-		this.renderSoundButton();
+
+        // So we see variables in console. And change them without refreshing.
+        if (window.location.href.includes('localhost')) {
+            (window as any).game = game
+        }
+
+        this.renderSoundButton();
     }
 
+    setFullscreen(fs: boolean) {
+        if (fs) {
+            document.body.requestFullscreen().then(() => {
+                setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+            });
+        }
+    }
+
+    isFullscreen(): boolean {
+        return !window.screenTop && !window.screenY;
+    }
     /**
      * Show the chat input
      */
@@ -231,7 +253,7 @@ export class HtmlUi {
             this.chatInput.focus();
         }
     }
-    
+
     /**
      * Send a chat message
      * 
@@ -242,25 +264,40 @@ export class HtmlUi {
             this.network.sendChatMessage(this.game.player.name, message);
         }
     }
-    
+
     /**
      * Hide the chat input
      */
     hideChat() {
         this.chatInput!.style.display = "none";
     }
-	
+
     /**
      * Show which sound icon based on current user preference.
      */
-	renderSoundButton() {
-		let button = document.getElementById("soundButton");
-		if(button) {
-			if(localStorage.getItem('muted') === '1') {
-				button.classList.add('isoff');
-			} else {
-				button.classList.remove('isoff');
-			}
-		}
-	}
+    renderSoundButton() {
+        let button = document.getElementById("soundButton");
+        if (button) {
+            if (localStorage.getItem('muted') === '1') {
+                button.classList.add('isoff');
+            } else {
+                button.classList.remove('isoff');
+            }
+        }
+    }
+
+    /**
+     * Show which if we're in fullscreen or not
+     */
+    renderFullscreenButton() {
+        let button = document.getElementById("fullscreenButton");
+        console.log(button,this.isFullscreen());
+        if (button) {
+            if (this.isFullscreen()) {
+                button.classList.add('isFullscreen');
+            } else {
+                button.classList.remove('isFullscreen');
+            }
+        }
+    }
 }

@@ -424,6 +424,7 @@ export class Game implements ControllerListener {
         document.addEventListener("keydown", (event: KeyboardEvent) => {
             if (this.controllerSetupStep >= 0) {
                 this.controllerSetupStep = -1;
+                alert("hereL: " + this.controllerSetupStep);
                 document.getElementById("settingsPanel")!.style.display = "block";
                 return;
             }

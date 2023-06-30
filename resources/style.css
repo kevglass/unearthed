@@ -99,6 +99,12 @@ input {
     top: 140px;
 }
 
+#settingButtons {
+    height: 80px;
+    display: flex;
+    justify-content: center;
+}
+
 #soundButton.isoff {
 	background-image: url(soundisoff.png);
 }
@@ -113,6 +119,23 @@ input {
 	position: static;
 	margin: 20px;
 	background-image: url(gamepad.png);
+	background-size: cover;
+}
+
+#fullscreenButton.isFullscreen {
+	background-image: url(smaller.png);
+}
+
+#fullscreenButton:active {
+    margin-top: 23px;
+}
+
+#fullscreenButton {
+	width: 40px;
+	height: 40px;
+	position: static;
+	margin: 20px;
+	background-image: url(larger.png);
 	background-size: cover;
 }
 
