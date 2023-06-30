@@ -320,7 +320,7 @@ export class HtmlUi {
     }
 
     isFullscreen(): boolean {
-        return !window.screenTop && !window.screenY;
+        return (document.fullscreenElement !== null)
     }
     /**
      * Show the chat input
