@@ -1107,7 +1107,7 @@ export class Game implements ControllerListener {
             for (const mob of [...this.mobs]) {
                 mob.draw(this.g, SHOW_BOUNDS);
 
-                if (Date.now() - mob.lastUpdate > 10000) {
+                if (Date.now() - mob.lastUpdate > 10000 && mob !== this.player) {
                     this.mobs.splice(this.mobs.indexOf(mob), 1);
                 }
             }

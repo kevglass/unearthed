@@ -413,6 +413,7 @@ export class Mob {
         this.vy = 0;
         this.x = 200;
         this.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+        this.lastUpdate = Date.now();
     }
 
     /**
