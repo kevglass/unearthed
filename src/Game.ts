@@ -1,7 +1,7 @@
 
 import { Graphics, HtmlGraphics, WebglGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
-import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles } from "./Map";
+import {GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE, initTiles, tiles} from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
@@ -11,18 +11,21 @@ import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
 import { Controller, ControllerListener } from "./engine/Controller";
+import { ControllerButtons, CONTROLLER_SETUP_STEPS } from "./ControllerSetup";
+import { ServerSettings } from "./ServerSettings";
+import { ConfiguredMods } from "./mods/ConfiguredMods";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
 // fit anywhere else
-//f
+//
 
 /** True if we should be showing bounds when rendering mobs */
 const SHOW_BOUNDS: boolean = false;
 /** The ZOOM level - higher = less zoomed - I know, I know. */
 const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
-const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom"];
+const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
 
 /**
  * The main game controller. This needs breaking up a bit more yet.
@@ -98,10 +101,24 @@ export class Game implements ControllerListener {
     lastUpdate: number = Date.now();
     /** True if we used the gamepad to dig - allows us to reset state when its released */
     gamepadUsedToDig: boolean = false;
+    /** The controller setup step */
+    controllerSetupStep: number = -1;
+    /** Server settings */
+    serverSettings: ServerSettings;
+
+    controllerButtons: ControllerButtons = {
+        jump: 0,
+        next: 1,
+        prev: 2,
+        layer: 3,
+        trigger: 4
+    };
 
     constructor() {
         loadAllResources();
         initTiles();
+
+        this.serverSettings = new ServerSettings(this);
 
         this.gamepad = new Controller();
         this.gamepad.addListener(this);
@@ -126,6 +143,8 @@ export class Game implements ControllerListener {
             localStorage.setItem("serverPassword", this.serverPassword);
         }
 
+        this.loadControllerSetup();
+
         // check if we have a username stored locally, if not then generated one
         // and store it
         this.username = localStorage.getItem("username") ?? "";
@@ -146,6 +165,7 @@ export class Game implements ControllerListener {
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
+        this.serverSettings.load();
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
@@ -216,27 +236,45 @@ export class Game implements ControllerListener {
         if (params.get("server") && params.get("server") !== this.serverId) {
             this.isHostingTheServer = false;
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
-        } else {
-            console.log("Connect on: " + location.href + "?server=" + this.serverId)
-            document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + this.serverId;
         }
+
+        console.log("Connect to think server on: " + this.serverId)
+        document.getElementById("serverLink")!.innerHTML = this.serverId;
 
         this.configureEventHandlers();
     }
 
     buttonPressed(button: number): void {
-        if (button === 5 || button === 7) {
-            this.nextInventItem();
+        if (this.network.connected() && this.controllerSetupStep === -1) {
+            if (button === this.controllerButtons.next) {
+                this.nextInventItem();
+            }
+            if (button === this.controllerButtons.prev) {
+                this.prevInventItem();
+            }
+            if (button === this.controllerButtons.layer) {
+                this.togglePlacementLayer();
+            }
+            if (button === this.controllerButtons.trigger) {
+                this.trigger();
+            }
         }
-        if (button === 6 || button === 8) {
-            this.nextInventItem();
-        }
+    }
+
+    get mods(): ConfiguredMods {
+        return this.serverSettings.getConfiguredMods();
     }
 
     buttonReleased(button: number): void {
         if ((button > 0) && (button < 4)) {
             this.mouseButtonDown[0] = false;
         }
+    }
+
+    startControllerSetup(): void {
+        document.getElementById("connect")!.style.display = "none";
+        document.getElementById("settingsPanel")!.style.display = "none";
+        this.controllerSetupStep = 0;
     }
 
     /**
@@ -250,14 +288,31 @@ export class Game implements ControllerListener {
         this.timeTooltipShown = Date.now();
     }
 
+    togglePlacementLayer(): void {
+        this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
+
+        if (this.placingTilesOnFrontLayer) {
+            playSfx("foreground", 0.3);
+        } else {
+            playSfx("background", 0.3);
+        }
+    }
+
     /**
      * Configure the event handlers that manage keyboard, mouse and touch state.
      */
     configureEventHandlers() {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
+            if (this.controllerSetupStep >= 0) {
+                this.controllerSetupStep = -1;
+                alert("hereL: " + this.controllerSetupStep);
+                document.getElementById("settingsPanel")!.style.display = "block";
+                return;
+            }
+
             // if we're focused on the chat input that takes precedence
-            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput) {
+            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput || document.activeElement === this.ui.portalInput) {
                 return;
             }
 
@@ -267,7 +322,7 @@ export class Game implements ControllerListener {
             // if the user hits enter and we're connected to the game
             // then show the chat box
             if (this.network.connected()) {
-                if (event.key === "Enter") {
+                if (event.key === "Enter" && this.ui.portalInput!.style.display !== 'block') {
                     this.ui.showChat();
                 }
             }
@@ -282,9 +337,14 @@ export class Game implements ControllerListener {
 
             // Pressing X changes the layer we're targeting
             if (event.key === 'x') {
-                this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
+                this.togglePlacementLayer();
             }
 
+            if (event.key === 'r') {
+                this.trigger();
+                event.preventDefault();
+                event.stopPropagation();
+            }
         });
 
         // mouse up, just maintain state
@@ -462,15 +522,31 @@ export class Game implements ControllerListener {
                 // up
                 this.keyDown['w'] = true;
                 this.keyDown['s'] = false;
+                this.keyDown['r'] = false;
                 this.jumpTouchId = touchId;
                 return true;
             }
             // if we're pressing on the jump control 
             // pretend S was pressed
             if (x > this.canvas.width - 360 && yp === 1) {
-                // up
+                // down
                 this.keyDown['s'] = true;
                 this.keyDown['w'] = false;
+                this.keyDown['r'] = false;
+                this.jumpTouchId = touchId;
+                return true;
+            }
+            // if we're pressing on the trigger control 
+            // pretend R was pressed
+            if (x > this.canvas.width - 520 && yp === 1) {
+                // trigger
+                this.keyDown['s'] = false;
+                this.keyDown['w'] = false;
+                if (this.keyDown['r'] === false) {
+                    this.keyDown['r'] = true;
+                    this.trigger();
+                }
+
                 this.jumpTouchId = touchId;
                 return true;
             }
@@ -516,6 +592,7 @@ export class Game implements ControllerListener {
         if (touchId === this.jumpTouchId) {
             this.keyDown['w'] = false;
             this.keyDown['s'] = false;
+            this.keyDown['r'] = false;
             this.jumpTouchId = 0;
         }
         if (touchId === this.controllerTouchId) {
@@ -544,6 +621,35 @@ export class Game implements ControllerListener {
     }
 
     /**
+     * Trigger whatever block we're on
+     */
+    private trigger() {
+        // right now this is only portals, but this dereference here to 
+        // support other triggers later
+        this.triggerPortal();
+    }
+
+    /**
+     * Triggers the portal to assign it a code
+     */
+    private triggerPortal() {
+        const x = Math.floor(this.player.x / TILE_SIZE);
+        const y = Math.floor(this.player.y / TILE_SIZE);
+        const tileIndex = x + y * MAP_WIDTH;
+        const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
+        if (portal) {
+            if (portal.code === null) {
+                this.ui.showPortal();
+            } else {
+                const portalTile = tiles[this.gameMap.getTile(x, y, Layer.FOREGROUND)];
+                if (portalTile.portal) {
+                    portalTile.portal(portal);
+                }
+            }
+        }
+    }
+
+    /**
      * Start the game loop 
      */
     startLoop() {
@@ -556,87 +662,123 @@ export class Game implements ControllerListener {
 
         this.gamepad.update();
 
-        for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
-            this.lastUpdate += Math.floor(1000 / 60);
-            let ox = this.player.x - (this.canvas.width / 2);
-            const oy = this.player.y - (this.canvas.height / 2);
-            ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
+        if (this.network.connected() && this.controllerSetupStep === -1) {
+            for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
+                this.lastUpdate += Math.floor(1000 / 60);
+                let ox = this.player.x - (this.canvas.width / 2);
+                const oy = this.player.y - (this.canvas.height / 2);
+                ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-            // update the mouse over indicator
-            this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
-            this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
+                // update the mouse over indicator
+                this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
+                this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
 
-            // the second dpad can be used to dig
-            const gpx = (this.gamepad.altRight ? 1 : 0) + (this.gamepad.altLeft ? -1 : 0);
-            const gpy = (this.gamepad.altDown ? 1 : 0) + (this.gamepad.altUp ? -1 : 0);
-            if (gpx !== 0 || gpy !== 0) {
-                this.player.overX = Math.floor(this.player.x / TILE_SIZE) + gpx;
-                this.player.overY = Math.floor(this.player.y / TILE_SIZE) + gpy;
-                this.mouseButtonDown[0] = true;
-                this.gamepadUsedToDig = true;
-            } else if (this.gamepadUsedToDig) {
-                this.mouseButtonDown[0] = false;
-                this.gamepadUsedToDig = false;
+                // the second dpad can be used to dig
+                const gpx = (this.gamepad.altRight ? 1 : 0) + (this.gamepad.altLeft ? -1 : 0);
+                const gpy = (this.gamepad.altDown ? 1 : 0) + (this.gamepad.altUp ? -1 : 0);
+                if (gpx !== 0 || gpy !== 0) {
+                    this.player.overX = Math.floor(this.player.x / TILE_SIZE) + gpx;
+                    this.player.overY = Math.floor(this.player.y / TILE_SIZE) + gpy;
+                    this.mouseButtonDown[0] = true;
+                    this.gamepadUsedToDig = true;
+                } else if (this.gamepadUsedToDig) {
+                    this.mouseButtonDown[0] = false;
+                    this.gamepadUsedToDig = false;
+                }
+
+                // check if the mouse over location is somewhere our player can act on
+                const px = Math.floor(this.player.x / TILE_SIZE);
+                const py = Math.floor(this.player.y / TILE_SIZE);
+                const dx = this.player.overX - px;
+                const dy = this.player.overY - py;
+
+                let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
+
+                // local player specifics - set the initial state to doing nothing
+                this.player.still();
+
+                // if we were mining but we stopped pressing the button 
+                // then clear the block damage indicator to reset it
+                if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
+                    this.player.blockDamage = 0;
+                }
+
+                // if we're pressing down and the we can act on the location and theres
+                // a tile to dig there, then mark us as working
+                if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
+                    this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
+                    this.lastWorkX = this.player.overX;
+                    this.lastWorkY = this.player.overY;
+                }
+                // tell the player its got the mouse down for network state update
+                if (this.mouseButtonDown[0] && canAct) {
+                    this.player.controls.mouse = true;
+                }
+
+                this.player.localUpdate();
+
+                // update controls for the the player so network state can be sent
+                if (this.keyDown["d"] || this.gamepad.right) {
+                    this.player.controls.right = true;
+                }
+                if (this.keyDown["a"] || this.gamepad.left) {
+                    this.player.controls.left = true;
+                }
+                if (this.keyDown["s"] || this.gamepad.down) {
+                    this.player.controls.down = true;
+                }
+                if (this.keyDown[" "] || this.keyDown["w"] || this.gamepad.up || this.gamepad.buttons[this.controllerButtons.jump]) {
+                    this.player.controls.up = true;
+                }
+
+                this.gameMap.updateTimers();
+
+                // finally draw update and draw the mobs
+                for (const mob of [...this.mobs]) {
+                    mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+                }
             }
+        } else {
+            this.lastUpdate = Date.now();
+        }
+    }
 
-            // check if the mouse over location is somewhere our player can act on
-            const px = Math.floor(this.player.x / TILE_SIZE);
-            const py = Math.floor(this.player.y / TILE_SIZE);
-            const dx = this.player.overX - px;
-            const dy = this.player.overY - py;
-
-            let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
-
-            // local player specifics - set the initial state to doing nothing
-            this.player.still();
-
-            // if we were mining but we stopped pressing the button 
-            // then clear the block damage indicator to reset it
-            if ((this.lastWorkY !== this.player.overY) || (this.lastWorkX !== this.player.overX) || (!this.mouseButtonDown[0])) {
-                this.player.blockDamage = 0;
-            }
-
-            // if we're pressing down and the we can act on the location and theres
-            // a tile to dig there, then mark us as working
-            if (this.mouseButtonDown[0] && canAct && this.gameMap.getTile(this.player.overX, this.player.overY,
-                this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND) !== 0) {
-                this.lastWorkX = this.player.overX;
-                this.lastWorkY = this.player.overY;
-            }
-            // tell the player its got the mouse down for network state update
-            if (this.mouseButtonDown[0] && canAct) {
-                this.player.controls.mouse = true;
-            }
-
-            this.player.localUpdate();
-
-            // update controls for the the player so network state can be sent
-            if (this.keyDown["d"] || this.gamepad.right) {
-                this.player.controls.right = true;
-            }
-            if (this.keyDown["a"] || this.gamepad.left) {
-                this.player.controls.left = true;
-            }
-            if (this.keyDown["s"] || this.gamepad.down) {
-                this.player.controls.down = true;
-            }
-            if (this.keyDown[" "] || this.keyDown["w"] || this.gamepad.up || this.gamepad.buttons[0]) {
-                this.player.controls.up = true;
-            }
-
-            this.gameMap.updateTimers();
-
-            // finally draw update and draw the mobs
-            for (const mob of [...this.mobs]) {
-                mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+    /**
+     * Load any controller configuration stored in local storage
+     */
+    private loadControllerSetup(): void {
+        const config = localStorage.getItem("controller");
+        if (config) {
+            try {
+                const setup = JSON.parse(config);
+                this.gamepad.axesConfigured = setup.axes;
+                // cope with missing controls
+                Object.assign(this.controllerButtons, setup.buttons);
+            } catch (e) {
+                // do nothing, invalid JSON
             }
         }
+    }
+
+    /**
+     * Save the current controller configuration to local storage
+     */
+    private saveControllerSetup(): void {
+        const setup = {
+            axes: this.gamepad.axesConfigured,
+            buttons: this.controllerButtons,
+        };
+
+        localStorage.setItem("controller", JSON.stringify(setup));
     }
 
     /**
      * The main game loop
      */
     private loop() {
+        if (resourcesLoaded()) {
+            this.mods.init();
+        }
         // if we've finished the splash screen hide it
         if (Date.now() > this.finishStartup) {
             document.getElementById("splash")!.style.display = "none";
@@ -703,12 +845,42 @@ export class Game implements ControllerListener {
             }
             this.g.restore();
         }
-		
+
+        if (this.controllerSetupStep >= 0) {
+            requestAnimationFrame(() => { this.loop() });
+
+            this.g.setFillStyle("rgba(0,0,0,0.2");
+            this.g.fillRect(0, 270, this.canvas.width, 400);
+            this.g.setTextAlign("center");
+            this.g.setFillStyle("black");
+            this.g.save();
+            this.g.translate(5, 5);
+            this.g.setFont("120px KenneyFont");
+            this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), this.canvas.width / 2, 400);
+            this.g.setFont("60px KenneyFont");
+            this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
+            this.g.restore();
+            this.g.setFillStyle("white");
+            this.g.setFont("120px KenneyFont");
+            this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), (this.canvas.width / 2), 400);
+            this.g.setFont("60px KenneyFont");
+            this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
+
+            if (CONTROLLER_SETUP_STEPS[this.controllerSetupStep].check(this)) {
+                this.controllerSetupStep++;
+                if (this.controllerSetupStep >= CONTROLLER_SETUP_STEPS.length) {
+                    this.controllerSetupStep = -1;
+                    this.saveControllerSetup();
+                    document.getElementById("settingsPanel")!.style.display = "block";
+                }
+            }
+            return;
+        }
+
         // if the network hasn't been started we're at the main menu
         if (!this.network.connected()) {
             // update the sample player
             this.network.update(this.player, this.mobs);
-            document.getElementById("serverLink")!.innerHTML = this.waitingForHost ? "Waiting for Host" : "Disconnected";
             requestAnimationFrame(() => { this.loop() });
 
             this.g.setFillColor(0, 0, 0, 1);
@@ -773,10 +945,6 @@ export class Game implements ControllerListener {
             return;
         }
 
-        if (!this.isHostingTheServer) {
-            document.getElementById("serverLink")!.innerHTML = "Connected";
-        }
-
         // so now we know the network is started (or the pretend network is) and 
         // all the resources are loaded so we can render the real game
         if (resourcesLoaded()) {
@@ -794,7 +962,7 @@ export class Game implements ControllerListener {
                 this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
                 this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
             }
-            
+
             // check if the mouse over location is somewhere our player can act on
             const px = Math.floor(this.player.x / TILE_SIZE);
             const py = Math.floor(this.player.y / TILE_SIZE);
@@ -819,7 +987,7 @@ export class Game implements ControllerListener {
             for (const mob of [...this.mobs]) {
                 mob.draw(this.g, SHOW_BOUNDS);
 
-                if (Date.now() - mob.lastUpdate > 10000) {
+                if (Date.now() - mob.lastUpdate > 10000 && mob !== this.player) {
                     this.mobs.splice(this.mobs.indexOf(mob), 1);
                 }
             }
@@ -883,6 +1051,7 @@ export class Game implements ControllerListener {
             this.g.drawScaledImage(getSprite("ui/right"), 180, this.canvas.height - 160, 140, 140);
             this.g.drawScaledImage(getSprite("ui/up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
             this.g.drawScaledImage(getSprite("ui/down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
+            this.g.drawScaledImage(getSprite("ui/trigger"), this.canvas.width - 520, this.canvas.height - 160, 140, 140);
         }
 
 		this.g.render();

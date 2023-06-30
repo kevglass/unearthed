@@ -2,7 +2,7 @@
 
 ## Play It
 
-https://cokeandcode.com/demos/unearthed/
+https://unearthedgame.net/
 
 ## Getting Started
 

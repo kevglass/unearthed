@@ -1,7 +1,7 @@
 import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
 import { Bone } from "./engine/Bones";
 import { Graphics } from "./engine/Graphics";
-import { GameMap, Layer, TILE_SIZE, tiles } from "./Map";
+import { GameMap, Layer, SKY_HEIGHT, TILE_SIZE, tiles } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
@@ -131,6 +131,7 @@ export class Mob {
         { sprite: "tiles/platform", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7  },
         { sprite: "holding/torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7 },
         { sprite: "tiles/tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
+        { sprite: "tiles/portal", place: 27, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
     ];
 
     /** Current state of this mob's controls - based on local controls or network updates */
@@ -406,6 +407,16 @@ export class Mob {
     }
 
     /**
+     * Reset this mob to starting poisition
+     */
+    reset(): void {
+        this.vy = 0;
+        this.x = 200;
+        this.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+        this.lastUpdate = Date.now();
+    }
+
+    /**
      * Update this mob by moving its animation forward and applying any controls being pressed
      * 
      * @param animTime The animation time to apply
@@ -464,6 +475,7 @@ export class Mob {
                     }
                     this.blockDamage = 0;
                     playSfx('mining_break', 0.6, 5);
+                    this.gameMap.game.gamepad.vibrate();
                 } else {
                     if (this.blockDamage % 20 === 0) {
                         playSfx('mining', 0.5, 5);
@@ -488,7 +500,6 @@ export class Mob {
                         this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                     }
                     
-                    this.gameMap.refreshSpriteTile(this.overX, this.overY);
                     playSfx('place', 0.2);
                     for (let i=0;i<5;i++) {
                         addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));

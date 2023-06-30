@@ -27,22 +27,54 @@ input {
     height: 100%;
 }
 
+.setting {
+    margin-top: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
+    display: flex;
+    justify-content: space-between;
+    height: 2rem;
+}
+
+.settingLabel {
+    text-align: left;    
+    line-height: 2rem;
+}
+
+#serverSettingsButton {
+    margin-left: 100px;
+}
+
 #serverLink {
     background: rgba(0, 0, 0, 0.5);
     padding: 5px;
     color: white;
     font-size: 1rem;
     border-radius: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 30px;
+    cursor: copy;
+    font-size: 2rem;
+    font-weight: 500;
+    user-select: none;
 }
 
 #mapBar {
+    position: absolute;
+    bottom: 10px;
     display: flex;
+    margin-top: 20px;
+    width: 400px;
 }
 
 #settingsPanel {
     width: 400px;
-    height: 220px;
+    height: 250px;
+    display: none;
+}
+
+#serverSettingsPanel {
+    width: 400px;
+    height: 370px;
     display: none;
 }
 
@@ -83,6 +115,11 @@ input {
     border-bottom: 2px solid #A00;
 }
 
+#closeServerSettingsButton:active {
+    margin-top: 3px;
+    border-bottom: 2px solid #A00;
+}
+
 #soundButton:active {
     margin-top: 23px;
 }
@@ -99,8 +136,44 @@ input {
     top: 140px;
 }
 
+#settingButtons {
+    height: 80px;
+    display: flex;
+    justify-content: center;
+}
+
 #soundButton.isoff {
 	background-image: url(soundisoff.png);
+}
+
+#controllerButton:active {
+    margin-top: 23px;
+}
+
+#controllerButton {
+	width: 40px;
+	height: 40px;
+	position: static;
+	margin: 20px;
+	background-image: url(gamepad.png);
+	background-size: cover;
+}
+
+#fullscreenButton.isFullscreen {
+	background-image: url(smaller.png);
+}
+
+#fullscreenButton:active {
+    margin-top: 23px;
+}
+
+#fullscreenButton {
+	width: 40px;
+	height: 40px;
+	position: static;
+	margin: 20px;
+	background-image: url(larger.png);
+	background-size: cover;
 }
 
 #soundButton {
@@ -110,6 +183,23 @@ input {
 	margin: 20px;
 	background-image: url(soundison.png);
 	background-size: cover;
+}
+
+#closeServerSettingsButton {
+    position: absolute;
+    outline: 4px solid black;
+    color: white;
+    background: red;
+    font-size: 1rem;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    right: -11px;
+    top: -11px;
+    border-bottom: 5px solid #A00;
+    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
 }
 
 #closeButton {    
@@ -206,6 +296,7 @@ input {
 
 .label {
     font-size: 1.4rem;
+    margin-top: 10px;
 }
 
 input {
@@ -329,6 +420,21 @@ input {
     margin-left: 2px;
 }
 
+#portalinput {
+    display: none;
+    border-radius: 10px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    font-size: 1.5rem;
+    position: absolute;
+    left: 50%;
+    bottom: 100px;
+    transform: translate(-50%, 0);
+    width: 80%;
+    max-width: 200px;
+    outline: none;
+}
+
 #splash {
     background: #337979;
     position: absolute;
@@ -343,4 +449,43 @@ input {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+}
+
+.settingButton {
+    width: 60px;
+}
+
+#mods {
+    margin-top: 20px;
+    width: 400px;
+    display: flex;
+    margin-left: 20px;
+}
+
+#modsList {    
+    width: 280px;
+    height: 140px;
+    background: white;
+    padding: 5px;
+    border-radius: 5px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+#modControls {
+    display: flex;
+    flex-direction: column;
+}
+
+.mod {
+    width: 300px;
+    text-align: left;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding-left: 10px;
+}
+
+.modSelected {
+    background: black;
+    color: white;
 }

@@ -46,6 +46,15 @@ function loadImage(name: string, resource: string): GraphicsImage {
     return sprites[name];
 }
 
+export function loadImageFromUrl(name: string, url: string): GraphicsImage {
+    const image = new HtmlGraphicsImage(new Image());
+    sprites[name] = image;
+    image.get().src = url;
+    image.get().onload = () => { loadedCount--; };
+    loadedCount++;
+    return sprites[name];
+}
+
 /**
  * Load a sound effect into the resources cache
  * 

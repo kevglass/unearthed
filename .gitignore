@@ -2,6 +2,8 @@ node_modules
 dist
 local.properties.json
 media
+.DS_Store
+*.zip
 
 # Jetbrains IDE's
 .idea/*
