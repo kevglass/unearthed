@@ -8,5 +8,8 @@ export interface ServerMod {
     chatName: string;
     version: number;
 
+    onGameStart?(game: GameContext): void;
+
     onWorldStart?(game: GameContext): void;
+
 }

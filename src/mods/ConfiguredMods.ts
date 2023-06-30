@@ -1,15 +1,24 @@
 import { Game } from "src/Game";
 import { GameContext, ServerMod } from "./Mods";
+import { loadImageFromUrl } from "src/engine/Resources";
 
 export class GameAsContext implements GameContext {
     game: Game;
-    currentMod: ServerMod | undefined;
+    currentMod: ModRecord | undefined;
 
     constructor(game: Game) {
         this.game = game;
     }
 
-    startContext(mod: ServerMod) {
+    getModResource(name: string): string {
+        return this.currentMod?.resources[name] ?? "unknown image " + name;
+    }
+
+    replaceImage(id: string, url: string): void {
+        loadImageFromUrl(id, "data:image/jpeg;base64," + url);
+    }
+
+    startContext(mod: ModRecord) {
         this.currentMod = mod;
     }
 
@@ -19,13 +28,19 @@ export class GameAsContext implements GameContext {
 
     displayChat(message: string): void {
         if (this.currentMod) {
-            this.game.network.sendChatMessage(this.currentMod.chatName ?? this.currentMod.name, message);
+            this.game.network.sendChatMessage(this.currentMod.mod.chatName ?? this.currentMod.mod.name, message);
         }
     }
-
 }
+
+export interface ModRecord {
+    mod: ServerMod;
+    resources: Record<string, string>;
+    inited: boolean;
+}
+
 export class ConfiguredMods {
-    mods: ServerMod[] = [];
+    mods: ModRecord[] = [];
     game: Game;
     context: GameAsContext;
 
@@ -34,16 +49,32 @@ export class ConfiguredMods {
         this.context = new GameAsContext(game);
     }
 
-    worldStarted(): void {
-        console.log("World Started");
-        for (const mod of this.mods) {
-            if (mod.onWorldStart) {
+    init(): void {
+        for (const record of this.mods) {
+            if (record.mod.onGameStart && !record.inited) {
+                record.inited = true;
                 try {
-                    this.context.startContext(mod);
-                    mod.onWorldStart(this.context);
+                    console.log("Initialising: " + record.mod.name);
+                    this.context.startContext(record);
+                    record.mod.onGameStart(this.context);
                     this.context.endContext();
                 } catch (e) {
-                    console.error("Error in Game Mod: " + mod.name);
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    worldStarted(): void {
+        for (const record of this.mods) {
+            if (record.mod.onWorldStart) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onWorldStart(this.context);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
                     console.error(e);
                 }
             }

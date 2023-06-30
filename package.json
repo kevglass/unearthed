@@ -17,6 +17,7 @@
     "copy-webpack-plugin": "^11.0.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.3",
+    "jszip": "^3.10.1",
     "livekit-client": "^1.11.2",
     "nanoid": "^4.0.2",
     "nodemon": "^2.0.22",

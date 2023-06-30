@@ -1,10 +1,10 @@
 import { Game } from "./Game";
-import { ConfiguredMods } from "./mods/ConfiguredMods";
+import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
 
 export interface ServerConfig {
     editable: boolean;
-    modScripts: string[];
+    modScripts: (Record<string, string>)[];
 }
 
 export class ServerSettings {
@@ -25,16 +25,23 @@ export class ServerSettings {
         return this.serverMods;
     }
 
-    addMod(script: string): void {
+    addMod(modData: Record<string, string>): void {
         try {
-            const potentialMod = eval(script) as ServerMod;
+            const script = modData["mod.js"];
+            if (script) {
+                const potentialMod = eval(script) as ServerMod;
 
-            if (potentialMod.name) {
-                this.config.modScripts.push(script);
-                this.serverMods.mods.push(potentialMod);
+                if (potentialMod.name) {
+                    this.config.modScripts.push(modData);
+                    const modRecord = { mod: potentialMod, inited: false, resources:modData };
+                    this.serverMods.mods.push(modRecord);
 
-                this.save();
-                this.game.ui.addMod(potentialMod);
+                    this.save();
+                    this.game.ui.addMod(modRecord);
+                }
+            } else {
+                console.error("No mod.js file found in zip");   
+                console.log(modData);
             }
         } catch (e) {
             console.log("Error loading mod: ");
@@ -42,7 +49,7 @@ export class ServerSettings {
         }
     }
 
-    removeMod(mod: ServerMod): void {
+    removeMod(mod: ModRecord): void {
         const index = this.serverMods.mods.indexOf(mod);
         if (index >= 0) {
             this.config.modScripts.splice(index, 1);

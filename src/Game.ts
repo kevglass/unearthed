@@ -775,6 +775,9 @@ export class Game implements ControllerListener {
      * The main game loop
      */
     private loop() {
+        if (resourcesLoaded()) {
+            this.mods.init();
+        }
         // if we've finished the splash screen hide it
         if (Date.now() > this.finishStartup) {
             document.getElementById("splash")!.style.display = "none";

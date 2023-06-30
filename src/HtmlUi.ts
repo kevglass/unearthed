@@ -2,7 +2,9 @@ import { Game } from "./Game";
 import {GameMap, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE} from "./Map";
 import { Network } from "./Network";
 import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resources";
+import { ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
+import JSZip from "jszip";
 
 /**
  * A controller for everything thats on the HTML layer rather than the canvas. The game
@@ -33,7 +35,7 @@ export class HtmlUi {
     /** The visual list of mods */
     modsList: HTMLDivElement;
     /** The mod selected from the list */
-    selectedMod?: ServerMod;
+    selectedMod?: ModRecord;
     /** The div of the mod selected */
     selectedModDiv?: HTMLDivElement;
     /** The file input element used to upload mods */
@@ -99,11 +101,20 @@ export class HtmlUi {
         this.modInput.addEventListener('change', () => {
             if (this.modInput.files) {
                 const reader = new FileReader();
-                reader.onload = () => {
-                    const modScript = reader.result as string;
-                    this.game.serverSettings.addMod(modScript);
-                }
-                reader.readAsText(this.modInput.files[0]);
+                new JSZip().loadAsync(this.modInput.files[0]).then((zip: JSZip) => {
+                    const modData: any = {};
+                    let count = 0;
+                    zip.forEach((path, file) => {
+                        count++;
+                        file.async(path === "mod.js" ? "string" : "base64").then((value: string) => {
+                            modData[path] = value;
+                            count--;
+                            if (count === 0) {
+                                this.game.serverSettings.addMod(modData);
+                            }
+                        });
+                    });
+                });
             }
         });
 
@@ -427,18 +438,18 @@ export class HtmlUi {
         }
     }
 
-    addMod(mod: ServerMod) {
+    addMod(mod: ModRecord) {
         const modDiv = document.createElement("div");
         modDiv.classList.add("mod");
         modDiv.id = "mod" + Date.now();
-        modDiv.innerHTML = mod.name + " ("+mod.version+")";
+        modDiv.innerHTML = mod.mod.name + " ("+mod.mod.version+")";
         modDiv.addEventListener("click", () => {
             this.selectMod(mod, modDiv);
         })
         this.modsList.appendChild(modDiv);
     }
 
-    selectMod(mod: ServerMod, div: HTMLDivElement) {
+    selectMod(mod: ModRecord, div: HTMLDivElement) {
         const list = document.getElementsByClassName("modSelected");
         for (let i=0;i<list.length;i++) {
             list.item(i)?.classList.remove("modSelected");

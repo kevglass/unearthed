@@ -500,7 +500,6 @@ export class Mob {
                         this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
                     }
                     
-                    this.gameMap.refreshSpriteTile(this.overX, this.overY);
                     playSfx('place', 0.2);
                     for (let i=0;i<5;i++) {
                         addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));

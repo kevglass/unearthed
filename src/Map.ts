@@ -19,8 +19,8 @@ export const MAP_DEPTH: number = 230;
  * Definition of a block that can appear in the map
  */
 interface Block {
-    /** The sprite to draw for the block */
-    sprite: GraphicsImage;
+    /** The id of the sprite to draw for the block */
+    sprite: string;
     /** True if this one blocks movement */
     blocks: boolean;
     /** True if this block act as a ladder */
@@ -79,34 +79,34 @@ export let tiles: Record<number, Block> = {};
 export function initTiles() {
     tiles = 
     {
-        1: { sprite: getSprite("tiles/dirt"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        2: { sprite: getSprite("tiles/dirt_grass"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        3: { sprite: getSprite("tiles/brick_grey"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        4: { sprite: getSprite("tiles/brick_red"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        5: { sprite: getSprite("tiles/leaves"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        6: { sprite: getSprite("tiles/sand"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        7: { sprite: getSprite("tiles/wood"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
-        8: { sprite: getSprite("tiles/ladder"), blocks: false, blocksDown: false, ladder: true, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-        9: { sprite: getSprite("tiles/grass1"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        10: { sprite: getSprite("tiles/grass2"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        11: { sprite: getSprite("tiles/grass3"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        12: { sprite: getSprite("tiles/grass4"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        13: { sprite: getSprite("tiles/flowerwhite"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        14: { sprite: getSprite("tiles/flowerblue"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        15: { sprite: getSprite("tiles/flowerred"), blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        16: { sprite: getSprite("tiles/trunk_bottom"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
-        17: { sprite: getSprite("tiles/trunk_mid"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        1: { sprite: "tiles/dirt",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        2: { sprite: "tiles/dirt_grass",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        3: { sprite: "tiles/brick_grey",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        4: { sprite: "tiles/brick_red",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        5: { sprite: "tiles/leaves",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        6: { sprite: "tiles/sand",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        7: { sprite: "tiles/wood",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true },
+        8: { sprite: "tiles/ladder",blocks: false, blocksDown: false, ladder: true, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
+        9: { sprite: "tiles/grass1",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        10: { sprite: "tiles/grass2",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        11: { sprite: "tiles/grass3",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        12: { sprite: "tiles/grass4",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        13: { sprite: "tiles/flowerwhite",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        14: { sprite: "tiles/flowerblue",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        15: { sprite: "tiles/flowerred",blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        16: { sprite: "tiles/trunk_bottom",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
+        17: { sprite: "tiles/trunk_mid",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false },
     
-        18: { sprite: getSprite("tiles/stone"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        19: { sprite: getSprite("tiles/coal"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        20: { sprite: getSprite("tiles/iron"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        21: { sprite: getSprite("tiles/silver"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        22: { sprite: getSprite("tiles/gold"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        23: { sprite: getSprite("tiles/diamond"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
-        24: { sprite: getSprite("tiles/platform"), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-        25: { sprite: getSprite("tiles/tnt"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
-        26: { sprite: getSprite("tiles/torchtile"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
-        27: { sprite: getSprite("tiles/portal"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => { const url = new URL(location.href); url.searchParams.set('portal', '1'); url.searchParams.set('server', portal?.code ?? ''); window.open(url.href) }},
+        18: { sprite: "tiles/stone",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        19: { sprite: "tiles/coal",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        20: { sprite: "tiles/iron",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        21: { sprite: "tiles/silver",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        22: { sprite: "tiles/gold",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        23: { sprite: "tiles/diamond",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
+        24: { sprite: "tiles/platform",blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
+        25: { sprite: "tiles/tnt",blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
+        26: { sprite: "tiles/torchtile",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
+        27: { sprite: "tiles/portal",blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => { const url = new URL(location.href); url.searchParams.set('portal', '1'); url.searchParams.set('server', portal?.code ?? ''); window.open(url.href) }},
     };
 }
 
@@ -166,10 +166,6 @@ export class GameMap {
     foreground: number[] = [];
     /** The background tile map */
     background: number[] = [];
-    /** A cache of sprites based on the foreground tiles - used for rendering */
-    foregroundSpriteMap: GraphicsImage[] = [];
-    /** A cache of sprites based on the background tiles - used for rendering */
-    backgroundSpriteMap: GraphicsImage[] = [];
     /** The light map associated with this map */
     lightMap: number[] = [];
     /** Map of which tiles have been discovered on this map */
@@ -214,7 +210,6 @@ export class GameMap {
         console.log("Reset map");
         this.clear();
         this.generate();
-        this.refreshSpriteTileMap();
         this.setDiscovered(0, 0);
         this.refreshFullLightMap();
     }
@@ -347,7 +342,7 @@ export class GameMap {
 
         for (let x = 0; x < MAP_WIDTH; x++) {
             for (let y = 0; y < MAP_DEPTH; y++) {
-                this.fillLightFrom(x, y, this.getLightMap(x, y), true);
+                this.fillLightFrom(x, y, this.getLightMap(x, y) ,true);
             }
         }
     }
@@ -386,7 +381,6 @@ export class GameMap {
                     }
                 }
 
-                this.refreshSpriteTileMap();
                 return true;
             }
         }
@@ -407,7 +401,7 @@ export class GameMap {
 
         // first lets generate some hills, plants and trees. Could have used perlin 
         // noise here but found a simple height adjusting flow was easier. Make it more likely
-        // to raise the height of the ground until we reach max hill height (10), then switch
+        // to raise the height of the ground until we reach max hill height (10,then switch
         // to making it more likely to move down until we reach the ground. Get nice flowing
         // hills this way.
         for (let x = 5; x < MAP_WIDTH; x++) {
@@ -582,38 +576,11 @@ export class GameMap {
         this.clear();
         this.foreground = data.f;
         this.background = data.b;
-        this.refreshSpriteTileMap();
 
         this.setDiscovered(0, 0);
         this.refreshFullLightMap();
     }
 
-    /**
-     * Update the sprite cache for a particular cell
-     * 
-     * @param x The x coordinate of the cell to update
-     * @param y The y coordinate of the cell to update
-     */
-    refreshSpriteTile(x: number, y: number) {
-        const i = x + (y * MAP_WIDTH);
-        const tile = tiles[this.foreground[i]]?.sprite;
-        this.foregroundSpriteMap[i] = tile;
-        const bg = tiles[this.background[i]]?.sprite;
-        this.backgroundSpriteMap[i] = bg;
-    }
-
-    /**
-     * Refresh all the sprites in the cache based on a new
-     * data set
-     */
-    refreshSpriteTileMap(): void {
-        for (let i = 0; i < this.foreground.length; i++) {
-            const tile = tiles[this.foreground[i]]?.sprite;
-            this.foregroundSpriteMap[i] = tile;
-            const bg = tiles[this.background[i]]?.sprite;
-            this.backgroundSpriteMap[i] = bg;
-        }
-    }
 
     /**
      * Check if a particular location is discovered by the player
@@ -729,7 +696,6 @@ export class GameMap {
         if (layer === 0) {
             this.foreground[x + (y * MAP_WIDTH)] = tile;
             const sprite = tiles[tile]?.sprite;
-            this.foregroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
 
             if (this.game.isHostingTheServer) {
                 localStorage.setItem("map", JSON.stringify(this.foreground));
@@ -741,7 +707,6 @@ export class GameMap {
         } else if (layer === 1) {
             this.background[x + (y * MAP_WIDTH)] = tile;
             const sprite = tiles[tile]?.sprite;
-            this.backgroundSpriteMap[x + (y * MAP_WIDTH)] = sprite;
             if (this.game.isHostingTheServer) {
                 localStorage.setItem("mapbg", JSON.stringify(this.background));
             }
@@ -920,9 +885,9 @@ export class GameMap {
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
                 if (this.isDiscovered(x, y)) {
-                    const bg = this.backgroundSpriteMap[x + (y * MAP_WIDTH)];
+                    const bg = getSprite(tiles[this.getTile(x, y, Layer.BACKGROUND)]?.sprite);
                     if (bg) {
-                        g.drawImage(bg, x * TILE_SIZE, y * TILE_SIZE);
+                        g.drawImage(bg , x * TILE_SIZE, y * TILE_SIZE);
                         if (this.isPlatform(x, y)) {
                             g.drawImage(this.backingTopTile, x * TILE_SIZE, y * TILE_SIZE);
                         } else {
@@ -934,7 +899,7 @@ export class GameMap {
                             g.drawImage(overhang && !this.isPlatform(x, y - 1) ? this.backingTopTile : this.backingTile, x * TILE_SIZE, y * TILE_SIZE);
                         }
                     }
-                    const sprite = this.foregroundSpriteMap[x + (y * MAP_WIDTH)];
+                    const sprite = getSprite(tiles[this.getTile(x, y, Layer.FOREGROUND)]?.sprite);
                     if (sprite) {
                         g.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE);
                     }
@@ -952,7 +917,7 @@ export class GameMap {
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
                 if (!this.isDiscovered(x, y)) {
-                    g.drawImage(this.undiscovered[(x + y) % this.undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2), (y * TILE_SIZE) - (TILE_SIZE / 2));
+                    g.drawImage(this.undiscovered[(x + y) % this.undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2) ,(y * TILE_SIZE) - (TILE_SIZE / 2));
                 }
             }
         }
@@ -1057,13 +1022,13 @@ export class GameMap {
             context2.save();
             context2.setCompositeOperation("destination-out");
             context2.setGradientFillStyle(gradient);
-            context2.translate(this.game.player.x - (screenX - offsetx), this.game.player.y - (screenY - offsety));
+            context2.translate(this.game.player.x - (screenX - offsetx) ,this.game.player.y - (screenY - offsety));
             context2.beginPath();
             context2.arc(0, 0, 256, 0, Math.PI * 2);
             context2.fill();
             context2.restore();
 
-            g.drawCanvasImage(context2, Math.floor(screenX - offsetx), Math.floor(screenY - offsety));
+            g.drawCanvasImage(context2, Math.floor(screenX - offsetx) ,Math.floor(screenY - offsety));
         }
 
     }

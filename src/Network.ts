@@ -242,7 +242,6 @@ export class Network {
                     if (messageIsFromHost || this.thisIsTheHostServer) {
                         if (this.serverConfig?.editable) {
                             this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
-                            this.gameMap.refreshSpriteTile(message.x, message.y);
                             if (this.thisIsTheHostServer) {
                                 this.sendNetworkTile(message.x, message.y, message.tile, message.layer);
                             }
