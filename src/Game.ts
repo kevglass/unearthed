@@ -143,6 +143,8 @@ interface ControllerButtons {
     jump: number;
     /** The toggle place layer button */
     layer: number;
+    /** The trigger item button */
+    trigger: number;
 }
 
 /**
@@ -157,6 +159,7 @@ const CONTROLLER_SETUP_STEPS: ControllerSetupStep[] = [
     new ButtonSetupStep("Press Previous Item Button!", "prev"),
     new ButtonSetupStep("Press Next Item Button!", "next"),
     new ButtonSetupStep("Press Layer Switch Button!", "layer"),
+    new ButtonSetupStep("Press Trigger Button!", "trigger"),
 ];
 
 /**
@@ -240,7 +243,8 @@ export class Game implements ControllerListener {
         jump: 0,
         next: 1,
         prev: 2,
-        layer: 3
+        layer: 3,
+        trigger: 4
     };
 
     constructor() {
@@ -380,6 +384,9 @@ export class Game implements ControllerListener {
             if (button === this.controllerButtons.layer) {
                 this.togglePlacementLayer();
             }
+            if (button === this.controllerButtons.trigger) {
+                this.trigger();
+            }
         }
     }
 
@@ -459,7 +466,7 @@ export class Game implements ControllerListener {
             }
 
             if (event.key === 'r') {
-                this.triggerPortal();
+                this.trigger();
             }
         });
 
@@ -638,15 +645,31 @@ export class Game implements ControllerListener {
                 // up
                 this.keyDown['w'] = true;
                 this.keyDown['s'] = false;
+                this.keyDown['r'] = false;
                 this.jumpTouchId = touchId;
                 return true;
             }
             // if we're pressing on the jump control 
             // pretend S was pressed
             if (x > this.canvas.width - 360 && yp === 1) {
-                // up
+                // down
                 this.keyDown['s'] = true;
                 this.keyDown['w'] = false;
+                this.keyDown['r'] = false;
+                this.jumpTouchId = touchId;
+                return true;
+            }
+            // if we're pressing on the trigger control 
+            // pretend R was pressed
+            if (x > this.canvas.width - 520 && yp === 1) {
+                // trigger
+                this.keyDown['s'] = false;
+                this.keyDown['w'] = false;
+                if (this.keyDown['r'] === false) {
+                    this.keyDown['r'] = true;
+                    this.trigger();
+                }
+
                 this.jumpTouchId = touchId;
                 return true;
             }
@@ -692,6 +715,7 @@ export class Game implements ControllerListener {
         if (touchId === this.jumpTouchId) {
             this.keyDown['w'] = false;
             this.keyDown['s'] = false;
+            this.keyDown['r'] = false;
             this.jumpTouchId = 0;
         }
         if (touchId === this.controllerTouchId) {
@@ -720,13 +744,22 @@ export class Game implements ControllerListener {
     }
 
     /**
+     * Trigger whatever block we're on
+     */
+    private trigger() {
+        // right now this is only portals, but this dereference here to 
+        // support other triggers later
+        this.triggerPortal();
+    }
+
+    /**
      * Triggers the portal to assign it a code
      */
     private triggerPortal() {
         const x = Math.floor(this.player.x / TILE_SIZE);
         const y = Math.floor(this.player.y / TILE_SIZE);
         const tileIndex = x + y * MAP_WIDTH;
-        const portal = this.gameMap.portals.find(portal => portal.tileIndex === tileIndex);
+        const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
         if (portal) {
             if (portal.code === null) {
                 this.ui.showPortal();
@@ -842,7 +875,8 @@ export class Game implements ControllerListener {
             try {
                 const setup = JSON.parse(config);
                 this.gamepad.axesConfigured = setup.axes;
-                this.controllerButtons = setup.buttons;
+                // cope with missing controls
+                Object.assign(this.controllerButtons, setup.buttons);
             } catch (e) {
                 // do nothing, invalid JSON
             }
@@ -1136,6 +1170,7 @@ export class Game implements ControllerListener {
             this.g.drawScaledImage(getSprite("ui/right"), 180, this.canvas.height - 160, 140, 140);
             this.g.drawScaledImage(getSprite("ui/up"), this.canvas.width - 200, this.canvas.height - 160, 140, 140);
             this.g.drawScaledImage(getSprite("ui/down"), this.canvas.width - 360, this.canvas.height - 160, 140, 140);
+            this.g.drawScaledImage(getSprite("ui/trigger"), this.canvas.width - 520, this.canvas.height - 160, 140, 140);
         }
 
         // schedule our next frame

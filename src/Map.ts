@@ -151,6 +151,11 @@ interface Portal {
     code: string | null;
 }
 
+export interface GameMapMetaData {
+    /** A list of all portals */
+    portals: Portal[];
+
+}
 /**
  * The game map consists of two tile layers (foreground and background) and a cached
  * sprite mapping from tile to sprite (to help with rendering). The map also tracks which
@@ -173,8 +178,6 @@ export class GameMap {
     discoveryEnabled = true;
     /** A list of all running timers */
     timers: Timer[] = [];
-    /** A list of all portals */
-    portals: Portal[] = [];
     /** The tile used to darken background tiles */
     backingTile?: GraphicsImage;
     /** The tile used to darken background tiles where they have an overhand and need a shadow */
@@ -183,6 +186,10 @@ export class GameMap {
     undiscovered: GraphicsImage[] = [];
     /** The central game controller */
     game: Game;
+    /** The meta data associated with this map */
+    metaData: GameMapMetaData = {
+        portals: []
+    };
     /** The light overall image */
     lightingImage?: HTMLCanvasElement;
     /** The light map rendered pixel per tile */
@@ -221,7 +228,9 @@ export class GameMap {
         this.discovered = [];
         this.lightMap = [];
         this.timers = [];
-        this.portals = [];
+        this.metaData = {
+            portals: []
+        };
         for (let i = 0; i < this.foreground.length; i++) {
             this.background.push(0);
             this.lightMap.push(1);
@@ -343,6 +352,13 @@ export class GameMap {
         }
     }
 
+    saveMetaData(): void {
+        if (this.game.isHostingTheServer) {
+            localStorage.setItem("mapmeta", JSON.stringify(this.metaData));
+            this.game.network.sendMetaData(this.metaData);
+        }
+    }
+
     /**
      * Load the map data from browser local storage if available
      * 
@@ -351,7 +367,7 @@ export class GameMap {
     loadFromStorage(): boolean {
         const existingMap = localStorage.getItem("map");
         const existingBG = localStorage.getItem("mapbg");
-        const existingPortals = localStorage.getItem("portals");
+        const existingMeta = localStorage.getItem("mapmeta");
         if (existingMap) {
             const savedMap = JSON.parse(existingMap);
             if (savedMap.length >= DEFAULT_MAP.length) {
@@ -363,8 +379,8 @@ export class GameMap {
                         this.background = savedMap;
                     }
                     
-                    if (existingPortals) {
-                        this.portals = JSON.parse(existingPortals);
+                    if (existingMeta) {
+                        Object.assign(this.metaData, JSON.parse(existingMeta));
                     }
                 }
 
@@ -482,6 +498,7 @@ export class GameMap {
         // save the map to load storage
         localStorage.setItem("map", JSON.stringify(this.foreground));
         localStorage.setItem("mapbg", JSON.stringify(this.background));
+        this.saveMetaData();
     }
 
     /**
@@ -732,9 +749,9 @@ export class GameMap {
         this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileIndex !== x + (y * MAP_WIDTH));
         
         // Remove any portals on this tile
-        this.portals = this.portals.filter(portal => portal.tileIndex !== x + (y * MAP_WIDTH));
+        this.metaData.portals = this.metaData.portals.filter(portal => portal.tileIndex !== x + (y * MAP_WIDTH));
         if (this.game.isHostingTheServer) {
-            localStorage.setItem("portals", JSON.stringify(this.portals));
+            this.saveMetaData();
         }
 
         // Add metadata for the placed block
@@ -750,12 +767,12 @@ export class GameMap {
             }
             
             if (tileDef.portal) {
-                this.portals.push({
+                this.metaData.portals.push({
                     tileIndex: x + (y * MAP_WIDTH),
                     code: null,
                 });
                 if (this.game.isHostingTheServer) {
-                    localStorage.setItem("portals", JSON.stringify(this.portals));
+                    this.saveMetaData();
                 }
             }
         }
@@ -939,7 +956,7 @@ export class GameMap {
         }
         
         // render portal codes
-        this.portals.forEach(portal => {
+        this.metaData.portals.forEach(portal => {
             g.setTextAlign("center");
             g.setFillStyle("black");
             g.setFont("40px KenneyFont");

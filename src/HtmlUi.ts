@@ -52,16 +52,32 @@ export class HtmlUi {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const rawData = new Uint8Array(reader.result as ArrayBuffer);
-                    const fullArray: number[] = Array.from(rawData);
-                    const len: number = fullArray.length / 2;
-                    this.gameMap.setMapData({
-                        f: fullArray.slice(0, len),
-                        b: fullArray.slice(len)
-                    });
+                    if (rawData[0] === 255) {
+                        // new file format with room for meta
+                        const lengthOfMeta = ((rawData[1] << 8) & 0xFF00) + rawData[2];
+                        const decoder = new TextDecoder();
+                        const metaAsText = decoder.decode(rawData.slice(3, 3+lengthOfMeta));
+                        const meta = JSON.parse(metaAsText);
+                        const fullArray: number[] = Array.from(rawData.slice(3+lengthOfMeta));
+                        const len: number = meta.mapSize;
+                        this.gameMap.setMapData({
+                            f: fullArray.slice(0, len),
+                            b: fullArray.slice(len)
+                        });
+                        Object.assign(this.gameMap.metaData, meta);
+                    } else {
+                        const fullArray: number[] = Array.from(rawData);
+                        const len: number = fullArray.length / 2;
+                        this.gameMap.setMapData({
+                            f: fullArray.slice(0, len),
+                            b: fullArray.slice(len)
+                        });
+                    }
 
                     this.game.player.x = 200;
                     this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
                     document.getElementById("settingsPanel")!.style.display = "none";
+                    this.game.gameMap.save();
                     this.network.sendMapUpdate(undefined);
                 }
                 reader.readAsArrayBuffer(this.fileInput.files[0]);
@@ -84,10 +100,16 @@ export class HtmlUi {
         //
         this.saveMapButton.addEventListener("click", () => {
             const data = this.gameMap.getMapData();
-            const dataBlocks = new Uint8Array([...data.f, ...data.b]);
+            const encoder = new TextEncoder();
+            // copy the metadata
+            const meta = JSON.parse(JSON.stringify(this.gameMap.metaData));
+            meta.mapSize = data.f.length;
+            const metaAsBytes = Array.from(encoder.encode(JSON.stringify(meta)));
+            const dataBlocks = new Uint8Array([255, metaAsBytes.length >> 8, (metaAsBytes.length & 0xFF), ...metaAsBytes, ...data.f, ...data.b]);
             const blob = new Blob([dataBlocks], {
                 type: "application/octet-stream"
             });
+            console.log(dataBlocks);
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -215,11 +237,11 @@ export class HtmlUi {
             }
             if (event.key === "Enter") {
                 const tileIndex = Math.floor(this.game.player.x / TILE_SIZE) + (Math.floor(this.game.player.y / TILE_SIZE) * MAP_WIDTH);
-                const portal = this.gameMap.portals.find(portal => portal.tileIndex === tileIndex);
+                const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
                 if (portal) {
                     portal.code = this.portalInput.value;
                     if (this.game.isHostingTheServer) {
-                        localStorage.setItem("portals", JSON.stringify(this.game.gameMap.portals));
+                        localStorage.setItem("portals", JSON.stringify(this.game.gameMap.metaData.portals));
                     }
                 }
                 this.hidePortal();
@@ -301,6 +323,7 @@ export class HtmlUi {
      */
     showPortal() {
         this.portalInput!.style.display = "block";
+        this.portalInput!.focus();
     }
     
     hidePortal() {
