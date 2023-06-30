@@ -467,6 +467,8 @@ export class Game implements ControllerListener {
 
             if (event.key === 'r') {
                 this.trigger();
+                event.preventDefault();
+                event.stopPropagation();
             }
         });
 
