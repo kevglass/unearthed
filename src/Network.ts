@@ -3,6 +3,7 @@ import { Mob } from './Mob';
 import { HUMAN_SKELETON } from './Skeletons';
 import { GameMap, GameMapMetaData, SKY_HEIGHT, TILE_SIZE } from './Map';
 import { Game } from './Game';
+import { ServerConfig } from './ServerSettings';
 
 //
 // Network is handled by using WebRTC through https://livekit.io/ 
@@ -63,6 +64,8 @@ export class Network {
     gameMap: GameMap;
     /** The central game controller */
     game: Game;
+    /** The hosting servers config */
+    serverConfig?: ServerConfig;
 
     /**
      * Create a new network session
@@ -83,7 +86,7 @@ export class Network {
     updatePlayerList(mobs: Mob[]): void {
         const listDiv = document.getElementById("playerList")!;
         listDiv.innerHTML = "";
-    
+
         for (const mob of mobs) {
             const div = document.createElement("div");
             div.innerHTML = mob.name.substring(0, 12);
@@ -91,7 +94,7 @@ export class Network {
             listDiv.appendChild(div);
         }
     }
-    
+
     /**
      * Check if we're connected to the networking service.
      * 
@@ -104,7 +107,7 @@ export class Network {
 
         return (this.hostParticipantId !== undefined) || this.thisIsTheHostServer;
     }
-    
+
     /**
      * Start the networking service 
      * 
@@ -117,20 +120,24 @@ export class Network {
             return;
         }
 
+        if (hosting) {
+            this.serverConfig = this.game.serverSettings.getConfig();
+        }
+
         // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
         // provider that uses kev's hidden livekit key. 
         const request = new XMLHttpRequest();
-        request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(this.game.username!) + 
-                            "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
+        request.open("GET", "https://cokeandcode.com/demos/unearthed/room.php?username=" + encodeURIComponent(this.game.username!) +
+            "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
         request.send();
         const token = request.responseText;
 
         this.thisIsTheHostServer = hosting;
         const wsURL = "wss://talesofyore.livekit.cloud"
-    
+
         // connect to the live kit room
         await this.room.connect(wsURL, token);
-    
+
         this.room.on(RoomEvent.ParticipantDisconnected, (participant) => {
             // if the hosting participant disconnects then go into frozen mode
             // until we get one back
@@ -153,7 +160,7 @@ export class Network {
                 }
             }
         });
-    
+
         // process messages received 
         this.room.on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
             const messageIsFromHost = participant?.metadata === "true";
@@ -175,7 +182,7 @@ export class Network {
                             b: fullArray.slice(len)
                         });
                         this.hadMap = true;
-        
+
                         this.localPlayer?.reset();
                     }
                 }
@@ -194,6 +201,18 @@ export class Network {
                 // The server has given us updated meta data for the map
                 if (message.type === "mapMeta" && !hosting) {
                     Object.assign(this.gameMap.metaData, message.data);
+                }
+                // The server has given us its configuration
+                if (message.type === "serverConfig" && !hosting) {
+                    if (message.data.editable && !this.serverConfig?.editable) {
+                        this.addChat("", "Editing Enabled");
+
+                    }
+                    this.serverConfig = message.data;
+
+                    if (!this.serverConfig?.editable) {
+                        this.addChat("", "Editing Disabled");
+                    }
                 }
 
                 // simple chat message, just display it
@@ -221,10 +240,12 @@ export class Network {
                 if (message.type === "tileChange") {
                     // only accept host messages from authenticated hosts or if we're the server
                     if (messageIsFromHost || this.thisIsTheHostServer) {
-                        this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
-                        this.gameMap.refreshSpriteTile(message.x, message.y);
-                        if (this.thisIsTheHostServer) {
-                            this.sendNetworkTile(message.x, message.y, message.tile, message.layer);
+                        if (this.serverConfig?.editable) {
+                            this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
+                            this.gameMap.refreshSpriteTile(message.x, message.y);
+                            if (this.thisIsTheHostServer) {
+                                this.sendNetworkTile(message.x, message.y, message.tile, message.layer);
+                            }
                         }
                     }
                 }
@@ -252,14 +273,14 @@ export class Network {
                                     if (this.removed.includes(mobData.id)) {
                                         continue;
                                     }
-        
+
                                     let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
                                     if (!targetMob) {
                                         targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, HUMAN_SKELETON, mobData.x, mobData.y);
                                         this.localMobs.push(targetMob);
                                         this.updatePlayerList(this.localMobs);
                                     }
-        
+
                                     if (participant) {
                                         targetMob.participantId = participant.sid;
                                     }
@@ -271,11 +292,11 @@ export class Network {
                 }
             }
         });
-    
+
         console.log("Network started");
         this.isConnected = true;
     }
-    
+
     /**
      * Add a chat to the session
      * 
@@ -286,16 +307,16 @@ export class Network {
         if (!NETWORKING_ENABLED) {
             return;
         }
-        
+
         // add the chat into the HTML
         const list = document.getElementById("chatList") as HTMLDivElement;
-    
+
         while (list.childElementCount > 4) {
             if (list.firstChild) {
                 list.firstChild.parentNode?.removeChild(list.firstChild);
             }
         }
-    
+
         const line = document.createElement("div");
         line.classList.add("chatline");
         const name = document.createElement("div");
@@ -306,10 +327,15 @@ export class Network {
         msg.innerHTML = message.substring(0, 100);
         line.appendChild(name);
         line.appendChild(msg);
-    
+
         list.appendChild(line);
     }
-    
+
+    sendServerSettings(serverSettings: ServerConfig): void {
+        const message = { type: "serverConfig", data: serverSettings };
+        this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+    }
+
     sendMetaData(metaData: GameMapMetaData): void {
         const message = { type: "mapMeta", data: metaData };
         this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
@@ -329,7 +355,7 @@ export class Network {
         if (!this.isConnected) {
             return;
         }
-        
+
         const data = this.gameMap.getMapData();
         const dataBlocks = new Uint8Array([...data.f, ...data.b]);
         if (target) {
@@ -339,8 +365,11 @@ export class Network {
         }
 
         this.sendMetaData(this.gameMap.metaData);
+        if (this.serverConfig) {
+            this.sendServerSettings(this.serverConfig);
+        }
     }
-    
+
     /**
      * Send a tile update across the network. This will be forwards to other via the server.
      * 
@@ -354,19 +383,21 @@ export class Network {
             this.gameMap.setTile(x, y, tile, layer);
             return;
         }
-        
+
         if (this.thisIsTheHostServer) {
             // if we're the host then forward the update to all players
             this.gameMap.setTile(x, y, tile, layer);
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
         } else if (this.hostParticipantId) {
-            // if we have a host then send it to just that host
-            const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
-            this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
+            if (this.serverConfig?.editable) {
+                // if we have a host then send it to just that host
+                const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
+                this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
+            }
         }
     }
-    
+
     /**
      * Send a chat messages across the network
      * 
@@ -377,19 +408,19 @@ export class Network {
         if (!NETWORKING_ENABLED) {
             return;
         }
-        
+
         message = message.trim();
         if (message.length === 0) {
             return;
         }
-    
+
         // broadcast the chat to everyone
         const data = JSON.stringify({ type: "chatMessage", who, message });
         this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
-    
+
         this.addChat(who, message);
     }
-    
+
     /**
      * Update the network by sending any regular messages
      * 
@@ -399,11 +430,11 @@ export class Network {
     update(player: Mob, players: Mob[]) {
         this.localPlayer = player;
         this.localMobs = players;
-    
+
         if (!this.isConnected) {
             return;
         }
-    
+
         if (Date.now() - this.lastMapRequest > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
             this.lastMapRequest = Date.now();
             if (!this.thisIsTheHostServer && !this.hadMap) {
@@ -413,17 +444,17 @@ export class Network {
                 this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
             }
         }
-    
+
         // need to send out an "I am the host message"
         if (Date.now() - this.lastHostUpdate > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
             this.lastHostUpdate = Date.now();
             const data = JSON.stringify({ type: "iAmHost", version: "_VERSION_" });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
         }
-    
+
         if (Date.now() - this.lastUpdate > UPDATE_INTERVAL_MS) {
             this.lastUpdate = Date.now();
-    
+
             if (this.thisIsTheHostServer) {
                 const data = JSON.stringify({ type: "mobs", host: true, data: players.map(mob => mob.getNetworkState()) });
                 this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.LOSSY);

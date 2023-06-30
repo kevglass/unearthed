@@ -11,6 +11,8 @@ import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
 import { Controller, ControllerListener } from "./engine/Controller";
+import { ControllerButtons, CONTROLLER_SETUP_STEPS } from "./ControllerSetup";
+import { ServerSettings } from "./ServerSettings";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -23,144 +25,6 @@ const SHOW_BOUNDS: boolean = false;
 const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
-
-/**
- * A step in controller configuration. A message will be displayed
- * to the user and the control waited for
- */
-interface ControllerSetupStep {
-    /**
-     * Get the message to display to the user during this step
-     * 
-     * @return The message to display to the user
-     */
-    getLabel(): string;
-
-    /**
-     * Check if this step has been completed. 
-     * 
-     * @param game The game context to perform the check
-     * @return True if the step is completed
-     */
-    check(game: Game): boolean;
-}
-
-class AxisSetupStep implements ControllerSetupStep {
-    label: string;
-    axis: number;
-    hasBeenClear: boolean = false;
-
-    constructor(label: string, axis: number) {
-        this.label = label;
-        this.axis = axis;
-    }
-
-    /**
-     * Get the message to display to the user during this step
-     * 
-     * @return The message to display to the user
-     */
-    getLabel(): string {
-        return this.label;
-    }
-
-    /**
-     * Check if this step has been completed. 
-     * 
-     * @param game The game context to perform the check
-     * @return True if the step is completed
-     */
-    check(game: Game): boolean {
-        const active = game.gamepad.getActiveAxis();
-        if (this.hasBeenClear) {
-            if (active >= 0) {
-                game.gamepad.axesConfigured[this.axis] = active;
-                return true;
-            }
-        } else if (active === -1) {
-            this.hasBeenClear = true;
-        }
-
-        return false;
-    }
-}
-
-class ButtonSetupStep implements ControllerSetupStep {
-    label: string;
-    button: string;
-    hasBeenClear: boolean = false;
-
-    /**
-     * Get the message to display to the user during this step
-     * 
-     * @return The message to display to the user
-     */
-    constructor(label: string, button: string) {
-        this.label = label;
-        this.button = button;
-    }
-
-    /**
-     * Get the message to display to the user during this step
-     * 
-     * @return The message to display to the user
-     */
-    getLabel(): string {
-        return this.label;
-    }
-
-
-    /**
-     * Check if this step has been completed. 
-     * 
-     * @param game The game context to perform the check
-     * @return True if the step is completed
-     */
-    check(game: Game): boolean {
-        const active = game.gamepad.getActiveButton();
-        if (this.hasBeenClear) {
-            if (active >= 0) {
-                (game.controllerButtons as any)[this.button] = active;
-                return true;
-            }
-        } else if (active === -1) {
-            this.hasBeenClear = true;
-        }
-
-        return false;
-    }
-}
-
-/**
- * The index of controller buttons that are configured
- */
-interface ControllerButtons {
-    /** The next item button */
-    next: number;
-    /** The previous item button */
-    prev: number;
-    /** The jump button */
-    jump: number;
-    /** The toggle place layer button */
-    layer: number;
-    /** The trigger item button */
-    trigger: number;
-}
-
-/**
- * The steps for the user to follow for configuring a controller
- */
-const CONTROLLER_SETUP_STEPS: ControllerSetupStep[] = [
-    new AxisSetupStep("Push Move Right Control!", 0),
-    new AxisSetupStep("Push Move Up Control!", 1),
-    new AxisSetupStep("Push Dig Right Control!", 2),
-    new AxisSetupStep("Push Dig Up Control!", 3),
-    new ButtonSetupStep("Press Jump Button!", "jump"),
-    new ButtonSetupStep("Press Previous Item Button!", "prev"),
-    new ButtonSetupStep("Press Next Item Button!", "next"),
-    new ButtonSetupStep("Press Layer Switch Button!", "layer"),
-    new ButtonSetupStep("Press Trigger Button!", "trigger"),
-];
 
 /**
  * The main game controller. This needs breaking up a bit more yet.
@@ -238,6 +102,8 @@ export class Game implements ControllerListener {
     gamepadUsedToDig: boolean = false;
     /** The controller setup step */
     controllerSetupStep: number = -1;
+    /** Server settings */
+    serverSettings: ServerSettings;
 
     controllerButtons: ControllerButtons = {
         jump: 0,
@@ -250,6 +116,9 @@ export class Game implements ControllerListener {
     constructor() {
         loadAllResources();
         initTiles();
+
+        this.serverSettings = new ServerSettings(this);
+        this.serverSettings.load();
 
         this.gamepad = new Controller();
         this.gamepad.addListener(this);
@@ -365,10 +234,10 @@ export class Game implements ControllerListener {
         if (params.get("server") && params.get("server") !== this.serverId) {
             this.isHostingTheServer = false;
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
-        } else {
-            console.log("Connect on: " + location.href + "?server=" + this.serverId)
-            document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + this.serverId;
         }
+
+        console.log("Connect to think server on: " + this.serverId)
+        document.getElementById("serverLink")!.innerHTML = this.serverId;
 
         this.configureEventHandlers();
     }
@@ -1000,7 +869,6 @@ export class Game implements ControllerListener {
         if (!this.network.connected()) {
             // update the sample player
             this.network.update(this.player, this.mobs);
-            document.getElementById("serverLink")!.innerHTML = this.waitingForHost ? "Waiting for Host" : "Disconnected";
             requestAnimationFrame(() => { this.loop() });
 
             this.g.setFillStyle("black");
@@ -1061,10 +929,6 @@ export class Game implements ControllerListener {
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
             return;
-        }
-
-        if (!this.isHostingTheServer) {
-            document.getElementById("serverLink")!.innerHTML = "Connected";
         }
 
         // so now we know the network is started (or the pretend network is) and 

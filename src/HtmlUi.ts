@@ -132,7 +132,7 @@ export class HtmlUi {
             this.game.connecting = true;
             this.game.waitingForHost = true;
             this.game.player.reset();
-            document.getElementById("serverLink")!.innerHTML = location.href + "?server=" + this.game.serverId;
+            document.getElementById("serverLink")!.innerHTML = this.game.serverId;
         });
         // join game button - just show the join game dialog
         document.getElementById("joinGame")!.addEventListener("click", () => {
@@ -149,6 +149,10 @@ export class HtmlUi {
             document.getElementById("connect")!.style.display = "none";
             document.getElementById("setup")!.style.display = "block";
         });
+        document.getElementById("serverSettingsButton")?.addEventListener("click", () => {
+            document.getElementById("serverSettingsPanel")!.style.display = "block";
+            document.getElementById("settingsPanel")!.style.display = "none";
+        })
 
         // done button from the settings panel. Apply the settings and go back to main menu
         document.getElementById("doneButton")!.addEventListener("click", () => {
@@ -173,9 +177,11 @@ export class HtmlUi {
                 if (this.game.isHostingTheServer) {
                     this.resetMapButton.style.display = "block";
                     this.loadMapButton.style.display = "block";
+                    this.saveMapButton.style.display = "block";
                 } else {
                     this.resetMapButton.style.display = "none";
                     this.loadMapButton.style.display = "none";
+                    this.saveMapButton.style.display = "none";
                 }
             }
         })
@@ -197,6 +203,13 @@ export class HtmlUi {
                 document.getElementById("connect")!.style.display = "block";
             }
         })
+        document.getElementById("closeServerSettingsButton")!.addEventListener("click", () => {
+            document.getElementById("serverSettingsPanel")!.style.display = "none";
+            if (!this.game.network.connected()) {
+                document.getElementById("connect")!.style.display = "block";
+            }
+        })
+        
 
         // sound on/off button
         document.getElementById("soundButton")!.addEventListener("click", () => {
@@ -260,8 +273,27 @@ export class HtmlUi {
         }
 
         this.renderSoundButton();
+
+        const link = document.getElementById("serverLink") as HTMLDivElement;
+        link.addEventListener("click", () => {
+            navigator.clipboard.writeText(this.game.serverId);
+            link.innerHTML = "COPIED!";
+            setTimeout(() => {
+                link.innerHTML = this.game.serverId;
+            }, 2000)
+        });
+
+        document.getElementById("changeWorldButton")!.addEventListener('click', () => {
+            this.game.serverSettings.setEditable(!this.game.serverSettings.isEditable());
+            this.renderChangeWorldButton();
+        });
+        this.renderChangeWorldButton();
     }
-    
+
+    renderChangeWorldButton() {
+        document.getElementById("changeWorldButton")!.innerHTML = this.game.serverSettings.isEditable() ? "Yes" : "No";
+    }
+
     joinAsClient() {
         this.game.isHostingTheServer = false;
         this.game.serverId = (document.getElementById("serverId") as HTMLInputElement).value;

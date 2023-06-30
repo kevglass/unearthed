@@ -27,22 +27,54 @@ input {
     height: 100%;
 }
 
+.setting {
+    margin-top: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
+    display: flex;
+    justify-content: space-between;
+    height: 2rem;
+}
+
+.settingLabel {
+    text-align: left;    
+    line-height: 2rem;
+}
+
+#serverSettingsButton {
+    margin-left: 100px;
+}
+
 #serverLink {
     background: rgba(0, 0, 0, 0.5);
     padding: 5px;
     color: white;
     font-size: 1rem;
     border-radius: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 30px;
+    cursor: copy;
+    font-size: 2rem;
+    font-weight: 500;
+    user-select: none;
 }
 
 #mapBar {
+    position: absolute;
+    bottom: 10px;
     display: flex;
+    margin-top: 20px;
+    width: 400px;
 }
 
 #settingsPanel {
     width: 400px;
-    height: 220px;
+    height: 250px;
+    display: none;
+}
+
+#serverSettingsPanel {
+    width: 400px;
+    height: 320px;
     display: none;
 }
 
@@ -79,6 +111,11 @@ input {
 }
 
 #closeButton:active {
+    margin-top: 3px;
+    border-bottom: 2px solid #A00;
+}
+
+#closeServerSettingsButton:active {
     margin-top: 3px;
     border-bottom: 2px solid #A00;
 }
@@ -146,6 +183,23 @@ input {
 	margin: 20px;
 	background-image: url(soundison.png);
 	background-size: cover;
+}
+
+#closeServerSettingsButton {
+    position: absolute;
+    outline: 4px solid black;
+    color: white;
+    background: red;
+    font-size: 1rem;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    right: -11px;
+    top: -11px;
+    border-bottom: 5px solid #A00;
+    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
 }
 
 #closeButton {    
@@ -242,6 +296,7 @@ input {
 
 .label {
     font-size: 1.4rem;
+    margin-top: 10px;
 }
 
 input {
@@ -394,4 +449,8 @@ input {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+}
+
+.settingButton {
+    width: 60px;
 }
