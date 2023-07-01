@@ -86,6 +86,8 @@ export class GameMap {
     tempLightImage?: HTMLCanvasElement;
     /** True fi the light map is dirty */
     lightMapDirty: boolean = true;
+    /** True if we're currenting generating the map */
+    generating: boolean = false;
 
     constructor(game: Game) {
         this.game = game;
@@ -97,16 +99,32 @@ export class GameMap {
     reset() {
         console.log("Reset map");
         this.clear();
-        this.generate();
+        this.generating = true;
+        if (!this.game.mods.generate()) {
+            this.defaultGenerate();
+        }
+        this.generating = false;
         this.setDiscovered(0, 0);
         this.refreshFullLightMap();
+
+        this.save();
+    }
+
+    /**
+     * Check if we're current generating the map. In this case we're allowed
+     * to set tiles ignoring other checks
+     * 
+     * @returns True if we're generating the map at the moment
+     */
+    isGenerating(): boolean {
+        return this.generating;
     }
 
     /**
      * Clear the map resetting it to the default state
      */
     clear() {
-        this.foreground = [...DEFAULT_MAP];
+        this.foreground = [];
         this.background = [];
         this.discovered = [];
         this.lightMap = [];
@@ -114,7 +132,8 @@ export class GameMap {
         this.metaData = {
             portals: []
         };
-        for (let i = 0; i < this.foreground.length; i++) {
+        for (let i = 0; i < DEFAULT_MAP.length; i++) {
+            this.foreground.push(0);
             this.background.push(0);
             this.lightMap.push(1);
             this.discovered.push(false);
@@ -279,9 +298,10 @@ export class GameMap {
     /**
      * Generate a new map 
      */
-    generate() {
+    defaultGenerate() {
         console.log("Generating map");
 
+        this.foreground = [...DEFAULT_MAP];
         // map generation
         let h = 0;
         let offset = 0;

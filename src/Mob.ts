@@ -140,6 +140,13 @@ export class Mob {
     }
 
     /**
+     * Reinitialize the inventory of this mob to the default one
+     */
+    initInventory(): void {
+        this.inventory = [...DEFAULT_INVENTORY];
+    }
+
+    /**
      * Update this mob from the network state given. We'll attempt to move
      * the mob to the right location and apply any state changes (controls etc). If we're 
      * pretty close to position we'll allow it to stay as is until the controls change.
@@ -439,13 +446,14 @@ export class Mob {
         if (this.itemHeld) {
             const layer = placingOnBackgroundLayer ? Layer.BACKGROUND : Layer.FOREGROUND;
 
-            if (this.controls.mouse && this.itemHeld?.place === 0 && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
+            let targetEmpty = this.itemHeld?.place !== 0 || this.itemHeld?.targetEmpty;
+            if (this.controls.mouse && !targetEmpty && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
                 this.blockDamage++;
 
                 if (this.blockDamage >= 60) {
                     if (this.local) {
-                        this.network.sendNetworkTile(this.overX, this.overY, 0, layer);
+                        this.network.sendNetworkTile(this, this.overX, this.overY, 0, layer, this.itemHeld.toolId);
                     }
                     this.blockDamage = 0;
                     playSfx('mining_break', 0.6, 5);
@@ -467,16 +475,22 @@ export class Mob {
                     this.headTilt = -0.2;
                 }
             }
-            if (this.controls.mouse && this.itemHeld.place !== 0 && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
-                const block = BLOCKS[this.itemHeld.place];
-                if (layer !== Layer.BACKGROUND || (block && !block.backgroundDisabled)) {
+            if (this.controls.mouse && targetEmpty && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
+                if (this.itemHeld.place !== 0) {
+                    const block = BLOCKS[this.itemHeld.place];
+                    if (layer !== Layer.BACKGROUND || (block && !block.backgroundDisabled)) {
+                        if (this.local) {
+                            this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer);
+                        }
+                        
+                        playSfx('place', 0.2);
+                        for (let i=0;i<5;i++) {
+                            addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
+                        }
+                    } 
+                } else {
                     if (this.local) {
-                        this.network.sendNetworkTile(this.overX, this.overY, this.itemHeld.place, layer);
-                    }
-                    
-                    playSfx('place', 0.2);
-                    for (let i=0;i<5;i++) {
-                        addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
+                        this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
                     }
                 }
             }

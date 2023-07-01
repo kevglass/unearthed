@@ -13,13 +13,17 @@ export interface InventItem {
     spriteOffsetY: number;
     /** The scale of the sprite to apply when its held */
     spriteScale: number;
+    /** The tool ID if not placing a block */
+    toolId?: string;
+    /** True if the tool works on an empty space */
+    targetEmpty?: boolean;
 }
 
 export let DEFAULT_INVENTORY: InventItem[];
 
 export function initInventory() {
     DEFAULT_INVENTORY = [
-        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
+        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, toolId: "iron-pick"},
         { sprite: "tiles/dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
         { sprite: "tiles/brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },
         { sprite: "tiles/brick_red", place: 4, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7 },

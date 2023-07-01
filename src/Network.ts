@@ -4,6 +4,8 @@ import { HUMAN_SKELETON } from './Skeletons';
 import { GameMap, GameMapMetaData, SKY_HEIGHT, TILE_SIZE } from './Map';
 import { Game } from './Game';
 import { ServerConfig } from './ServerSettings';
+import { Particle, addParticle } from './engine/Particles';
+import { getSprite } from './engine/Resources';
 
 //
 // Network is handled by using WebRTC through https://livekit.io/ 
@@ -119,7 +121,6 @@ export class Network {
         // if we're the server, we initialise mods there
         if (hosting) {
             this.game.mods.init();
-            this.game.mods.worldStarted();
         }
 
         if (!NETWORKING_ENABLED) {
@@ -206,6 +207,10 @@ export class Network {
                     }
                 }
 
+                if (message.type === "particles" && !hosting) {
+                    this.applyParticles(message.image, message.x, message.y, message.count);
+                }
+
                 // The server has given us updated meta data for the map
                 if (message.type === "mapMeta" && !hosting) {
                     Object.assign(this.gameMap.metaData, message.data);
@@ -233,6 +238,14 @@ export class Network {
                     this.addChat(message.who, message.message);
                 }
 
+                if (message.type === "trigger") {
+                    if (this.thisIsTheHostServer && participant) {
+                        const sourceMob = this.localMobs.find(m => m.participantId === participant.sid);
+                        if (sourceMob) {
+                            this.game.playerTriggeredLocation(sourceMob, message.x, message.y, false);
+                        }
+                    }
+                }
                 // notification that a client who is hosting is around
                 // we do a quick version check to prevent different
                 // versions of the game connecting since that gets
@@ -254,9 +267,19 @@ export class Network {
                     // only accept host messages from authenticated hosts or if we're the server
                     if (messageIsFromHost || this.thisIsTheHostServer) {
                         if (this.serverConfig?.editable) {
-                            this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
-                            if (this.thisIsTheHostServer) {
-                                this.sendNetworkTile(message.x, message.y, message.tile, message.layer);
+                            if (participant) {
+                                const sourceMob = this.localMobs.find(m => m.participantId === participant.sid);
+                                if (sourceMob) {
+                                    if (this.thisIsTheHostServer) {
+                                        this.sendNetworkTile(sourceMob, message.x, message.y, message.tile, message.layer, message.toolId);
+                                    } else {
+                                        // only set zero if we're using the default pick - anything else we 
+                                        // need to rely on a mod to do the change atm
+                                        if (message.toolId === "iron-pick" || message.tile !== 0) {
+                                            this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -307,6 +330,10 @@ export class Network {
 
         console.log("Network started");
         this.isConnected = true;
+
+        if (hosting) {
+            this.game.mods.worldStarted();
+        }
     }
 
     /**
@@ -341,6 +368,13 @@ export class Network {
         line.appendChild(msg);
 
         list.appendChild(line);
+    }
+
+    sendTrigger(x: number, y: number): void {
+        if (this.isConnected && !this.thisIsTheHostServer && this.hostParticipantId) {
+            const message = { type: "trigger", x, y };
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE, [this.hostParticipantId]);
+        }
     }
 
     sendServerSettings(serverSettings: ServerConfig): void {
@@ -389,14 +423,68 @@ export class Network {
     /**
      * Send a tile update across the network. This will be forwards to other via the server.
      * 
+     * @param player The player setting the network tile 
      * @param x The x coordinate of the tile being update
      * @param y The y coordinate of the tile being update
      * @param tile The tile to place on the map (or 0 to remove)
      * @param layer The layer to place the tile on
+     * @param toolId The ID of the tool being used if any
      */
-    sendNetworkTile(x: number, y: number, tile: number, layer: number) {
+    sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
+        if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
+            // if we're the host then forward the update to all players
+            // only set zero if we're using the default pick
+            if (toolId === "iron-pick" || tile !== 0 || this.game.mods.inModContext()) {
+                this.gameMap.setTile(x, y, tile, layer);
+            }
+        }
+
         if (!NETWORKING_ENABLED) {
-            this.gameMap.setTile(x, y, tile, layer);
+            return;
+        }
+
+        if (this.thisIsTheHostServer) {
+            if (!this.isConnected) {
+                return;
+            }
+    
+            const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId });
+            this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
+
+            // if we're the server we're authoritative so the mods can run based on the change
+            if (tile === 0) {
+                // using a tool
+                this.game.mods.tool(player, x, y, layer, toolId);
+            } else {
+                this.game.mods.tile(player, x,y, layer, tile);
+            }
+        } else if (this.hostParticipantId) {
+            if (this.serverConfig?.editable) {
+                // if we have a host then send it to just that host
+                const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId });
+                this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
+            }
+        }
+    }
+
+    applyParticles(image: string, x: number, y: number, count: number) {
+        for (let i=0;i<count;i++) {
+            const ox = (Math.random() - 0.5) * TILE_SIZE;
+            const oy = (Math.random() - 0.5) * TILE_SIZE;
+            const vx = (Math.random() - 0.5) * 10;
+            const vy = (-Math.random()) * 10;
+            const life = 0.5 + (Math.random() * 0.5);
+
+            addParticle(new Particle(getSprite(image), life, x+ox, y+oy, vx, vy));
+        }
+    }
+
+    sendParticles(image: string, x: number, y: number, count: number) {
+        if (this.thisIsTheHostServer) {
+            this.applyParticles(image, x, y, count);
+        }
+
+        if (!NETWORKING_ENABLED) {
             return;
         }
 
@@ -404,18 +492,8 @@ export class Network {
             return;
         }
 
-        if (this.thisIsTheHostServer) {
-            // if we're the host then forward the update to all players
-            this.gameMap.setTile(x, y, tile, layer);
-            const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
-            this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
-        } else if (this.hostParticipantId) {
-            if (this.serverConfig?.editable) {
-                // if we have a host then send it to just that host
-                const data = JSON.stringify({ type: "tileChange", x, y, tile, layer });
-                this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
-            }
-        }
+        const data = JSON.stringify({ type: "particles", x, y, image, count });
+        this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
     }
 
     /**
@@ -432,7 +510,7 @@ export class Network {
         if (!this.isConnected) {
             return;
         }
-        
+
         message = message.trim();
         if (message.length === 0) {
             return;

@@ -100,21 +100,35 @@ export class HtmlUi {
 
         this.modInput.addEventListener('change', () => {
             if (this.modInput.files) {
-                const reader = new FileReader();
-                new JSZip().loadAsync(this.modInput.files[0]).then((zip: JSZip) => {
-                    const modData: any = {};
-                    let count = 0;
-                    zip.forEach((path, file) => {
-                        count++;
-                        file.async(path === "mod.js" ? "string" : "base64").then((value: string) => {
-                            modData[path] = value;
-                            count--;
-                            if (count === 0) {
-                                this.game.serverSettings.addMod(modData, true);
-                            }
+                const file = this.modInput.files[0];
+                if (file.name.endsWith(".js")) {
+                    // simple JS file
+                    const reader = new FileReader();
+                    reader.addEventListener("load", () => {
+                        const content = reader.result as string;
+                        const modData: any = {};
+                        modData["mod.js"] = content;
+                        this.game.serverSettings.addMod(modData, true);
+                    });
+                    reader.readAsText(file);
+                } else {
+                    // ZIP with resources
+                    const reader = new FileReader();
+                    new JSZip().loadAsync(file).then((zip: JSZip) => {
+                        const modData: any = {};
+                        let count = 0;
+                        zip.forEach((path, file) => {
+                            count++;
+                            file.async(path.endsWith(".js") || path.endsWith(".json") ? "string" : "base64").then((value: string) => {
+                                modData[path] = value;
+                                count--;
+                                if (count === 0) {
+                                    this.game.serverSettings.addMod(modData, true);
+                                }
+                            });
                         });
                     });
-                });
+                }
             }
         });
 
@@ -125,7 +139,7 @@ export class HtmlUi {
                 this.network.sendMapUpdate(undefined);
                 this.game.player.x = 200;
                 this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
-                document.getElementById("settingsPanel")!.style.display = "none";
+                document.getElementById("serverSettingsPanel")!.style.display = "none";
             }
         });
         //

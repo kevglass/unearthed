@@ -1,9 +1,11 @@
 import { Game } from "src/Game";
 import { GameContext, MobContext, ServerMod } from "./Mods";
-import { loadImageFromUrl, loadSfxFromUrl } from "src/engine/Resources";
+import { getSprite, loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
 import { Block, BLOCKS } from "src/Block";
 import { DEFAULT_INVENTORY } from "src/InventItem";
-import { Layer } from "src/Map";
+import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
+import { Mob } from "src/Mob";
+import { Particle, addParticle } from "src/engine/Particles";
 
 export class GameAsContext implements GameContext {
     game: Game;
@@ -11,6 +13,15 @@ export class GameAsContext implements GameContext {
 
     constructor(game: Game) {
         this.game = game;
+    }
+
+    error(e: any): void {
+        if (this.currentMod) {
+            console.error("[" + this.currentMod.mod.name + "] Error!!!");
+        } else {
+            console.error("[UNKNOWN MOD] Error!!!");
+        }
+        console.error(e);
     }
 
     log(message: string) {
@@ -43,18 +54,24 @@ export class GameAsContext implements GameContext {
         BLOCKS[value] = tileDef;
     }
 
-    addTool(image: string, place: number): void {
+    addTool(image: string, place: number, toolId: string, emptySpace: boolean): void {
+        this.log("Adding tool: " + toolId + " (targetEmpty=" + emptySpace + ")");
+
         DEFAULT_INVENTORY.push({
             sprite: image,
             place: place,
-            spriteOffsetX: -70, 
-            spriteOffsetY: -130, 
-            spriteScale: 0.7
+            spriteOffsetX: -70,
+            spriteOffsetY: -130,
+            spriteScale: 0.7,
+            toolId: toolId,
+            targetEmpty: emptySpace
         });
+
+        this.game.mobs.forEach(m => m.initInventory());
     }
 
     setBlock(x: number, y: number, layer: Layer, blockId: number): void {
-        this.game.network.sendNetworkTile(x, y, blockId, layer);
+        this.game.network.sendNetworkTile(undefined, x, y, blockId, layer);
     }
 
     getBlock(x: number, y: number, layer: Layer): number {
@@ -70,7 +87,7 @@ export class GameAsContext implements GameContext {
     }
 
     playSfx(id: string, volume: number): void {
-        this.playSfx(id, volume);
+        playSfx(id, volume);
     }
 
     startContext(mod: ModRecord) {
@@ -85,6 +102,17 @@ export class GameAsContext implements GameContext {
         if (this.currentMod) {
             this.game.network.sendChatMessage(this.currentMod.mod.chatName ?? this.currentMod.mod.name, message);
         }
+    }
+
+    addParticlesAtTile(image: string, x: number, y: number, count: number): void {
+        const xo = 32 + (Math.random() * 64);
+        const yo = 32 + (Math.random() * 64);
+
+        this.addParticlesAtPos(image, (x * TILE_SIZE) + xo, (y * TILE_SIZE) + yo, count);
+    }
+
+    addParticlesAtPos(image: string, x: number, y: number, count: number): void {
+        this.game.network.sendParticles(image, x, y, count);
     }
 }
 
@@ -102,6 +130,10 @@ export class ConfiguredMods {
     constructor(game: Game) {
         this.game = game;
         this.context = new GameAsContext(game);
+    }
+
+    inModContext(): boolean {
+        return this.context.currentMod !== undefined;
     }
 
     init(): void {
@@ -149,5 +181,70 @@ export class ConfiguredMods {
                 }
             }
         }
+    }
+
+    trigger(mob: Mob, x: number, y: number): void {
+        for (const record of this.mods) {
+            if (record.mod.onTrigger) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onTrigger(this.context, mob, x, y);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    tile(mob: Mob | undefined, x: number, y: number, layer: number, block: number): void {
+        for (const record of this.mods) {
+            if (record.mod.onSetTile) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onSetTile(this.context, mob, x, y, layer, block);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    tool(mob: Mob | undefined, x: number, y: number, layer: number, tool: string): void {
+        for (const record of this.mods) {
+            if (record.mod.onUseTool) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onUseTool(this.context, mob, x, y, layer, tool);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    generate(): boolean {
+        for (const record of this.mods) {
+            if (record.mod.generateWorld) {
+                try {
+                    this.context.startContext(record);
+                    this.context.log("Generating World...");
+                    record.mod.generateWorld(this.context, MAP_WIDTH, MAP_DEPTH);
+                    this.context.endContext();
+
+                    return true;
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+
+        return false;
     }
 }

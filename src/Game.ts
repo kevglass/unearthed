@@ -163,12 +163,12 @@ export class Game implements ControllerListener {
 
 
         this.gameMap = new GameMap(this);
-        this.gameMap.clear();
         if (!this.gameMap.loadFromStorage()) {
-            this.gameMap.generate();
+            this.gameMap.reset();
+        } else {
+            this.gameMap.setDiscovered(0, 0);
+            this.gameMap.refreshFullLightMap();
         }
-        this.gameMap.setDiscovered(0, 0);
-        this.gameMap.refreshFullLightMap();
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
@@ -631,17 +631,25 @@ export class Game implements ControllerListener {
      * Trigger whatever block we're on
      */
     private trigger() {
-        // right now this is only portals, but this dereference here to 
-        // support other triggers later
-        this.triggerPortal();
+        const x = Math.floor(this.player.x / TILE_SIZE);
+        const y = Math.floor(this.player.y / TILE_SIZE);
+
+        this.playerTriggeredLocation(this.player, x, y, true);
+    }
+    
+    playerTriggeredLocation(player: Mob, x: number, y: number, local: boolean) {
+        if (local) {
+            this.triggerPortal(x, y);
+            this.network.sendTrigger(x, y);
+        }
+
+        this.mods.trigger(player, x, y);
     }
 
     /**
      * Triggers the portal to assign it a code
      */
-    private triggerPortal() {
-        const x = Math.floor(this.player.x / TILE_SIZE);
-        const y = Math.floor(this.player.y / TILE_SIZE);
+    private triggerPortal(x: number, y: number) {
         const tileIndex = x + y * MAP_WIDTH;
         const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
         if (portal) {
