@@ -606,6 +606,8 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 		}
 		
 		this.loadTexFromCanvas(canvas);
+		
+		window.addEventListener("resize", () => setTimeout(() => this.resize(), 40))
 	}
 
 	/**
@@ -947,8 +949,10 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 	_translate(x:number, y:number) {
 		x *= this.scaleX;
 		y *= this.scaleY;
-		this.translateX += x * Math.cos(this.rotation) + y * Math.sin(this.rotation);
-		this.translateY += y * Math.cos(this.rotation) + x * Math.sin(this.rotation);
+		var angle = Math.atan2(y, x);
+		var dist = Math.sqrt(x*x + y*y);
+		this.translateX += Math.cos(angle + this.rotation) * dist;
+		this.translateY += Math.sin(angle + this.rotation) * dist;
 	}
 
     /**
