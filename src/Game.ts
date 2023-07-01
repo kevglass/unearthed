@@ -812,6 +812,7 @@ export class Game implements ControllerListener {
             requestAnimationFrame(() => { this.loop() });
             return;
         }
+        this.lastFrame = Date.now();
 
         // move the animation forward
         this.animTime += 0.03;
@@ -1075,7 +1076,6 @@ export class Game implements ControllerListener {
 		this.g.render();
 		
         // schedule our next frame
-        this.lastFrame = Date.now();
         requestAnimationFrame(() => { this.loop() });
     }
 }
