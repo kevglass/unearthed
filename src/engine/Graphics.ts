@@ -124,6 +124,8 @@ export interface Graphics {
      * @param height The height of the rectangle
      */
     fillRect(x: number, y: number, width: number, height: number): void;
+	
+	fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void
 
     /**
      * Translate the drawing position 
@@ -343,6 +345,10 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
     fillRect(x: number, y: number, width: number, height: number): void {
         this.g.fillRect(x, y, width, height);
     }
+	
+	fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void {
+        this.g.fillRect(x, y, width, height);
+	}
 
     /**
      * Translate the drawing position 
@@ -546,9 +552,11 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
     /** The current transforms on this saved state. */
 	private transforms: any[] = [];
     /** The current color for rectangles/text. */
-	private rgba: number = 0xFFFFFF7F;
-    /** The alpha for everything. Pass in 0-1 but it's 0-128 instead of 0-255 because I'm saving 2 bytes to show superbright images if you go over. */
-	private alpha: number = 128;
+	private rgba: number = 0xFFFFFFFF;
+    /** The alpha for everything. show superbright images if you go over to 512. */
+	private alpha: number = 255;
+    /** 0 = normal. 255 = turns the image to white. */
+	private brightness: number = 0;
     /** The current transform values. */
 	private translateX: number = 0;
 	private translateY: number = 0;
@@ -575,7 +583,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 		var gl = this.gl;
 		
 		// Only send to gl the amount slots in our arrayBuffer that we used this frame.
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.rgbas.subarray(0, this.draws * 6));
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.rgbas.subarray(0, this.draws * 7));
 		
 		// Draw everything. 6 is because 2 triangles make a rectangle.
 		this.extension.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, this.draws);
@@ -689,6 +697,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 			attribute vec2 aSize;\
 			attribute vec4 aTexPos;\
 			attribute vec4 aRgba;\
+			attribute vec4 aCornerA;\
 			attribute float aRotation;\
 			\
 			varying highp vec2 fragTexturePos;\
@@ -709,11 +718,14 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 				}\
 				gl_Position = vec4(drawPos.x - 1.0, 1.0 - drawPos.y, 0.0, 1.0);\
 				fragTexturePos = (aTexPos.xy + aTexPos.zw * aSizeMult) / uTexSize;\
-				if(aRgba.x > 127.0) {\
-					float colorMult = pow(2.0, (aRgba.x-127.0)/16.0) / 255.0;\
+				if(aRgba.x > 0.0) {\
+					float colorMult = pow(2.0, aRgba.x/32.0) / 255.0;\
 					fragAbgr = vec4(aRgba.w*colorMult, aRgba.z*colorMult, aRgba.y*colorMult, 1.0);\
-				} else\
-					fragAbgr = vec4(aRgba.w/255.0, aRgba.z/255.0, aRgba.y/255.0, aRgba.x/127.0);\
+				} else {\
+					vec2 topOrBot = aCornerA.zw * (1.0 - aSizeMult.y) + aCornerA.xy * aSizeMult.y;\
+					float alpha = topOrBot.y * (1.0 - aSizeMult.x) + topOrBot.x * aSizeMult.x;\
+					fragAbgr = vec4(aRgba.w/255.0, aRgba.z/255.0, aRgba.y/255.0, alpha/255.0);\
+				}\
 			}\
 		"
 
@@ -772,11 +784,13 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 		var shortsPerImageTexPos = 4
 		// Whenever we call our drawImage(), we also store 4 bytes into our arrayBuffer (r,g,b,a) for color and alpha.
 		var bytesPerImageRgba = 4
+		// Whenever we call our drawImage(), we also store 4 bytes into our arrayBuffer for topleft/topright corner alpha.
+		var bytesPerImageCornerAlpha = 4
 		// Whenever we call our drawImage(), we also put a float for rotation.
 		var floatsPerImageRotation = 1
 		
-		// Total bytes stored into arrayBuffer per image = 24
-		var bytesPerImage = shortsPerImagePosition * 2 + shortsPerImageSize * 2 + shortsPerImageTexPos * 2 + bytesPerImageRgba + floatsPerImageRotation * 4
+		// Total bytes stored into arrayBuffer per image = 28
+		var bytesPerImage = shortsPerImagePosition * 2 + shortsPerImageSize * 2 + shortsPerImageTexPos * 2 + bytesPerImageRgba + bytesPerImageCornerAlpha + floatsPerImageRotation * 4
 		
 		// Make a buffer big enough to have all the data for the max images we can show at the same time.
 		var arrayBuffer = new ArrayBuffer(this.maxDraws * bytesPerImage)
@@ -827,6 +841,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 		
 		// Then read the next 4 bytes as 1 float and store it in my float "aRotation"
 		setupAttribute("aRotation", gl.FLOAT, floatsPerImageRotation)
+		
+		// Then read the next 4 bytes and store them in my vec4 "aCornerA"
+		setupAttribute("aCornerA", gl.UNSIGNED_BYTE, bytesPerImageCornerAlpha)
     }
 
     /**
@@ -890,7 +907,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param a is 0-1
      */
     setFillColor(r:number, g:number, b:number, a:number) {
-        this.rgba = (r * 16777216) + (g << 16) + (b << 8) + Math.floor(a * 128);
+        this.rgba = (r * 16777216) + (g << 16) + (b << 8) + Math.floor(a * 255);
     }
 
     /**
@@ -902,32 +919,49 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param height The height of the rectangle
      */
     fillRect(x: number, y: number, width: number, height: number): void {
-		var rgba = this.rgba
-		if(this.alpha != 128) {
-			// Multiply this.rgba alhpa with globalAlpha.
-			rgba = Math.floor(rgba / 255) * 255 + Math.floor((rgba % 255) * this.alpha / 128)
-		}
-		this._drawImage(0, 0, 1, 1, x, y, width, height, rgba)
+		var rgba = Math.floor(this.rgba / 256) * 256
+		var a = Math.floor((this.alpha + (this.rgba % 256)) / 2)
+		this._drawImage(0, 0, 1, 1, x, y, width, height, rgba, a, a, a, a)
+    }
+
+    /**
+     * Fill a rectangle on the screen
+     * 
+     * @param x The x coordinate of the top left of the rectangle
+     * @param y The y coordinate of the top left of the rectangle
+     * @param width The width of the rectangle
+     * @param height The height of the rectangle
+     * @param height The height of the rectangle
+     * @param topLeftA alpha 0-255
+     * @param topRightA alpha 0-255
+     * @param bottomLeftA alpha 0-255
+     * @param bottomRightA alpha 0-255
+     */
+    fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void {
+		var rgba = Math.floor(this.rgba / 256) * 256
+		this._drawImage(0, 0, 1, 1, x, y, width, height, rgba, topLeftA, topRightA, bottomLeftA, bottomRightA)
     }
 
     /**
      * Draws a this rectangular portion of the big png.
      */
-	private _drawImage(texX: number, texY: number, texWidth: number, texHeight: number, drawX: number, drawY: number, width: number, height: number, rgba: number)
-	{
-		var i = this.draws * 6
+	private _drawImage(texX: number, texY: number, texWidth: number, texHeight: number, drawX: number, drawY: number, width: number, height: number, rgba: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number) {
+		// 7 because every time we draw an image we set 28 bytes of data. i is a 4 byte index for this.rgbas
+		var i = this.draws * 7
 		
-		// Store rgba after position/texture. Default to white and fully opaque.
-		this.rgbas[i+4] = rgba || 0xFFFFFF7F
+		// Store rgba after position/texture. Default to white and fully opaque. i+4 because positions are stored first.
+		this.rgbas[i+4] = rgba
 		
 		// Store how rotated we want this image to be.
 		this.rotations[i+5] = this.rotation
 		
-		// Use a local variable so it's faster to access.
-		var positions = this.positions
+		this.rgbas[i+6] = (Math.floor(topLeftA)*256*256*256) + (topRightA<<16) + (bottomLeftA<<8) + Math.floor(bottomRightA)
 		
 		// Positions array is 2-byte shorts not 4-byte floats so there's twice as many slots.
 		i *= 2
+		
+		// Use a local variable so it's faster to access.
+		var positions = this.positions
 		
 		// Global rotation. TODO: move this math into the shader for speedup.
 		if(this.rotation) {
@@ -982,7 +1016,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param height The height to draw the image
      */
     drawScaledImage(img: GraphicsImage, x: number, y: number, width: number, height: number) {
-		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, width, height, 0xFFFFFF00 + this.alpha);
+		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, width, height, 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
     }
 
     /**
@@ -993,7 +1027,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The y coordinate to draw the image at
      */
     drawImage(img: GraphicsImage, x: number, y: number) {
-		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth(), img.getHeight(), 0xFFFFFF00 + this.alpha);
+		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth(), img.getHeight(), 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
     }
 
     /**
@@ -1012,7 +1046,12 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param alpha The alpha value to use
      */
     setGlobalAlpha(alpha: number): void {
-		this.alpha = Math.floor(alpha * 128);
+		alpha = Math.floor(alpha * 255);
+		this.alpha = Math.min(255, alpha);
+		this.brightness = 0;
+		if(alpha > 255) {
+			this.brightness = alpha - 255;
+		}
     }
 
     /**

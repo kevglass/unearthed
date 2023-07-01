@@ -129,7 +129,7 @@ export class Game implements ControllerListener {
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
 		
-		if (0) {
+		if (1) {
 			this.g = new WebglGraphics(this.canvas);
 		} else {
 			this.g = new HtmlGraphics(this.canvas);
@@ -1004,7 +1004,9 @@ export class Game implements ControllerListener {
 
             // finally draw update and draw the mobs
             for (const mob of [...this.mobs]) {
+				this.g.setGlobalAlpha(1.1 + Math.sin(Date.now() / 55) * .1)
                 mob.draw(this.g, SHOW_BOUNDS);
+				this.g.setGlobalAlpha(1)
 
                 if (Date.now() - mob.lastUpdate > 10000 && mob !== this.player) {
                     this.mobs.splice(this.mobs.indexOf(mob), 1);

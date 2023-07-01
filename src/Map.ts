@@ -842,6 +842,15 @@ export class GameMap {
             g.fillText(portal?.code ?? '', portal.tileIndex % MAP_WIDTH * TILE_SIZE + TILE_SIZE / 2, Math.floor(portal.tileIndex / MAP_WIDTH) * TILE_SIZE - 16);
         });
     }
+	
+	getLightCornerAverage(x: number, y: number): number {
+        //if (game.g.getType() === GraphicsType.WEBGL) {
+			const px = Math.floor(this.game.player.x / TILE_SIZE);
+			const py = Math.floor(this.game.player.y / TILE_SIZE);
+			if (Math.abs(x - px + .5) < 2 && Math.abs(y - py + .5) < 2) return 0;
+		//}
+		return 255 - (this.getLightMap(x, y) + this.getLightMap(x + 1, y) + this.getLightMap(x, y + 1) + this.getLightMap(x + 1, y + 1)) / 4 * 255;
+	}
 
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
@@ -858,15 +867,18 @@ export class GameMap {
             const px = Math.floor(this.game.player.x / TILE_SIZE);
             const py = Math.floor(this.game.player.y / TILE_SIZE);
             lightScale = TILE_SIZE;
+			g.setFillColor(0, 0, 0, 1);
             for (let x = xp; x < xp + tilesAcross; x++) {
                 for (let y = yp; y < yp + tilesDown; y++) {
-                    if (Math.abs(x - px) < 2 && Math.abs(y - py) < 2) continue;
                     if (this.isDiscovered(x, y)) {
-                        const light = this.getLightMap(x, y);
-                        if (light < 1) {
-                            g.setFillColor(0, 0, 0, 1 - light);
-                            g.fillRect(Math.floor(screenX - offsetx) + (x - xp) * lightScale, Math.floor(screenY - offsety) + (y - yp) * lightScale, lightScale, lightScale);
-                        }
+						g.fillRectWithCornerAlphas(
+							Math.floor(screenX - offsetx) + (x - xp) * lightScale,
+							Math.floor(screenY - offsety) + (y - yp) * lightScale,
+							lightScale,
+							lightScale,
+							this.getLightCornerAverage(x - 1, y - 1), this.getLightCornerAverage(x, y - 1),
+							this.getLightCornerAverage(x - 1, y), this.getLightCornerAverage(x, y)
+						);
                     }
                 }
             }
