@@ -124,6 +124,7 @@ export class Network {
         }
 
         if (!NETWORKING_ENABLED) {
+            this.thisIsTheHostServer = true;
             return;
         }
 
@@ -433,7 +434,7 @@ export class Network {
      * @param toolId The ID of the tool being used if any
      */
     sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
-        if (this.thisIsTheHostServer || this.gameMap.isGenerating() || !NETWORKING_ENABLED) {
+        if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
             // if we're the host then forward the update to all players
             // only set zero if we're using the default pick
             if (toolId === "iron-pick" || tile !== 0 || this.game.mods.inModContext()) {
