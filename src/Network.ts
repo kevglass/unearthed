@@ -463,6 +463,15 @@ export class Network {
                 this.gameMap.setTile(x, y, tile, layer);
             }
         }
+        if (this.thisIsTheHostServer) {
+            // if we're the server we're authoritative so the mods can run based on the change
+            if (tile === 0) {
+                // using a tool
+                this.game.mods.tool(player, x, y, layer, toolId);
+            } else {
+                this.game.mods.tile(player, x,y, layer, tile, oldBlock);
+            }
+        }
 
         if (!NETWORKING_ENABLED) {
             return;
@@ -475,14 +484,6 @@ export class Network {
     
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
-
-            // if we're the server we're authoritative so the mods can run based on the change
-            if (tile === 0) {
-                // using a tool
-                this.game.mods.tool(player, x, y, layer, toolId);
-            } else {
-                this.game.mods.tile(player, x,y, layer, tile, oldBlock);
-            }
         } else if (this.hostParticipantId) {
             if (this.serverConfig?.editable) {
                 // if we have a host then send it to just that host

@@ -32,7 +32,7 @@ export class ServerSettings {
             if (script) {
                 const potentialMod = eval(script) as ServerMod;
 
-                if (potentialMod.name) {
+                if (potentialMod.name && potentialMod.id) {
                     const modRecord = { mod: potentialMod, inited: false, resources:modData };
                     this.serverMods.mods.push(modRecord);
 
@@ -41,6 +41,8 @@ export class ServerSettings {
                         this.save();
                         this.game.ui.addMod(modRecord);
                     }
+                } else {
+                    console.error("Modification either didn't have a name or an ID!");
                 }
             } else {
                 console.error("No mod.js file found in zip");   

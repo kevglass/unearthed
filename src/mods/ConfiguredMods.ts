@@ -336,6 +336,7 @@ export class ConfiguredMods {
      * @param tool The ID of the tool being used
      */
     tool(mob: Mob | undefined, x: number, y: number, layer: number, tool: string): void {
+        console.log("using tool: " + tool);
         for (const record of this.mods) {
             if (record.mod.onUseTool) {
                 try {
