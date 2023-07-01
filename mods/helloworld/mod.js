@@ -10,12 +10,6 @@ const mod = {
     onWorldStart: (game) => {
         game.displayChat("Hello World!");
     },
-
-    // generateWorld: (game, width, height) => {
-    //     for (let i=0;i<width;i++) {
-    //         game.setBlock(i, 30, 0, i % 7 === 6 ? 0 : 1);
-    //     }
-    // }
 };
 
 mod;

@@ -131,6 +131,8 @@ export class Network {
             this.serverConfig = this.game.serverSettings.getConfig();
         }
 
+        console.log("Connecting to room server");
+
         // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
         // provider that uses kev's hidden livekit key. 
         const request = new XMLHttpRequest();
@@ -431,7 +433,7 @@ export class Network {
      * @param toolId The ID of the tool being used if any
      */
     sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
-        if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
+        if (this.thisIsTheHostServer || this.gameMap.isGenerating() || !NETWORKING_ENABLED) {
             // if we're the host then forward the update to all players
             // only set zero if we're using the default pick
             if (toolId === "iron-pick" || tile !== 0 || this.game.mods.inModContext()) {

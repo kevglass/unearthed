@@ -105,10 +105,7 @@ export class GameAsContext implements GameContext {
     }
 
     addParticlesAtTile(image: string, x: number, y: number, count: number): void {
-        const xo = 32 + (Math.random() * 64);
-        const yo = 32 + (Math.random() * 64);
-
-        this.addParticlesAtPos(image, (x * TILE_SIZE) + xo, (y * TILE_SIZE) + yo, count);
+        this.addParticlesAtPos(image, (x + 0.5) * TILE_SIZE, (y+0.5) * TILE_SIZE, count);
     }
 
     addParticlesAtPos(image: string, x: number, y: number, count: number): void {
