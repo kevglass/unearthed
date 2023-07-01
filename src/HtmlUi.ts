@@ -3,6 +3,7 @@ import {GameMap, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE} from "./Map";
 import { Network } from "./Network";
 import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resources";
 import { ModRecord } from "./mods/ConfiguredMods";
+import { getCodeEditorContent, hideCodeEditor, showCodeEditor } from "./mods/Editor";
 import { ServerMod } from "./mods/Mods";
 import JSZip from "jszip";
 
@@ -340,6 +341,44 @@ export class HtmlUi {
         document.getElementById("addMod")!.addEventListener("click", () => {
             this.modInput.click();
         });
+
+        document.getElementById("editMod")!.addEventListener("click", () => {
+            if (this.selectedMod) {
+                showCodeEditor(this.selectedMod.resources["mod.js"]);
+            }
+        });
+
+        document.getElementById("codeSaveButton")!.addEventListener("click", () => {
+            if (this.selectedMod) {
+                if (this.game.serverSettings.updateMod(this.selectedMod, getCodeEditorContent())) {
+
+                    if (this.selectedModDiv) {
+                        this.selectedModDiv.innerHTML = this.selectedMod.mod.name + " ("+this.selectedMod.mod.version+")";
+                    }
+                    hideCodeEditor();
+                }
+            }
+        });
+        document.getElementById("codeDownloadButton")!.addEventListener("click", () => {
+            if (this.selectedMod) {
+                const url = window.URL.createObjectURL(new Blob(
+                    [ getCodeEditorContent() ],
+                    {
+                        type : "text/plain;charset=utf-8"
+                    }
+                ));
+                const link = document.createElement('a');
+                link.href = url;
+                const date = new Date().toLocaleString();
+                link.download = "mod.js";
+                link.click();
+            }
+        });
+
+        document.getElementById("codeCancelButton")!.addEventListener("click", () => {
+            hideCodeEditor();
+        });
+
         document.getElementById("removeMod")!.addEventListener("click", () => {
             if (this.selectedMod) {
                 this.game.serverSettings.removeMod(this.selectedMod);
@@ -348,6 +387,10 @@ export class HtmlUi {
                 this.selectedModDiv = undefined;
             }
         });
+    }
+
+    codeEditorShowing() {
+        return document.getElementById("codePanel")?.style.display === "block";
     }
 
     renderChangeWorldButton() {

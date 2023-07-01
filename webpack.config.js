@@ -4,6 +4,7 @@ const path = require('path');
 const TsConfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require("copy-webpack-plugin");
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const fs = require('fs');
 
 module.exports = {
@@ -36,6 +37,10 @@ module.exports = {
         ],
         exclude: /node_modules/,
       },
+			{
+				test: /\.css$/,
+				use: ['style-loader', 'css-loader']
+			},
       {
         test: /\.png$/,
         loader: "url-loader",
@@ -66,6 +71,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist')
   },
   plugins: [
+    new MonacoWebpackPlugin(),
     new CopyPlugin({
       patterns: [
         { from: "resources", to: "[path][name][ext]" },

@@ -58,6 +58,7 @@ input {
     user-select: none;
 }
 
+
 #mapBar {
     position: absolute;
     bottom: 10px;
@@ -247,6 +248,7 @@ input {
 }
 
 .mapbutton {
+    text-align: center;
     outline: 4px solid black;
     user-select: none;
     color: white;
@@ -488,4 +490,30 @@ input {
 .modSelected {
     background: black;
     color: white;
+}
+
+#codeBar {
+    position: absolute;
+    bottom: 10px;
+    display: flex;
+    margin-top: 20px;
+    width: 100%;
+    justify-content: end;
+}
+
+#codePanel {
+    display: none;
+    position: absolute;
+    top: 100px;
+    left: 100px;
+    right: 100px;
+    bottom: 100px;
+}
+
+#codeEditor {
+    position: absolute;
+    top: 0;
+    bottom: 70px;
+    width: 100%;
+    border: 1px solid black;
 }

@@ -16,6 +16,7 @@ import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
 import { initInventory } from "./InventItem";
 import { getSkeleton } from "./Skeletons";
+import { getCodeEditor } from "./mods/Editor";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -319,7 +320,12 @@ export class Game implements ControllerListener {
             }
 
             // if we're focused on the chat input that takes precedence
-            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput || document.activeElement === this.ui.portalInput) {
+            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput || 
+                document.activeElement === this.ui.portalInput) {
+                return;
+            }
+
+            if (this.ui.codeEditorShowing()) {
                 return;
             }
 

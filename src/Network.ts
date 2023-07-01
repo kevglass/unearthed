@@ -119,7 +119,7 @@ export class Network {
         this.started = true;
 
         // if we're the server, we initialise mods there
-        if (hosting) {
+        if (hosting || !NETWORKING_ENABLED) {
             this.game.mods.init();
         }
 
