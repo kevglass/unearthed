@@ -1,12 +1,12 @@
 
-import { Graphics, HtmlGraphics } from "./engine/Graphics";
+import { Graphics, HtmlGraphics, WebglGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
 import {GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./engine/Particles";
-import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded } from "./engine/Resources";
+import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded, sprites } from "./engine/Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
@@ -128,7 +128,12 @@ export class Game implements ControllerListener {
 
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
-        this.g = new HtmlGraphics(this.canvas);
+		
+		if(0) {
+			this.g = new WebglGraphics(this.canvas);
+		} else {
+			this.g = new HtmlGraphics(this.canvas);
+		}
 
         // check if we have a server ID stored locally, if not then generated one
         // and store it
@@ -803,6 +808,10 @@ export class Game implements ControllerListener {
         // move the animation forward
         this.animTime += 0.03;
         this.animTime = this.animTime % 1;
+		
+		if(resourcesLoaded() && !this.g.isReady()) {
+			this.g.doneLoadingImages(sprites)
+		}
 
         // determine the scale of the screen and any limitation
         // on the viewing area
@@ -819,9 +828,8 @@ export class Game implements ControllerListener {
         let ox = this.player.x - (this.canvas.width / 2);
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
-
-        this.g.setFillStyle("#b7e7fa");
-        this.g.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		
+		this.g.clearScreen(0xb7, 0xe7, 0xfa);
 
         const backgrounds = [{
             sprite: "bg/clouds",
@@ -837,22 +845,24 @@ export class Game implements ControllerListener {
 
         for (const bg of backgrounds) {
             const background = getSprite(bg.sprite);
-            this.g.save();
-            this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
-            for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
-                // draw the background clouds
-                this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
-            }
-            this.g.restore();
+			if(background.getWidth()) {
+				this.g.save();
+				this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
+				for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
+					// draw the background clouds
+					this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
+				}
+				this.g.restore();
+			}
         }
 
         if (this.controllerSetupStep >= 0) {
             requestAnimationFrame(() => { this.loop() });
 
-            this.g.setFillStyle("rgba(0,0,0,0.2");
+            this.g.setFillColor(0, 0, 0, 0.2);
             this.g.fillRect(0, 270, this.canvas.width, 400);
             this.g.setTextAlign("center");
-            this.g.setFillStyle("black");
+            this.g.setFillColor(0, 0, 0, 1);
             this.g.save();
             this.g.translate(5, 5);
             this.g.setFont("120px KenneyFont");
@@ -860,7 +870,7 @@ export class Game implements ControllerListener {
             this.g.setFont("60px KenneyFont");
             this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
             this.g.restore();
-            this.g.setFillStyle("white");
+            this.g.setFillColor(255, 255, 255, 1);
             this.g.setFont("120px KenneyFont");
             this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), (this.canvas.width / 2), 400);
             this.g.setFont("60px KenneyFont");
@@ -883,7 +893,7 @@ export class Game implements ControllerListener {
             this.network.update(this.player, this.mobs);
             requestAnimationFrame(() => { this.loop() });
 
-            this.g.setFillStyle("black");
+            this.g.setFillColor(0, 0, 0, 1);
 
             // draw the logo and version number
             const logo = getSprite("logo");
@@ -909,9 +919,9 @@ export class Game implements ControllerListener {
                 this.g.save();
                 this.g.translate((this.canvas.width / 2) + (logo.getWidth() / 2) + 150, 150 + (logo.getHeight() * 2));
                 this.g.rotate(-(Math.PI / 8) - (Math.PI / 32) + (Math.sin(Math.PI * this.animTime) * (Math.PI / 32)));
-                this.g.setFillStyle("black");
+				this.g.setFillColor(0, 0, 0, 1);
                 this.g.fillText(this.motd, 1, 1);
-                this.g.setFillStyle("#0f0");
+				this.g.setFillColor(0, 255, 0, 1);
                 this.g.fillText(this.motd, 0, 0);
                 this.g.restore();
             }
@@ -940,6 +950,8 @@ export class Game implements ControllerListener {
                 this.g.setTextAlign("center");
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
+			this.g.restore();
+			this.g.render();
             return;
         }
 
@@ -952,7 +964,7 @@ export class Game implements ControllerListener {
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 
             // draw the underground background
-            this.g.setFillStyle("#445253");
+            this.g.setFillColor(0x44, 0x52, 0x53, 1);
             this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
@@ -997,6 +1009,7 @@ export class Game implements ControllerListener {
 
         this.g.restore();
 
+		
         // Draw the UI components
 
         // if we have limited screen real estate adjust the positions of the UI
@@ -1051,6 +1064,8 @@ export class Game implements ControllerListener {
             this.g.drawScaledImage(getSprite("ui/trigger"), this.canvas.width - 520, this.canvas.height - 160, 140, 140);
         }
 
+		this.g.render();
+		
         // schedule our next frame
         this.lastFrame = Date.now();
         requestAnimationFrame(() => { this.loop() });
