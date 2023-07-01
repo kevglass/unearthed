@@ -125,8 +125,12 @@ export class Game implements ControllerListener {
 
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
-        this.g = new WebglGraphics(this.canvas);
-        //this.g = new HtmlGraphics(this.canvas);
+		
+		if(1) {
+			this.g = new WebglGraphics(this.canvas);
+		} else {
+			this.g = new HtmlGraphics(this.canvas);
+		}
 
         // check if we have a server ID stored locally, if not then generated one
         // and store it
@@ -994,7 +998,7 @@ export class Game implements ControllerListener {
                 }
             }
 
-            //this.gameMap.drawLightMap(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
+            this.gameMap.drawLightMap(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
         }
 
         renderAndUpdateParticles(this.g);

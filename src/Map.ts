@@ -934,7 +934,7 @@ export class GameMap {
 
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
-        const lightScale = 1;
+        let lightScale = 1;
         const xp = Math.floor(screenX / TILE_SIZE) - 1;
         const yp = Math.floor(screenY / TILE_SIZE) - 1;
         const tilesAcross = Math.floor(screenWidth / TILE_SIZE) + 3
@@ -942,6 +942,26 @@ export class GameMap {
         const offsetx = screenX - (xp * TILE_SIZE);
         const offsety = screenY - (yp * TILE_SIZE);
 
+		if(!(g as any).canvas.getContext('2d')) {
+			// Prepare to be sorely disappointed by my webgl lighting.
+            const px = Math.floor(this.game.player.x / TILE_SIZE);
+            const py = Math.floor(this.game.player.y / TILE_SIZE);
+			lightScale = TILE_SIZE;
+            for (let x = xp; x < xp + tilesAcross; x++) {
+                for (let y = yp; y < yp + tilesDown; y++) {
+					if(Math.abs(x-px)<2 && Math.abs(y-py)<2)continue;
+                    if (this.isDiscovered(x, y)) {
+						const light = this.getLightMap(x, y);
+						if (light < 1) {
+							g.setFillColor(0, 0, 0, 1 - light);
+							g.fillRect(Math.floor(screenX - offsetx) + (x - xp)*lightScale, Math.floor(screenY - offsety) + (y - yp)*lightScale, lightScale, lightScale);
+						}
+					}
+                }
+            }
+			return;
+		}
+		
         // initialise any temporary storage for the light maps
         if (!this.lightingImage || this.lightingImage.width != tilesAcross * TILE_SIZE || this.lightingImage.height !== tilesDown * TILE_SIZE) {
             this.lightingImage = document.createElement("canvas");
@@ -1003,11 +1023,9 @@ export class GameMap {
 
             // debug for light map
             // const debugSize = 20;
-            // g.fillStyle = "white";
-            // g.strokeStyle = "green";
-            // g.lineWidth = 2;
+            // g.setFillColor(255, 255, 255, 1);
             // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
-            // g.drawImage(this.lightingImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
+            // g.drawScaledImage({get:()=>this.lightingImage} as unknown as GraphicsImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
         }
 
 
