@@ -116,6 +116,12 @@ export class Network {
     async startNetwork(hosting: boolean): Promise<void> {
         this.started = true;
 
+        // if we're the server, we initialise mods there
+        if (hosting) {
+            this.game.mods.init();
+            this.game.mods.worldStarted();
+        }
+
         if (!NETWORKING_ENABLED) {
             return;
         }
@@ -301,12 +307,6 @@ export class Network {
 
         console.log("Network started");
         this.isConnected = true;
-
-        // if we're the server, we initialise mods there
-        if (this.thisIsTheHostServer) {
-            this.game.mods.init();
-            this.game.mods.worldStarted();
-        }
     }
 
     /**
@@ -344,14 +344,14 @@ export class Network {
     }
 
     sendServerSettings(serverSettings: ServerConfig): void {
-        if (this.connected()) {
+        if (this.isConnected) {
             const message = { type: "serverConfig", data: serverSettings };
             this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
         }
     }
 
     sendMetaData(metaData: GameMapMetaData): void {
-        if (this.connected()) {
+        if (this.isConnected) {
             const message = { type: "mapMeta", data: metaData };
             this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
         }
@@ -400,6 +400,10 @@ export class Network {
             return;
         }
 
+        if (!this.isConnected) {
+            return;
+        }
+
         if (this.thisIsTheHostServer) {
             // if we're the host then forward the update to all players
             this.gameMap.setTile(x, y, tile, layer);
@@ -425,6 +429,10 @@ export class Network {
             return;
         }
 
+        if (!this.isConnected) {
+            return;
+        }
+        
         message = message.trim();
         if (message.length === 0) {
             return;

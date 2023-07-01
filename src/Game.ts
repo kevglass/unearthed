@@ -6,7 +6,7 @@ import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./engine/Particles";
-import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded, sprites } from "./engine/Resources";
+import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded, SPRITES } from "./engine/Resources";
 import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
@@ -129,7 +129,7 @@ export class Game implements ControllerListener {
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
 		
-		if(0) {
+		if (0) {
 			this.g = new WebglGraphics(this.canvas);
 		} else {
 			this.g = new HtmlGraphics(this.canvas);
@@ -810,7 +810,7 @@ export class Game implements ControllerListener {
         this.animTime = this.animTime % 1;
 		
 		if(resourcesLoaded() && !this.g.isReady()) {
-			this.g.doneLoadingImages(sprites)
+			this.g.doneLoadingImages(SPRITES)
 		}
 
         // determine the scale of the screen and any limitation

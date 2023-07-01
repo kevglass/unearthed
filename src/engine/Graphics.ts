@@ -66,10 +66,19 @@ export interface OffscreenGraphicsImage {
     getAsImage(): any;
 }
 
+export enum GraphicsType {
+    CANVAS = "Canvas",
+    WEBGL = "WebGL",
+}
 /**
  * Abstraction of graphics rendering
  */
 export interface Graphics {
+    /**
+     * Get the type of graphics renderer being used
+     */
+    getType(): GraphicsType;
+
     /**
      * Save the current state so it can be restored later. push/pop style
      */
@@ -268,6 +277,10 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.g = this.canvas.getContext("2d")!;
+    }
+
+    getType(): GraphicsType {
+        return GraphicsType.CANVAS;
     }
 
     /**
@@ -546,6 +559,10 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 	private fontSize: number = 16;
 	private textAlign: CanvasTextAlign = 'left';
 	
+    getType(): GraphicsType {
+        return GraphicsType.WEBGL;
+    }
+
     isReady(): boolean {
 		return (this.texWidth > 0);
     }

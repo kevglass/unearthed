@@ -1,7 +1,7 @@
-import { getSprite, playSfx} from "./engine/Resources";
+import { getSprite, playSfx } from "./engine/Resources";
 import { Game } from "./Game";
 import { addParticle, createDirtParticle } from "./engine/Particles";
-import { Graphics, GraphicsImage, HtmlGraphics } from "./engine/Graphics";
+import { Graphics, GraphicsImage, GraphicsType, HtmlGraphics } from "./engine/Graphics";
 import { Block, Portal, Timer, BLOCKS } from "./Block";
 
 /** The total width of the map in tiles */
@@ -230,7 +230,7 @@ export class GameMap {
 
         for (let x = 0; x < MAP_WIDTH; x++) {
             for (let y = 0; y < MAP_DEPTH; y++) {
-                this.fillLightFrom(x, y, this.getLightMap(x, y) ,true);
+                this.fillLightFrom(x, y, this.getLightMap(x, y), true);
             }
         }
     }
@@ -263,7 +263,7 @@ export class GameMap {
                     if (savedMap.length >= DEFAULT_MAP.length) {
                         this.background = savedMap;
                     }
-                    
+
                     if (existingMeta) {
                         Object.assign(this.metaData, JSON.parse(existingMeta));
                     }
@@ -602,7 +602,7 @@ export class GameMap {
 
         // Remove any timers on this tile
         this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileIndex !== x + (y * MAP_WIDTH));
-        
+
         // Remove any portals on this tile
         this.metaData.portals = this.metaData.portals.filter(portal => portal.tileIndex !== x + (y * MAP_WIDTH));
         if (this.game.isHostingTheServer) {
@@ -620,7 +620,7 @@ export class GameMap {
                     callback: tileDef.timer.callback,
                 });
             }
-            
+
             if (tileDef.portal) {
                 this.metaData.portals.push({
                     tileIndex: x + (y * MAP_WIDTH),
@@ -631,7 +631,7 @@ export class GameMap {
                 }
             }
         }
-        
+
         if (tile === 0) {
             const above = this.getTile(x, y - 1, layer);
             const tile = BLOCKS[above];
@@ -721,7 +721,7 @@ export class GameMap {
 
         return this.foreground[x + (y * MAP_WIDTH)];
     }
-    
+
     updateTimers(): void {
         this.timers.forEach(timer => {
             timer.timer--;
@@ -731,7 +731,7 @@ export class GameMap {
         });
         this.timers = this.timers.filter(timer => timer.timer > 0);
     }
-    
+
     /**
      * Render the section of the map thats visible on the screen
      * 
@@ -775,7 +775,7 @@ export class GameMap {
                 if (this.isDiscovered(x, y)) {
                     const bg = BLOCKS[this.getTile(x, y, Layer.BACKGROUND)]?.sprite;
                     if (bg) {
-                        g.drawImage(getSprite(bg) , x * TILE_SIZE, y * TILE_SIZE);
+                        g.drawImage(getSprite(bg), x * TILE_SIZE, y * TILE_SIZE);
                         if (this.isPlatform(x, y)) {
                             g.drawImage(this.backingTopTile, x * TILE_SIZE, y * TILE_SIZE);
                         } else {
@@ -806,11 +806,11 @@ export class GameMap {
         for (let x = xp; x < xp + tilesAcross; x++) {
             for (let y = yp; y < yp + tilesDown; y++) {
                 if (!this.isDiscovered(x, y)) {
-                    g.drawImage(this.undiscovered[(x + y) % this.undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2) ,(y * TILE_SIZE) - (TILE_SIZE / 2));
+                    g.drawImage(this.undiscovered[(x + y) % this.undiscovered.length], (x * TILE_SIZE) - (TILE_SIZE / 2), (y * TILE_SIZE) - (TILE_SIZE / 2));
                 }
             }
         }
-        
+
         // render portal codes
         this.metaData.portals.forEach(portal => {
             g.setTextAlign("center");
@@ -830,113 +830,114 @@ export class GameMap {
         const offsetx = screenX - (xp * TILE_SIZE);
         const offsety = screenY - (yp * TILE_SIZE);
 
-		if(!(g as any).canvas.getContext('2d')) {
-			// Prepare to be sorely disappointed by my webgl lighting.
+        if (g.getType() === GraphicsType.WEBGL) {
+            // Prepare to be sorely disappointed by my webgl lighting.
             const px = Math.floor(this.game.player.x / TILE_SIZE);
             const py = Math.floor(this.game.player.y / TILE_SIZE);
-			lightScale = TILE_SIZE;
+            lightScale = TILE_SIZE;
             for (let x = xp; x < xp + tilesAcross; x++) {
                 for (let y = yp; y < yp + tilesDown; y++) {
-					if(Math.abs(x-px)<2 && Math.abs(y-py)<2)continue;
+                    if (Math.abs(x - px) < 2 && Math.abs(y - py) < 2) continue;
                     if (this.isDiscovered(x, y)) {
-						const light = this.getLightMap(x, y);
-						if (light < 1) {
-							g.setFillColor(0, 0, 0, 1 - light);
-							g.fillRect(Math.floor(screenX - offsetx) + (x - xp)*lightScale, Math.floor(screenY - offsety) + (y - yp)*lightScale, lightScale, lightScale);
-						}
-					}
-                }
-            }
-			return;
-		}
-		
-        // initialise any temporary storage for the light maps
-        if (!this.lightingImage || this.lightingImage.width != tilesAcross * TILE_SIZE || this.lightingImage.height !== tilesDown * TILE_SIZE) {
-            this.lightingImage = document.createElement("canvas");
-            this.lightingImage.width = tilesAcross * TILE_SIZE;
-            this.lightingImage.height = tilesDown * TILE_SIZE;
-            this.tempLightImage = document.createElement("canvas");
-            this.tempLightImage.width = tilesAcross * TILE_SIZE;
-            this.tempLightImage.height = tilesDown * TILE_SIZE;
-            this.lightMapDirty = true;
-        }
-        if (!this.lightMapImage || this.lightMapImage.width != tilesAcross || this.lightMapImage.height !== tilesDown) {
-            this.lightMapImage = document.createElement("canvas");
-            this.lightMapImage.width = tilesAcross;
-            this.lightMapImage.height = tilesDown;
-            this.lightMapDirty = true;
-        }
-
-        // only regenerate the whole light map if we've moved
-        if (this.lastLightMapX !== xp || this.lastLightMapY !== yp) {
-            this.lightMapDirty = true;
-        }
-        this.lastLightMapX = xp;
-        this.lastLightMapY = yp;
-
-        const context = new HtmlGraphics(this.lightingImage);
-
-        if (this.lightMapDirty) {
-            this.lightMapDirty = false;
-            
-            // render the light onto a pixel by pixel canvas, then scale it 
-            // up to get soft transitions. In GL we would have done this with 
-            // vertex colours but no such thing in pure Canvas
-            const lightMapContext = new HtmlGraphics(this.lightMapImage);
-
-            lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
-            lightMapContext.setCompositeOperation("source-over");
-            lightMapContext.setFillColor(0, 0, 0, 1);
-            for (let x = xp; x < xp + tilesAcross; x++) {
-                for (let y = yp; y < yp + tilesDown; y++) {
-                    const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
-                    const light = this.getLightMap(x, y);
-                    lightMapContext.setGlobalAlpha(1 - light);
-                    if (!this.isDiscovered(x, y)) {
-                        lightMapContext.setGlobalAlpha(1);
+                        const light = this.getLightMap(x, y);
+                        if (light < 1) {
+                            g.setFillColor(0, 0, 0, 1 - light);
+                            g.fillRect(Math.floor(screenX - offsetx) + (x - xp) * lightScale, Math.floor(screenY - offsety) + (y - yp) * lightScale, lightScale, lightScale);
+                        }
                     }
-
-                    lightMapContext.fillRect((x - xp)*lightScale, (y - yp)*lightScale, lightScale, lightScale);
                 }
             }
-
-            // scale the light up
-            context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
-            context.save();
-            context.scale(TILE_SIZE / lightScale, TILE_SIZE / lightScale);
-            context.drawCanvasImage(lightMapContext, 0, 0);
-            context.restore();
-
-            context.save();
-
-            // debug for light map
-            // const debugSize = 20;
-            // g.setFillColor(255, 255, 255, 1);
-            // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
-            // g.drawScaledImage({get:()=>this.lightingImage} as unknown as GraphicsImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
+            return;
         }
 
+        if (g.getType() === GraphicsType.CANVAS) {
+            // initialise any temporary storage for the light maps
+            if (!this.lightingImage || this.lightingImage.width != tilesAcross * TILE_SIZE || this.lightingImage.height !== tilesDown * TILE_SIZE) {
+                this.lightingImage = document.createElement("canvas");
+                this.lightingImage.width = tilesAcross * TILE_SIZE;
+                this.lightingImage.height = tilesDown * TILE_SIZE;
+                this.tempLightImage = document.createElement("canvas");
+                this.tempLightImage.width = tilesAcross * TILE_SIZE;
+                this.tempLightImage.height = tilesDown * TILE_SIZE;
+                this.lightMapDirty = true;
+            }
+            if (!this.lightMapImage || this.lightMapImage.width != tilesAcross || this.lightMapImage.height !== tilesDown) {
+                this.lightMapImage = document.createElement("canvas");
+                this.lightMapImage.width = tilesAcross;
+                this.lightMapImage.height = tilesDown;
+                this.lightMapDirty = true;
+            }
 
-        if (this.tempLightImage) {
-            // update anything that needs to be changed every frame and not only when we move from tile tile
-            const context2 = new HtmlGraphics(this.tempLightImage);
-            context2.clearRect(0,0,this.tempLightImage.width, this.tempLightImage.height);
+            // only regenerate the whole light map if we've moved
+            if (this.lastLightMapX !== xp || this.lastLightMapY !== yp) {
+                this.lightMapDirty = true;
+            }
+            this.lastLightMapX = xp;
+            this.lastLightMapY = yp;
 
-            context2.drawCanvasImage(context, 0, 0);
-            const gradient = context2.createRadialGradient(0, 0, 0, 0, 0, 256);
-            gradient.addColorStop(0, "rgba(0,0,0,255)");
-            gradient.addColorStop(1, "rgba(0,0,0,0)");
-            context2.save();
-            context2.setCompositeOperation("destination-out");
-            context2.setGradientFillStyle(gradient);
-            context2.translate(this.game.player.x - (screenX - offsetx) ,this.game.player.y - (screenY - offsety));
-            context2.beginPath();
-            context2.arc(0, 0, 256, 0, Math.PI * 2);
-            context2.fill();
-            context2.restore();
+            const context = new HtmlGraphics(this.lightingImage);
 
-            g.drawCanvasImage(context2, Math.floor(screenX - offsetx) ,Math.floor(screenY - offsety));
+            if (this.lightMapDirty) {
+                this.lightMapDirty = false;
+
+                // render the light onto a pixel by pixel canvas, then scale it 
+                // up to get soft transitions. In GL we would have done this with 
+                // vertex colours but no such thing in pure Canvas
+                const lightMapContext = new HtmlGraphics(this.lightMapImage);
+
+                lightMapContext.clearRect(0, 0, this.lightMapImage.width, this.lightMapImage.height);
+                lightMapContext.setCompositeOperation("source-over");
+                lightMapContext.setFillColor(0, 0, 0, 1);
+                for (let x = xp; x < xp + tilesAcross; x++) {
+                    for (let y = yp; y < yp + tilesDown; y++) {
+                        const tile = BLOCKS[this.getTile(x, y, Layer.FOREGROUND)];
+                        const light = this.getLightMap(x, y);
+                        lightMapContext.setGlobalAlpha(1 - light);
+                        if (!this.isDiscovered(x, y)) {
+                            lightMapContext.setGlobalAlpha(1);
+                        }
+
+                        lightMapContext.fillRect((x - xp) * lightScale, (y - yp) * lightScale, lightScale, lightScale);
+                    }
+                }
+
+                // scale the light up
+                context.clearRect(0, 0, this.lightingImage.width, this.lightingImage.height);
+                context.save();
+                context.scale(TILE_SIZE / lightScale, TILE_SIZE / lightScale);
+                context.drawCanvasImage(lightMapContext, 0, 0);
+                context.restore();
+
+                context.save();
+
+                // debug for light map
+                // const debugSize = 20;
+                // g.setFillColor(255, 255, 255, 1);
+                // g.fillRect(screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
+                // g.drawScaledImage({get:()=>this.lightingImage} as unknown as GraphicsImage, screenX + 200, screenY + 200, tilesAcross * debugSize, tilesDown * debugSize);
+            }
+
+
+            if (this.tempLightImage) {
+                // update anything that needs to be changed every frame and not only when we move from tile tile
+                const context2 = new HtmlGraphics(this.tempLightImage);
+                context2.clearRect(0, 0, this.tempLightImage.width, this.tempLightImage.height);
+
+                context2.drawCanvasImage(context, 0, 0);
+                const gradient = context2.createRadialGradient(0, 0, 0, 0, 0, 256);
+                gradient.addColorStop(0, "rgba(0,0,0,255)");
+                gradient.addColorStop(1, "rgba(0,0,0,0)");
+                context2.save();
+                context2.setCompositeOperation("destination-out");
+                context2.setGradientFillStyle(gradient);
+                context2.translate(this.game.player.x - (screenX - offsetx), this.game.player.y - (screenY - offsety));
+                context2.beginPath();
+                context2.arc(0, 0, 256, 0, Math.PI * 2);
+                context2.fill();
+                context2.restore();
+
+                g.drawCanvasImage(context2, Math.floor(screenX - offsetx), Math.floor(screenY - offsety));
+            }
         }
-
     }
 }

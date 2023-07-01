@@ -21,7 +21,7 @@ export const RESOURCES = importAll(require.context('../', true, /.{3}.(png|mp3)$
 const reportedErrors: Record<string, boolean> = {};
 
 /** The collection of all sprites loaded by the game */
-export const sprites: Record<string, GraphicsImage> = {};
+export const SPRITES: Record<string, GraphicsImage> = {};
 /** The collection of all sound effects loaded by the game */
 const sfx: Record<string, ArrayBuffer> = {};
 /** The audio elements changed to sources for the audio context */
@@ -39,11 +39,11 @@ let loadedCount = 0;
  */
 function loadImage(name: string, resource: string): GraphicsImage {
     const image = new GraphicsImage(name, new Image());
-    sprites[name] = image;
+    SPRITES[name] = image;
     image.get().src = RESOURCES[resource];
     image.get().onload = () => { loadedCount--; };
     loadedCount++;
-    return sprites[name];
+    return SPRITES[name];
 }
 
 /**
@@ -55,11 +55,11 @@ function loadImage(name: string, resource: string): GraphicsImage {
  */
 export function loadImageFromUrl(name: string, url: string): GraphicsImage {
     const image = new GraphicsImage(name, new Image());
-    sprites[name] = image;
+    SPRITES[name] = image;
     image.get().src = url;
     image.get().onload = () => { loadedCount--; };
     loadedCount++;
-    return sprites[name];
+    return SPRITES[name];
 }
 
 /**
@@ -123,11 +123,11 @@ function loadSfx(name: string, resource: string): void {
  * @returns The sprite or undefined if the sprite couldn't be found
  */
 export function getSprite(name: string): GraphicsImage {
-    if (!sprites[name] && !reportedErrors[name]) {
+    if (!SPRITES[name] && !reportedErrors[name]) {
         reportedErrors[name] = true;
         console.error("Couldn't locate sprite with name: " + name);
     }
-    return sprites[name];
+    return SPRITES[name];
 }
 
 /**
@@ -188,7 +188,7 @@ export function playSfx(name: string, volume: number, variations: number | null 
             playBuffer(audioBuffers[variationName], volume);
         }
     } else {
-        if (!sprites[name] && !reportedErrors[variationName]) {
+        if (!SPRITES[name] && !reportedErrors[variationName]) {
             reportedErrors[variationName] = true;
             console.log("Couldn't locate sfx with name: " + variationName);
         }
