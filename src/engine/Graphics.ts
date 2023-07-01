@@ -513,8 +513,6 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
     private canvas: HTMLCanvasElement;
     /** The graphics context from the canvas */
     private gl: WebGLRenderingContext;
-    /** All images in the game. */
-	private images: Record<string, GraphicsImage> = {};
     /** Store data for all draws, to send to webgl. */
 	private positions: Int16Array;
 	private rotations: Float32Array;
@@ -536,15 +534,20 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 	private transforms: any[] = [];
     /** The current color for rectangles/text. */
 	private rgba: number = 0xFFFFFF7F;
+    /** The alpha for everything. Pass in 0-1 but it's 0-128 instead of 0-255 because I'm saving 2 bytes to show superbright images if you go over. */
+	private alpha: number = 128;
     /** The current transform values. */
 	private translateX: number = 0;
 	private translateY: number = 0;
 	private scaleX: number = 1;
 	private scaleY: number = 1;
 	private rotation: number = 0;
+    /** The current text drawing values. */
+	private fontSize: number = 16;
+	private textAlign: CanvasTextAlign = 'left';
 	
     isReady(): boolean {
-		return this.texWidth > 0
+		return (this.texWidth > 0);
     }
 	
 	/**
@@ -552,19 +555,16 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 	 * Renders all drawImage calls that happened since the last time you called render()
 	 */
 	render() {
-		var gl = this.gl
-		
-		// Clear the canvas.
-		gl.clear(gl.COLOR_BUFFER_BIT)
+		var gl = this.gl;
 		
 		// Only send to gl the amount slots in our arrayBuffer that we used this frame.
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.rgbas.subarray(0, this.draws*6))
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.rgbas.subarray(0, this.draws * 6));
 		
 		// Draw everything. 6 is because 2 triangles make a rectangle.
-		this.extension.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, this.draws)
+		this.extension.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, this.draws);
 		
 		// Go back to index 0 of our arrayBuffer, since we overwrite its slots every frame.
-		this.draws = 0
+		this.draws = 0;
 	}
 	
 	/**
@@ -572,80 +572,79 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 	 */
 	doneLoadingImages(images: Record<string, GraphicsImage>): void {
 		// Sort images by tallest. For my cheap texture packing algo.
-		let list = []
+		let list = [];
 		for(var name in images) {
-			let image = images[name]
-			list.push(image)
+			let image = images[name];
+			list.push(image);
 		}
-		list.sort((a,b) => a.getHeight() > b.getHeight() ? -1: 1)
+		list.sort((a,b) => a.getHeight() > b.getHeight() ? -1: 1);
 		
 		// Assume everything fits in a 2048x2048 image.
 		var canvas = document.createElement('canvas')
 		canvas.width = canvas.height = 2048
 		
 		// Top left pixel is white so fillRect can stretch and tint that pixel to any color and size.
-		var pen = canvas.getContext('2d') as CanvasRenderingContext2D
-		pen.fillStyle = '#FFF'
-		pen.fillRect(0, 0, 1, 1)
+		var pen = canvas.getContext('2d') as CanvasRenderingContext2D;
+		pen.fillStyle = '#FFF';
+		pen.fillRect(0, 0, 1, 1);
 		
 		// Pack all images into 1 texture.
-		var x = 2, y = 0, rowHeight = 0
+		var x = 2, y = 0, rowHeight = 0;
 		for(var image of list) {
 			if(x + image.getWidth() > canvas.width) {
-				x = 0
-				y += rowHeight
-				rowHeight = 0
+				x = 0;
+				y += rowHeight;
+				rowHeight = 0;
 			}
 			if(!rowHeight) {
-				rowHeight = image.getHeight()
+				rowHeight = image.getHeight();
 			}
-			image.texX = x
-			image.texY = y
-			pen.drawImage(image.get(), x, y)
-			x += image.getWidth()
+			image.texX = x;
+			image.texY = y;
+			pen.drawImage(image.get(), x, y);
+			x += image.getWidth();
 		}
 		
-		this.loadTexFromCanvas(canvas)
-		document.body.appendChild(canvas)
+		this.loadTexFromCanvas(canvas);
 	}
 
 	/**
 	 * Sets the game's texture. Can be called mid-game to change all the artwork.
 	 */
 	loadTexFromCanvas(canvas: HTMLCanvasElement) {
-		var gl = this.gl
+		var gl = this.gl;
 		
 		// Create a gl texture from image file.
-		gl.bindTexture(gl.TEXTURE_2D, gl.createTexture())
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas)
-		gl.generateMipmap(gl.TEXTURE_2D)
-		gl.activeTexture(gl.TEXTURE0)
+		gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+		gl.generateMipmap(gl.TEXTURE_2D);
+		gl.activeTexture(gl.TEXTURE0);
 		
 		// Tell gl that when draw images scaled up, keep it pixellated and don't smooth it.
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		
 		// Store texture size in vertex shader.
-		this.texWidth = canvas.width
-		this.texHeight = canvas.height
-		gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uTexSize"), this.texWidth, this.texHeight)
+		this.texWidth = canvas.width;
+		this.texHeight = canvas.height;
+		gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uTexSize"), this.texWidth, this.texHeight);
 		
-		this.resize()
+		this.resize();
 	}
 	
 	/**
 	 * Keeps everything full screen. Call when browser resizes.
 	 */
 	resize() {
-		var gl = this.gl
+		var gl = this.gl;
 		
 		// Resize the gl viewport to be the new size of the canvas.
-		gl.viewport(0, 0, this.canvas.width, this.canvas.height)
+		gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 		
 		// Update the shader variables for canvas size.
 		// Sending it to gl now so we don't have to do the math in JavaScript on every draw,
 		// since gl wants to draw at a position from 0 to 1, and we want to do drawImage with a screen pixel position.
-		gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uCanvasSize"), this.canvas.width/2, this.canvas.height/2)
+		gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uCanvasSize"), this.canvas.width/2, this.canvas.height/2);
 	}
 	
 	/**
@@ -758,7 +757,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 		var floatsPerImageRotation = 1
 		
 		// Total bytes stored into arrayBuffer per image = 24
-		var bytesPerImage = shortsPerImagePosition*2 + shortsPerImageSize*2 + shortsPerImageTexPos*2 + bytesPerImageRgba + floatsPerImageRotation*4
+		var bytesPerImage = shortsPerImagePosition * 2 + shortsPerImageSize * 2 + shortsPerImageTexPos * 2 + bytesPerImageRgba + floatsPerImageRotation * 4
 		
 		// Make a buffer big enough to have all the data for the max images we can show at the same time.
 		var arrayBuffer = new ArrayBuffer(this.maxDraws * bytesPerImage)
@@ -824,9 +823,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * Save the current state so it can be restored later. push/pop style
      */
     save(): void {
-		this.transforms = []
-		this.states.push(this.transforms)
-		if(this.states.length > 99)console.error("save() without restore()!")
+		this.transforms = [];
+		this.states.push(this.transforms);
+		if(this.states.length > 99)console.error("save() without restore()!");
     }
 
     /**
@@ -834,31 +833,34 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      */
     restore(): void {
 		// Remove last state.
-		this.states.pop()
-		this.transforms = this.states[this.states.length-1]
+		this.states.pop();
+		this.transforms = this.states[this.states.length-1];
 		
 		// Reset.
-		this.translateX = this.translateY = this.rotation = 0
-		this.scaleX = this.scaleY = 1
+		this.translateX = this.translateY = this.rotation = 0;
+		this.scaleX = this.scaleY = 1;
 		
 		// Reapply all transforms.
 		for(var transforms of this.states) {
 			for(var transform of transforms) {
-				var name = transform[0]
+				var name = transform[0];
 				if(name == 'translate') {
-					this._translate(transform[1], transform[2])
+					this._translate(transform[1], transform[2]);
 				} else if(name == 'scale') {
-					this.scaleX *= transform[1]
-					this.scaleY *= transform[2]
+					this.scaleX *= transform[1];
+					this.scaleY *= transform[2];
 				} else if(name == 'rotate') {
-					this.rotation += transform[1]
+					this.rotation += transform[1];
 				}
 			}
 		}
     }
 
     clearScreen(r: number, g: number, b: number) {
-		this.gl.clearColor(r / 255, g / 255, b / 255, 1)
+		this.gl.clearColor(r / 255, g / 255, b / 255, 1);
+		
+		// Clear the canvas.
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 	}
 	
     /**
@@ -869,7 +871,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param a is 0-1
      */
     setFillColor(r:number, g:number, b:number, a:number) {
-        this.rgba = (r * 16777216) | (g << 16) | (b << 8) | (a * 128);
+        this.rgba = (r * 16777216) + (g << 16) + (b << 8) + Math.floor(a * 128);
     }
 
     /**
@@ -881,7 +883,12 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param height The height of the rectangle
      */
     fillRect(x: number, y: number, width: number, height: number): void {
-		this._drawImage(0, 0, 1, 1, x, y, width, height, this.rgba)
+		var rgba = this.rgba
+		if(this.alpha != 128) {
+			// Multiply this.rgba alhpa with globalAlpha.
+			rgba = Math.floor(rgba / 255) * 255 + Math.floor((rgba % 255) * this.alpha / 128)
+		}
+		this._drawImage(0, 0, 1, 1, x, y, width, height, rgba)
     }
 
     /**
@@ -938,10 +945,10 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 		this.transforms.push(["translate",x,y])
     }
 	_translate(x:number, y:number) {
-		x *= this.scaleX
-		y *= this.scaleY
-		this.translateX += x * Math.cos(this.rotation) + y * Math.sin(this.rotation)
-		this.translateY += y * Math.cos(this.rotation) + x * Math.sin(this.rotation)
+		x *= this.scaleX;
+		y *= this.scaleY;
+		this.translateX += x * Math.cos(this.rotation) + y * Math.sin(this.rotation);
+		this.translateY += y * Math.cos(this.rotation) + x * Math.sin(this.rotation);
 	}
 
     /**
@@ -954,7 +961,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param height The height to draw the image
      */
     drawScaledImage(img: GraphicsImage, x: number, y: number, width: number, height: number) {
-		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, width, height, 0xFFFFFF7F)
+		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, width, height, 0xFFFFFF00 + this.alpha);
     }
 
     /**
@@ -965,7 +972,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The y coordinate to draw the image at
      */
     drawImage(img: GraphicsImage, x: number, y: number) {
-		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth(), img.getHeight(), 0xFFFFFF7F)
+		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth(), img.getHeight(), 0xFFFFFF00 + this.alpha);
     }
 
     /**
@@ -984,6 +991,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param alpha The alpha value to use
      */
     setGlobalAlpha(alpha: number): void {
+		this.alpha = Math.floor(alpha * 128);
     }
 
     /**
@@ -992,6 +1000,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param font The font definition (in CSS format)
      */
     setFont(font: string): void {
+		this.fontSize = parseInt(font) || 16;
     }
 
     /**
@@ -1002,9 +1011,33 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The y coordinate to draw the image at
      */
     fillText(text: string, x: number, y: number): void {
+		text = text.toUpperCase();
+		
+		var h = this.fontSize * .55;
+		var w = h / 2;
+		var spacing = w * 1.2;
+		var textWidth = text.length * spacing;
+		if(this.textAlign == 'center') {
+			x -= textWidth / 2;
+		} else if(this.textAlign == 'right') {
+			x -= textWidth;
+		}
+		y -= h;
+		
+		var fat = 3;
 		for(var i = 0; i < text.length; i++) {
-			this.fillRect(x, y, 9, 15);
-			x += 11;
+			//we don't have a bitmap font yet so just draw rectangles.
+			var letter = text[i];
+			'AHJMNOQUVW034789'.includes(letter) && this.fillRect(x+w-fat, y, fat, h);
+			'BCDEGJLOQSUVWZ023568'.includes(letter) && this.fillRect(x, y+h-fat, w, fat);
+			'ABCDEFGMNOPQRSTZ02356789'.includes(letter) && this.fillRect(x, y, w, fat);
+			'IMTWY1'.includes(letter) && this.fillRect(x+w/2-1, y+fat, fat, h-fat);
+			'ABEFHKPRSXYZ2345689'.includes(letter) && this.fillRect(x, y+h/2-fat, w, fat);
+			'BDGKRSX56'.includes(letter) && this.fillRect(x+w-fat, y+h-3, fat, -h/2+3);
+			'BDKPRXYZ2'.includes(letter) && this.fillRect(x+w-fat, y+3, fat, h/2-3);
+			'ABCDEFGHKLMNOPQRUVW068SXY459'.includes(letter) && this.fillRect(x, y, fat, h/2);
+			'ABCDEFGHKLMNOPQRUVW068JXZ2'.includes(letter) && this.fillRect(x, y+h, fat, -h/2);
+			x += spacing;
 		}
     }
 
@@ -1014,6 +1047,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param align The alignment of the text 
      */
     setTextAlign(align: CanvasTextAlign): void {
+        this.textAlign = align;
     }
 
     /**
@@ -1022,8 +1056,8 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param ang The angle to rotate by in radians
      */
     rotate(ang: number): void {
-		this.rotation += ang
-		this.transforms.push(["rotate",ang])
+		this.rotation += ang;
+		this.transforms.push(["rotate", ang]);
     }
 
     /**
@@ -1033,9 +1067,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The amount to scale y axis by
      */
     scale(x: number, y: number): void {
-		this.scaleX *= x
-		this.scaleY *= y
-		this.transforms.push(["scale",x,y])
+		this.scaleX *= x;
+		this.scaleY *= y;
+		this.transforms.push(["scale", x, y]);
     }
 
     /**
@@ -1068,7 +1102,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param r1 The radius of the end circle
      */
     createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): GraphicsGradient {
-		return 0 as unknown as GraphicsGradient
+		return 0 as unknown as GraphicsGradient;
     }
 
     /**
