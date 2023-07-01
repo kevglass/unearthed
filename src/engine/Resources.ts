@@ -46,6 +46,13 @@ function loadImage(name: string, resource: string): GraphicsImage {
     return sprites[name];
 }
 
+/**
+ * Load a sprite into the resources cache from a specific URL
+ * 
+ * @param name The name to give the sprite in the cache
+ * @param url The path to the resource
+ * @returns The newly created image/sprite
+ */
 export function loadImageFromUrl(name: string, url: string): GraphicsImage {
     const image = new GraphicsImage(name, new Image());
     sprites[name] = image;
@@ -53,6 +60,33 @@ export function loadImageFromUrl(name: string, url: string): GraphicsImage {
     image.get().onload = () => { loadedCount--; };
     loadedCount++;
     return sprites[name];
+}
+
+/**
+ * Load a sound effect into the resources cache from a specific URL
+ * 
+ * @param name The name to give the sound effect in the cache
+ * @param url The path to the resource
+ */
+export function loadSfxFromUrl(name: string, url: string): void {
+    loadedCount++;
+
+    var req = new XMLHttpRequest();
+    req.open("GET", url, true);
+    req.responseType = "arraybuffer";
+
+    req.onload = (event) => {
+        var arrayBuffer = req.response;
+        if (arrayBuffer) {
+            sfx[name] = arrayBuffer;
+        }
+        loadedCount--;
+    };
+    req.onerror = () => {
+        alert("Error loading: " + name);
+    }
+
+    req.send();
 }
 
 /**
@@ -91,7 +125,7 @@ function loadSfx(name: string, resource: string): void {
 export function getSprite(name: string): GraphicsImage {
     if (!sprites[name] && !reportedErrors[name]) {
         reportedErrors[name] = true;
-        console.log("Couldn't locate sprite with name: " + name);
+        console.error("Couldn't locate sprite with name: " + name);
     }
     return sprites[name];
 }

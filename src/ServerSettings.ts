@@ -1,3 +1,4 @@
+
 import { Game } from "./Game";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
@@ -25,19 +26,21 @@ export class ServerSettings {
         return this.serverMods;
     }
 
-    addMod(modData: Record<string, string>): void {
+    addMod(modData: Record<string, string>, updateUiAndConfig: boolean): void {
         try {
             const script = modData["mod.js"];
             if (script) {
                 const potentialMod = eval(script) as ServerMod;
 
                 if (potentialMod.name) {
-                    this.config.modScripts.push(modData);
                     const modRecord = { mod: potentialMod, inited: false, resources:modData };
                     this.serverMods.mods.push(modRecord);
 
-                    this.save();
-                    this.game.ui.addMod(modRecord);
+                    if (updateUiAndConfig) {
+                        this.config.modScripts.push(modData);
+                        this.save();
+                        this.game.ui.addMod(modRecord);
+                    }
                 }
             } else {
                 console.error("No mod.js file found in zip");   
@@ -75,10 +78,15 @@ export class ServerSettings {
         localStorage.setItem("serverSettings",  JSON.stringify(this.config));
 
         if (this.game.network) {
-            // don't send the mod scripts around (at least not yet)
-            const transmitConfig = JSON.parse(JSON.stringify(this.config));
-            transmitConfig.modScripts = [];
-            this.game.network.sendServerSettings(transmitConfig);
+            this.game.network.sendServerSettings(this.config);
+        }
+    }
+
+    loadModsFrom(config: ServerConfig): void {
+        const modsToLoad = config.modScripts;
+
+        for (const mod of modsToLoad) {
+            this.addMod(mod, false);
         }
     }
 
@@ -91,7 +99,7 @@ export class ServerSettings {
             this.config.modScripts = [];
 
             for (const mod of modsToLoad) {
-                this.addMod(mod);
+                this.addMod(mod, true);
             }
         }
     }

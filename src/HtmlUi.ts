@@ -110,7 +110,7 @@ export class HtmlUi {
                             modData[path] = value;
                             count--;
                             if (count === 0) {
-                                this.game.serverSettings.addMod(modData);
+                                this.game.serverSettings.addMod(modData, true);
                             }
                         });
                     });
