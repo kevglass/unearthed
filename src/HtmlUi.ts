@@ -275,6 +275,9 @@ export class HtmlUi {
         document.getElementById("controllerButton")!.addEventListener("click", () => {
             this.game.startControllerSetup();
         })
+        document.getElementById("keyboardSetupButton")!.addEventListener("click", () => {
+            this.game.startKeyboardSetup();
+        })
 
 
 

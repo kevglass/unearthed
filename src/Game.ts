@@ -10,7 +10,7 @@ import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoa
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
 import { Controller, ControllerListener } from "./engine/Controller";
-import { ControllerButtons, CONTROLLER_SETUP_STEPS } from "./ControllerSetup";
+import { ControllerButtons, CONTROLLER_SETUP_STEPS, KeyControls, KEYS_SETUP_STEPS, ControllerSetupStep } from "./ControllerSetup";
 import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
@@ -106,6 +106,8 @@ export class Game implements ControllerListener {
     gamepadUsedToDig: boolean = false;
     /** The controller setup step */
     controllerSetupStep: number = -1;
+    /** The controller setup steps we're going through */
+    controllerSetupSteps: ControllerSetupStep[] = [];
     /** Server settings */
     serverSettings: ServerSettings;
 
@@ -116,6 +118,17 @@ export class Game implements ControllerListener {
         layer: 3,
         trigger: 4
     };
+
+    keyControls: KeyControls = {
+        up: "w",
+        down: "s",
+        left: "a",
+        right: "d",
+        next: "e",
+        prev: "q",
+        layer: "x",
+        trigger: "r"
+    }
 
     constructor() {
         loadAllResources();
@@ -282,6 +295,14 @@ export class Game implements ControllerListener {
     startControllerSetup(): void {
         document.getElementById("connect")!.style.display = "none";
         document.getElementById("settingsPanel")!.style.display = "none";
+        this.controllerSetupSteps = CONTROLLER_SETUP_STEPS;
+        this.controllerSetupStep = 0;
+    }
+
+    startKeyboardSetup(): void {
+        document.getElementById("connect")!.style.display = "none";
+        document.getElementById("settingsPanel")!.style.display = "none";
+        this.controllerSetupSteps = KEYS_SETUP_STEPS;
         this.controllerSetupStep = 0;
     }
 
@@ -312,9 +333,8 @@ export class Game implements ControllerListener {
     configureEventHandlers() {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
-            if (this.controllerSetupStep >= 0) {
+            if (this.controllerSetupStep >= 0 && event.key === "Escape") {
                 this.controllerSetupStep = -1;
-                alert("hereL: " + this.controllerSetupStep);
                 document.getElementById("settingsPanel")!.style.display = "block";
                 return;
             }
@@ -341,19 +361,19 @@ export class Game implements ControllerListener {
             }
 
             // Pressing Q/E cycles through cycles through the inventory
-            if (event.key === 'q') {
+            if (event.key === this.keyControls.prev) {
                 this.prevInventItem();
             }
-            if (event.key === 'e') {
+            if (event.key === this.keyControls.next) {
                 this.nextInventItem();
             }
 
             // Pressing X changes the layer we're targeting
-            if (event.key === 'x') {
+            if (event.key === this.keyControls.layer) {
                 this.togglePlacementLayer();
             }
 
-            if (event.key === 'r') {
+            if (event.key === this.keyControls.trigger) {
                 this.trigger();
                 event.preventDefault();
                 event.stopPropagation();
@@ -533,9 +553,9 @@ export class Game implements ControllerListener {
             // pretend W was pressed
             if (x > this.canvas.width - 180 && yp === 1) {
                 // up
-                this.keyDown['w'] = true;
-                this.keyDown['s'] = false;
-                this.keyDown['r'] = false;
+                this.keyDown[this.keyControls.up] = true;
+                this.keyDown[this.keyControls.down] = false;
+                this.keyDown[this.keyControls.trigger] = false;
                 this.jumpTouchId = touchId;
                 return true;
             }
@@ -543,9 +563,9 @@ export class Game implements ControllerListener {
             // pretend S was pressed
             if (x > this.canvas.width - 360 && yp === 1) {
                 // down
-                this.keyDown['s'] = true;
-                this.keyDown['w'] = false;
-                this.keyDown['r'] = false;
+                this.keyDown[this.keyControls.down] = true;
+                this.keyDown[this.keyControls.up] = false;
+                this.keyDown[this.keyControls.trigger] = false;
                 this.jumpTouchId = touchId;
                 return true;
             }
@@ -553,10 +573,10 @@ export class Game implements ControllerListener {
             // pretend R was pressed
             if (x > this.canvas.width - 520 && yp === 1) {
                 // trigger
-                this.keyDown['s'] = false;
-                this.keyDown['w'] = false;
-                if (this.keyDown['r'] === false) {
-                    this.keyDown['r'] = true;
+                this.keyDown[this.keyControls.down] = false;
+                this.keyDown[this.keyControls.up] = false;
+                if (this.keyDown[this.keyControls.trigger] === false) {
+                    this.keyDown[this.keyControls.trigger] = true;
                     this.trigger();
                 }
 
@@ -568,8 +588,8 @@ export class Game implements ControllerListener {
             // pretend A was pressed
             if (xp == 0 && yp === 1) {
                 // left
-                this.keyDown['a'] = true;
-                this.keyDown['d'] = false;
+                this.keyDown[this.keyControls.left] = true;
+                this.keyDown[this.keyControls.right] = false;
                 this.controllerTouchId = touchId;
                 return true;
             }
@@ -577,8 +597,8 @@ export class Game implements ControllerListener {
             // pretend D was pressed
             if (xp == 1 && yp === 1) {
                 // right
-                this.keyDown['d'] = true;
-                this.keyDown['a'] = false;
+                this.keyDown[this.keyControls.right] = true;
+                this.keyDown[this.keyControls.left] = false;
                 this.controllerTouchId = touchId;
                 return true;
             }
@@ -603,14 +623,14 @@ export class Game implements ControllerListener {
             this.mouseButtonDown[0] = false;
         }
         if (touchId === this.jumpTouchId) {
-            this.keyDown['w'] = false;
-            this.keyDown['s'] = false;
-            this.keyDown['r'] = false;
+            this.keyDown[this.keyControls.up] = false;
+            this.keyDown[this.keyControls.down] = false;
+            this.keyDown[this.keyControls.trigger] = false;
             this.jumpTouchId = 0;
         }
         if (touchId === this.controllerTouchId) {
-            this.keyDown['a'] = false;
-            this.keyDown['d'] = false;
+            this.keyDown[this.keyControls.left] = false;
+            this.keyDown[this.keyControls.right] = false;
             this.controllerTouchId = 0;
         }
     }
@@ -743,16 +763,16 @@ export class Game implements ControllerListener {
                 this.player.localUpdate();
 
                 // update controls for the the player so network state can be sent
-                if (this.keyDown["d"] || this.gamepad.right) {
+                if (this.keyDown[this.keyControls.right] || this.gamepad.right) {
                     this.player.controls.right = true;
                 }
-                if (this.keyDown["a"] || this.gamepad.left) {
+                if (this.keyDown[this.keyControls.left] || this.gamepad.left) {
                     this.player.controls.left = true;
                 }
-                if (this.keyDown["s"] || this.gamepad.down) {
+                if (this.keyDown[this.keyControls.down] || this.gamepad.down) {
                     this.player.controls.down = true;
                 }
-                if (this.keyDown[" "] || this.keyDown["w"] || this.gamepad.up || this.gamepad.buttons[this.controllerButtons.jump]) {
+                if (this.keyDown[this.keyControls.up] || this.gamepad.up || this.gamepad.buttons[this.controllerButtons.jump]) {
                     this.player.controls.up = true;
                 }
 
@@ -783,6 +803,16 @@ export class Game implements ControllerListener {
                 // do nothing, invalid JSON
             }
         }
+
+        const keysetup = localStorage.getItem("keysetup");
+        if (keysetup) {
+            try {
+                const setup = JSON.parse(keysetup);
+                Object.assign(this.keyControls, setup);
+            } catch (e) {
+                // do nothing, invalid JSON
+            }
+        }
     }
 
     /**
@@ -795,6 +825,8 @@ export class Game implements ControllerListener {
         };
 
         localStorage.setItem("controller", JSON.stringify(setup));
+
+        localStorage.setItem("keysetup", JSON.stringify(this.keyControls));
     }
 
     /**
@@ -881,19 +913,19 @@ export class Game implements ControllerListener {
             this.g.save();
             this.g.translate(5, 5);
             this.g.setFont("120px KenneyFont");
-            this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), this.canvas.width / 2, 400);
+            this.g.fillText(this.controllerSetupSteps[this.controllerSetupStep].getLabel(), this.canvas.width / 2, 400);
             this.g.setFont("60px KenneyFont");
             this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
             this.g.restore();
             this.g.setFillColor(255, 255, 255, 1);
             this.g.setFont("120px KenneyFont");
-            this.g.fillText(CONTROLLER_SETUP_STEPS[this.controllerSetupStep].getLabel(), (this.canvas.width / 2), 400);
+            this.g.fillText(this.controllerSetupSteps[this.controllerSetupStep].getLabel(), (this.canvas.width / 2), 400);
             this.g.setFont("60px KenneyFont");
             this.g.fillText("(or press escape to cancel)", this.canvas.width / 2, 600);
 
-            if (CONTROLLER_SETUP_STEPS[this.controllerSetupStep].check(this)) {
+            if (this.controllerSetupSteps[this.controllerSetupStep].check(this)) {
                 this.controllerSetupStep++;
-                if (this.controllerSetupStep >= CONTROLLER_SETUP_STEPS.length) {
+                if (this.controllerSetupStep >= (this.controllerSetupSteps.length)) {
                     this.controllerSetupStep = -1;
                     this.saveControllerSetup();
                     document.getElementById("settingsPanel")!.style.display = "block";

@@ -147,6 +147,20 @@ input {
 	background-image: url(soundisoff.png);
 }
 
+#keyboardSetupButton:active {
+    margin-top: 23px;
+}
+
+#keyboardSetupButton {
+	width: 40px;
+	height: 40px;
+	position: static;
+	margin: 20px;
+	background-image: url(keyboard.png);
+	background-size: cover;
+}
+
+
 #controllerButton:active {
     margin-top: 23px;
 }

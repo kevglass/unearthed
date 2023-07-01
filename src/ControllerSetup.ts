@@ -107,6 +107,52 @@ export class ButtonSetupStep implements ControllerSetupStep {
     }
 }
 
+export class KeySetupStep implements ControllerSetupStep {
+    label: string;
+    key: string;
+    hasBeenClear: boolean = false;
+
+    /**
+     * Get the message to display to the user during this step
+     * 
+     * @return The message to display to the user
+     */
+    constructor(label: string, key: string) {
+        this.label = label;
+        this.key = key;
+    }
+
+    /**
+     * Get the message to display to the user during this step
+     * 
+     * @return The message to display to the user
+     */
+    getLabel(): string {
+        return this.label;
+    }
+    
+    check(game: Game): boolean {
+        let keyDown = undefined;
+
+        for (const k of Object.keys(game.keyDown)) {
+            if (game.keyDown[k]) {
+                keyDown = k;
+            }
+        }
+
+        if (keyDown) {
+            if (this.hasBeenClear) {
+                (game.keyControls as any)[this.key] = keyDown;
+                return true;
+            }
+        } else {
+            this.hasBeenClear = true;
+        }
+        
+        return false;
+    }
+
+}
 /**
  * The index of controller buttons that are configured
  */
@@ -123,6 +169,24 @@ export interface ControllerButtons {
     trigger: number;
 }
 
+export interface KeyControls {
+    /** The next item button */
+    up: string;
+    /** The next item button */
+    down: string;
+    /** The next item button */
+    left: string;
+    /** The next item button */
+    right: string;
+    /** The next item button */
+    next: string;
+    /** The previous item button */
+    prev: string;
+    /** The toggle place layer button */
+    layer: string;
+    /** The trigger item button */
+    trigger: string;
+}
 /**
  * The steps for the user to follow for configuring a controller
  */
@@ -136,4 +200,15 @@ export const CONTROLLER_SETUP_STEPS: ControllerSetupStep[] = [
     new ButtonSetupStep("Press Next Item Button!", "next"),
     new ButtonSetupStep("Press Layer Switch Button!", "layer"),
     new ButtonSetupStep("Press Trigger Button!", "trigger"),
+];
+
+export const KEYS_SETUP_STEPS: ControllerSetupStep[] = [
+    new KeySetupStep("Press the Key For Up!", "up"),
+    new KeySetupStep("Press the Key For Down!", "down"),
+    new KeySetupStep("Press the Key For Left!", "left"),
+    new KeySetupStep("Press the Key For Right!", "right"),
+    new KeySetupStep("Press the Key For Next Item!", "next"),
+    new KeySetupStep("Press the Key For Previous Item!", "prev"),
+    new KeySetupStep("Press the Key For Layer Switch!", "layer"),
+    new KeySetupStep("Press the Key For Triggering!", "trigger"),
 ];
