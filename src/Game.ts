@@ -129,7 +129,7 @@ export class Game implements ControllerListener {
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
 		
-		if(1) {
+		if(0) {
 			this.g = new WebglGraphics(this.canvas);
 		} else {
 			this.g = new HtmlGraphics(this.canvas);
