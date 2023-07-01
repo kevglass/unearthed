@@ -7,7 +7,6 @@ import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
 import { renderAndUpdateParticles } from "./engine/Particles";
 import { confirmAudioContext, getSprite, loadAllResources, playSfx, resourcesLoaded, SPRITES } from "./engine/Resources";
-import { HUMAN_SKELETON } from "./Skeletons";
 import { v4 as uuidv4 } from 'uuid';
 import { createServerId } from "./util/createServerId";
 import { Controller, ControllerListener } from "./engine/Controller";
@@ -16,6 +15,7 @@ import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
 import { initInventory } from "./InventItem";
+import { getSkeleton } from "./Skeletons";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -175,7 +175,7 @@ export class Game implements ControllerListener {
         this.serverSettings.load();
 
         // create the local player and configure and skin settings
-        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, HUMAN_SKELETON, 200, (SKY_HEIGHT - 6) * TILE_SIZE);
+        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, getSkeleton("human"), 200, (SKY_HEIGHT - 6) * TILE_SIZE);
 
         const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {

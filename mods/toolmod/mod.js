@@ -1,4 +1,5 @@
 const mod = {
+    id: "wand",
     name: "Wand Mod",
     chatName: "Wand",
     version: 1,

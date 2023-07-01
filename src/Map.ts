@@ -42,7 +42,8 @@ for (let i = 0; i < totalSize; i++) {
 export interface GameMapMetaData {
     /** A list of all portals */
     portals: Portal[];
-
+    /** Data that mods have stored */
+    modData: Record<string, any>;
 }
 /**
  * The game map consists of two tile layers (foreground and background) and a cached
@@ -72,7 +73,8 @@ export class GameMap {
     game: Game;
     /** The meta data associated with this map */
     metaData: GameMapMetaData = {
-        portals: []
+        portals: [],
+        modData: {}
     };
     /** The light overall image */
     lightingImage?: HTMLCanvasElement;
@@ -130,7 +132,8 @@ export class GameMap {
         this.lightMap = [];
         this.timers = [];
         this.metaData = {
-            portals: []
+            portals: [],
+            modData: {}
         };
         for (let i = 0; i < DEFAULT_MAP.length; i++) {
             this.foreground.push(0);

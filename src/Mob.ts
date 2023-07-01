@@ -199,7 +199,7 @@ export class Mob {
         return {
             seq: this.seq,
             id: this.id,
-            x: this.x, 
+            x: this.x,
             y: this.y,
             vy: this.vy,
             flip: this.flip,
@@ -213,6 +213,21 @@ export class Mob {
             itemHeld: this.itemHeld,
             bodyParts: this.bodyParts,
         };
+    }
+
+    /**
+     * Set the control state
+     * 
+     * @param left True if the left button is being pressed
+     * @param right True if the right button is being pressed
+     * @param up True if the up button is being pressed
+     * @param down True if the down button is being pressed
+     */
+    setControls(left: boolean, right: boolean, up: boolean, down: boolean) {
+        this.controls.left = left;
+        this.controls.right = right;
+        this.controls.up = up;
+        this.controls.down = down;
     }
 
     /**
@@ -230,14 +245,32 @@ export class Mob {
     blockedRight(): boolean {
         const stepSize = this.height / 5;
         let count = 0;
-        for (let s=0;s<(this.height * 2);s+=stepSize) {
+        let blocked = false;
+
+        const tiles = [];
+        let lastx = -1;
+        let lasty = -1;
+        for (let s = 0; s < (this.height * 2); s += stepSize) {
             count++;
-            if (this.gameMap.isBlocked((this.x + this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
-                return true;
+            const x = Math.floor((this.x + this.width) / TILE_SIZE);
+            const y = Math.floor((this.y - this.height + s) / TILE_SIZE);
+
+            if (lastx !== x || lasty !== y) {
+                lastx = x;
+                lasty = y;
+                if (this.gameMap.isBlocked(x, y)) {
+                    blocked = true;
+                    tiles.push([x, y]);
+                }
             }
         }
 
-        return false;
+        // notify mods of the blockage but only once per tile
+        for (const t of tiles) {
+            this.gameMap.game.mods.blocked(this, t[0], t[1]);
+        }
+
+        return blocked;
     }
 
     /**
@@ -248,14 +281,32 @@ export class Mob {
     blockedLeft(): boolean {
         const stepSize = this.height / 5;
         let count = 0;
-        for (let s=0;s<(this.height * 2);s+=stepSize) {
+        let blocked = false;
+
+        const tiles = [];
+        let lastx = -1;
+        let lasty = -1;
+
+        for (let s = 0; s < (this.height * 2); s += stepSize) {
             count++;
-            if (this.gameMap.isBlocked((this.x - this.width) / TILE_SIZE, (this.y - this.height + s) / TILE_SIZE)) {
-                return true;
+            const x = Math.floor((this.x - this.width) / TILE_SIZE);
+            const y = Math.floor((this.y - this.height + s) / TILE_SIZE);
+            if (lastx !== x || lasty !== y) {
+                lastx = x;
+                lasty = y;
+                if (this.gameMap.isBlocked(x, y)) {
+                    blocked = true;
+                    tiles.push([x, y])
+                }
             }
         }
 
-        return false;
+        // notify mods of the blockage but only once per tile
+        for (const t of tiles) {
+            this.gameMap.game.mods.blocked(this, t[0], t[1]);
+        }
+
+        return blocked;
     }
 
     /**
@@ -267,17 +318,35 @@ export class Mob {
         if (this.vy > 0) {
             return false;
         }
+
+        let blocked = false;
         const offset = 10;
         const width = (this.width * 2) - (offset * 2);
 
         const stepSize = width / 5;
-        for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (this.gameMap.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y - this.height) / TILE_SIZE)) {
-                return true;
+        const tiles = [];
+        let lastx = -1;
+        let lasty = -1;
+
+        for (let s = offset; s <= width + offset; s += stepSize) {
+            const x = Math.floor((this.x - this.width + s) / TILE_SIZE);
+            const y = Math.floor((this.y - this.height) / TILE_SIZE);
+            if (lastx !== x || lasty !== y) {
+                lastx = x;
+                lasty = y;
+                if (this.gameMap.isBlocked(x, y)) {
+                    blocked = true;
+                    tiles.push([x, y]);
+                }
             }
         }
 
-        return false;
+        // notify mods of the blockage but only once per tile
+        for (const t of tiles) {
+            this.gameMap.game.mods.hitHead(this, t[0], t[1]);
+        }
+
+        return blocked;
     }
 
     /**
@@ -289,7 +358,7 @@ export class Mob {
         if (this.vy < 0) {
             return false;
         }
-        if (includeLadders && this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+        if (includeLadders && this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {
             return true;
         }
         if (this.fallThroughUntil > 0) {
@@ -299,26 +368,44 @@ export class Mob {
         const width = (this.width * 2) - (offset * 2);
 
         const stepSize = width / 5;
-        for (let s=offset;s<=width+offset;s+=stepSize) {
-            if (this.gameMap.isBlocked((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, true)) {
-                const tile = BLOCKS[this.gameMap.getTile((this.x - this.width + s) / TILE_SIZE, (this.y + this.height) / TILE_SIZE, Layer.FOREGROUND)];
-                // platforms are only standable for the first quarter of the tile
-                let platformFall = false;
-                if (tile && !tile.blocks && tile.blocksDown) {
-                    const ty = (this.y + this.height);
-                    const dy = ty - (Math.floor(ty / TILE_SIZE) * TILE_SIZE)
+        let blocked = false;
+        const tiles = [];
+        let lastx = -1;
+        let lasty = -1;
 
-                    if (dy > TILE_SIZE / 4) {
-                        platformFall = true;
+        for (let s = offset; s <= width + offset; s += stepSize) {
+            const x = Math.floor((this.x - this.width + s) / TILE_SIZE);
+            const y = Math.floor((this.y + this.height) / TILE_SIZE);
+            if (lastx !== x || lasty !== y) {
+                lastx = x;
+                lasty = y;
+                if (this.gameMap.isBlocked(x, y, true)) {
+                    const tile = BLOCKS[this.gameMap.getTile(x, y, Layer.FOREGROUND)];
+                    // platforms are only standable for the first quarter of the tile
+                    let platformFall = false;
+                    if (tile && !tile.blocks && tile.blocksDown) {
+                        const ty = (this.y + this.height);
+                        const dy = ty - (Math.floor(ty / TILE_SIZE) * TILE_SIZE)
+
+                        if (dy > TILE_SIZE / 4) {
+                            platformFall = true;
+                        }
                     }
-                }   
-                if (!platformFall) {
-                    return true;
+                    if (!platformFall) {
+                        blocked = true;
+                        tiles.push([x, y]);
+                    }
                 }
             }
         }
 
-        return false;
+        // notify mods of the blockage but only once per tile
+        for (const t of tiles) {
+            this.gameMap.game.mods.standing(this, t[0], t[1]);
+        }
+
+
+        return blocked;
     }
 
     /**
@@ -339,7 +426,7 @@ export class Mob {
     /**
      * Indicate that the mob wan't to move right (either local controls or network update)
      */
-    moveRight(): void {
+    private moveRight(): void {
         this.headTilt = 0.1;
         this.anim = WALK_ANIM;
         this.flip = true;
@@ -348,21 +435,21 @@ export class Mob {
     /**
      * Indicate that the mob wan't to jump (either local controls or network update)
      */
-    jump(): void {
-        if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor(((this.y + (this.height / 2)/TILE_SIZE))))) {
+    private moveUp(): void {
+        if (this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor(((this.y + (this.height / 2) / TILE_SIZE))))) {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
             playSfx("jump", 0.1);
-        } 
+        }
     }
 
-    fall(): void {
+    private moveDown(): void {
         if (this.standingOnSomething()) {
-            if (this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+            if (this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {
                 this.vy = 10;
             } else {
-                const tile = BLOCKS[this.gameMap.getTile(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE), Layer.FOREGROUND)];
+                const tile = BLOCKS[this.gameMap.getTile(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE), Layer.FOREGROUND)];
                 if (tile && tile.blocksDown && !tile.blocks) {
                     this.fallThroughUntil = this.y + TILE_SIZE;
                 }
@@ -373,7 +460,7 @@ export class Mob {
     /**
      * Indicate that the mob wan't to move left (either local controls or network update)
      */
-    moveLeft(): void {
+    private moveLeft(): void {
         this.headTilt = 0.1;
         this.anim = WALK_ANIM;
         this.flip = false;
@@ -439,7 +526,7 @@ export class Mob {
             this.moveLeft();
         }
         if (this.controls.up) {
-            this.jump();
+            this.moveUp();
         }
 
         // apply use of an item if we're holding one and the mouse button (or equivalent is being pressed)
@@ -482,12 +569,12 @@ export class Mob {
                         if (this.local) {
                             this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer);
                         }
-                        
+
                         playSfx('place', 0.2);
-                        for (let i=0;i<5;i++) {
+                        for (let i = 0; i < 5; i++) {
                             addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
                         }
-                    } 
+                    }
                 } else {
                     if (this.local) {
                         this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
@@ -495,14 +582,14 @@ export class Mob {
                 }
             }
         }
-        
+
         // if we're hitting our head on a block and moving updates
         // then stop and move us out of the collision
         if (this.hittingHead() && this.vy < 0) {
             this.vy = 0;
             this.y = (Math.floor((this.y) / TILE_SIZE) * TILE_SIZE) + this.height;
-        } 
-        
+        }
+
         // if we're not standing on something then fall
         if (!this.standingOnSomething()) {
             if (this.vy < TILE_SIZE / 2) {
@@ -511,7 +598,7 @@ export class Mob {
         }
 
         if (this.controls.down) {
-            this.fall();
+            this.moveDown();
         }
 
         // this is particularly poor, if we're using the WALK animation then
@@ -547,7 +634,7 @@ export class Mob {
         this.y += this.vy
 
         if (this.standingOnSomething()) {
-            if (this.standingOnSomething(false) || !this.gameMap.isLadder(Math.floor(this.x/TILE_SIZE), Math.floor((this.y + this.height)/TILE_SIZE))) {
+            if (this.standingOnSomething(false) || !this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {
                 // if we have a grace fall from sliding down from a block
                 if (this.fallThroughUntil === 0) {
                     // otherwise move us out of the collision with the floor and stop falling

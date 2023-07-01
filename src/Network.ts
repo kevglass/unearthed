@@ -1,11 +1,11 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
-import { HUMAN_SKELETON } from './Skeletons';
 import { GameMap, GameMapMetaData, SKY_HEIGHT, TILE_SIZE } from './Map';
 import { Game } from './Game';
 import { ServerConfig } from './ServerSettings';
 import { Particle, addParticle } from './engine/Particles';
 import { getSprite } from './engine/Resources';
+import { getSkeleton } from './Skeletons';
 
 //
 // Network is handled by using WebRTC through https://livekit.io/ 
@@ -314,7 +314,7 @@ export class Network {
 
                                     let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
                                     if (!targetMob) {
-                                        targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, HUMAN_SKELETON, mobData.x, mobData.y);
+                                        targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, getSkeleton("human"), mobData.x, mobData.y);
                                         this.localMobs.push(targetMob);
                                         this.updatePlayerList(this.localMobs);
                                     }
@@ -373,6 +373,13 @@ export class Network {
         list.appendChild(line);
     }
 
+    /**
+     * Send notification that a non-server player pushed a trigger. This lets the 
+     * server know so it can inform any mods.
+     * 
+     * @param x The x coordinate of the location of the trigger (in tiles) 
+     * @param y The y coordinate of the location of the trigger (in tiles) 
+     */
     sendTrigger(x: number, y: number): void {
         if (this.isConnected && !this.thisIsTheHostServer && this.hostParticipantId) {
             const message = { type: "trigger", x, y };
@@ -380,6 +387,13 @@ export class Network {
         }
     }
 
+    /**
+     * Send the server configuration (which includes mods) to the clients. This lets them
+     * have a chance in the future of having parts of the mods that run for them too. This is
+     * also here to support client side understanding of no-edit servers.
+     * 
+     * @param serverSettings The server settings that should be sent over.
+     */
     sendServerSettings(serverSettings: ServerConfig): void {
         if (this.isConnected) {
             const message = { type: "serverConfig", data: serverSettings };
@@ -387,6 +401,12 @@ export class Network {
         }
     }
 
+    /**
+     * Send the meta data associated with the game world. This is an amorphous blob of 
+     * JSON that can contain anything.
+     * 
+     * @param metaData The metadata to be sent
+     */
     sendMetaData(metaData: GameMapMetaData): void {
         if (this.isConnected) {
             const message = { type: "mapMeta", data: metaData };
@@ -434,6 +454,8 @@ export class Network {
      * @param toolId The ID of the tool being used if any
      */
     sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
+        const oldBlock = this.gameMap.getTile(x,y, layer);
+
         if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
             // if we're the host then forward the update to all players
             // only set zero if we're using the default pick
@@ -459,7 +481,7 @@ export class Network {
                 // using a tool
                 this.game.mods.tool(player, x, y, layer, toolId);
             } else {
-                this.game.mods.tile(player, x,y, layer, tile);
+                this.game.mods.tile(player, x,y, layer, tile, oldBlock);
             }
         } else if (this.hostParticipantId) {
             if (this.serverConfig?.editable) {
@@ -470,7 +492,15 @@ export class Network {
         }
     }
 
-    applyParticles(image: string, x: number, y: number, count: number) {
+    /**
+     * Apply a particle effect either locally or received from the server
+     * 
+     * @param image The image to be used for the particle
+     * @param x The x coordinate of the location where the particles should be spawned in world coordinate
+     * @param y The y coordinate of the location where the particles should be spawned in world coordinate
+     * @param count The number of particles to be spawned
+     */
+    private applyParticles(image: string, x: number, y: number, count: number) {
         for (let i=0;i<count;i++) {
             const ox = (Math.random() - 0.5) * TILE_SIZE;
             const oy = (Math.random() - 0.5) * TILE_SIZE;
@@ -482,6 +512,14 @@ export class Network {
         }
     }
 
+    /**
+     * Send clients notification that particles need to be spawned
+     * 
+     * @param image The image to be used for the particle
+     * @param x The x coordinate of the location where the particles should be spawned in world coordinate
+     * @param y The y coordinate of the location where the particles should be spawned in world coordinate
+     * @param count The number of particles to be spawned
+     */
     sendParticles(image: string, x: number, y: number, count: number) {
         if (this.thisIsTheHostServer) {
             this.applyParticles(image, x, y, count);
