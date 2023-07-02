@@ -13,6 +13,11 @@ https://unearthedgame.net/
 - Run `npm start`
 - Connect to http://localhost:20000
 
+## More Info
+
+- Theres a general wiki page over at https://github.com/kevglass/unearthed/wiki
+- Specifically theres a page about modding here: https://github.com/kevglass/unearthed/wiki/Modding-Page
+  
 ## Contacts
 
 - You can always get me at cokeandcode (at) gmail (dot) com
