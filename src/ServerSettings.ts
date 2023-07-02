@@ -1,5 +1,7 @@
 
+import { BLOCKS } from "./Block";
 import { Game } from "./Game";
+import { DEFAULT_INVENTORY } from "./InventItem";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
 
@@ -45,6 +47,35 @@ export class ServerSettings {
     }
 
     /**
+     * Clean up any content this mod added on removal or update
+     * 
+     * @param mod The mod to clean up
+     */
+    cleanUpMod(mod: ModRecord): void {
+        console.log("[" + mod.mod.name + "] Uninstalling");
+        for (const tool of mod.toolsAdded) {
+            const index = DEFAULT_INVENTORY.indexOf(tool);
+
+            if (index >= 0) {
+                console.log("[" + mod.mod.name + "] Removing tool: " + tool.toolId + " on refresh");
+                DEFAULT_INVENTORY.splice(index, 1);
+            }
+        }
+
+        for (const block of mod.blocksAdded) {
+            for (let key=0;key<256;key++) {
+                if (BLOCKS[key] === block) {
+                    console.log("[" + mod.mod.name + "] Removing block: " + key + " on refresh");
+                    delete BLOCKS[key];
+                }
+            }
+        }
+        mod.toolsAdded = [];
+        mod.blocksAdded = [];
+        this.game.mobs.forEach(m => m.initInventory());
+    }
+
+    /**
      * Update a mod in situ with a new mod.js file
      * 
      * @param mod The mod to be updated
@@ -57,6 +88,7 @@ export class ServerSettings {
             if (potentialMod.name && potentialMod.id) {
                 mod.resources["mod.js"] = content;
                 mod.mod = potentialMod;
+                this.cleanUpMod(mod);
                 
                 // if the mod had already been inited we'll want to 
                 // reinitalise and start again
@@ -93,13 +125,18 @@ export class ServerSettings {
                 const potentialMod = eval(script) as ServerMod;
 
                 if (potentialMod.name && potentialMod.id) {
-                    const modRecord = { mod: potentialMod, inited: false, resources: modData };
+                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [] };
                     this.serverMods.mods.push(modRecord);
 
                     if (updateUiAndConfig) {
                         this.config.modScripts.push(modData);
                         this.save();
                         this.game.ui.addMod(modRecord);
+                    }
+
+                    if (this.game.network.started) {
+                        this.serverMods.init();   
+                        this.serverMods.worldStarted(); 
                     }
                 } else {
                     console.error("Modification either didn't have a name or an ID!");
@@ -120,6 +157,8 @@ export class ServerSettings {
      * @param mod The mod to uninstall
      */
     removeMod(mod: ModRecord): void {
+        this.cleanUpMod(mod);
+
         const index = this.serverMods.mods.indexOf(mod);
         if (index >= 0) {
             this.config.modScripts.splice(index, 1);

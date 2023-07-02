@@ -13,6 +13,8 @@ export interface MobContext {
     x: number;
     /** The y co-ordinate the mob's position given in world units (tiles are 128 pixels) */
     y: number;
+    /** The vertical velocity of the mob */
+    vy: number;
 
     /**
      * Set the control state of the mob. Changing these controls will cause the 
@@ -118,6 +120,15 @@ export interface GameContext {
      * @return The block ID at the given location or 0 for none.
      */
     getBlock(x: number, y: number, layer: Layer): number;
+
+    /**
+     * Replace all the blocks on the map that match the original block with the
+     * new one.
+     * 
+     * @param originalBlock The original block to be replaced
+     * @param newBlock The new block to be put into the map
+     */
+    replaceAllBlocks(originalBlock: number, newBlock: number): void;
 
     /**
      * Get a handle to the local player's mob. This is kinda weird right now since

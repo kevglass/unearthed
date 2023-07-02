@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor';
+import { Game } from 'src/Game';
 
 // this is just a simple bootstrap for putting the monaco code editor in
 const parent = document.getElementById("codePanel") as HTMLDivElement;
@@ -18,12 +19,27 @@ export function getCodeEditor(): HTMLDivElement {
 /**
  * Initialize Monaco
  */
-export function initCodeEditor() {
+export function initCodeEditor(game: Game) {
     codeEditor = monaco.editor.create(editorDiv, {
         value: "",
         language: "javascript",
         automaticLayout: true
     });
+
+    codeEditor.onKeyDown((e) => {
+        if (e.metaKey || e.ctrlKey) {
+            if (e.keyCode === monaco.KeyCode.KeyS) {
+                game.ui.saveCodeEditor();
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
+        if (e.keyCode === monaco.KeyCode.Escape) {
+            hideCodeEditor();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    })
 }
 
 /**

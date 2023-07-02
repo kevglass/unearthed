@@ -16,7 +16,7 @@ import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
 import { initInventory } from "./InventItem";
 import { getSkeleton } from "./Skeletons";
-import { getCodeEditor } from "./mods/Editor";
+import { getCodeEditor, hideCodeEditor } from "./mods/Editor";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -337,6 +337,10 @@ export class Game implements ControllerListener {
                 this.controllerSetupStep = -1;
                 document.getElementById("settingsPanel")!.style.display = "block";
                 return;
+            }
+
+            if (event.key === "Escape") {
+                hideCodeEditor();
             }
 
             // if we're focused on the chat input that takes precedence

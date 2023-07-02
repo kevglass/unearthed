@@ -15,9 +15,9 @@ console.log("");
 console.log("Version _VERSION_")
 console.log("");
 
-initCodeEditor();
 
 const game = new Game();
+initCodeEditor(game);
 game.startLoop();
 
 const urlParams = new URLSearchParams(window.location.search);

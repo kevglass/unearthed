@@ -2,7 +2,7 @@ import { Game } from "src/Game";
 import { GameContext, MobContext, ServerMod } from "./Mods";
 import { loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
 import { Block, BLOCKS } from "src/Block";
-import { DEFAULT_INVENTORY } from "src/InventItem";
+import { DEFAULT_INVENTORY, InventItem } from "src/InventItem";
 import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
 
@@ -86,6 +86,10 @@ export class GameAsContext implements GameContext {
      * @see GameContext.addBlock
      */
     addBlock(value: number, tileDef: Block): void {
+        if (this.currentMod) {
+            this.currentMod.blocksAdded.push(tileDef);
+        }
+
         BLOCKS[value] = tileDef;
     }
 
@@ -95,7 +99,7 @@ export class GameAsContext implements GameContext {
     addTool(image: string, place: number, toolId: string, emptySpace: boolean): void {
         this.log("Adding tool: " + toolId + " (targetEmpty=" + emptySpace + ")");
 
-        DEFAULT_INVENTORY.push({
+        const tool = {
             sprite: image,
             place: place,
             spriteOffsetX: -70,
@@ -103,7 +107,13 @@ export class GameAsContext implements GameContext {
             spriteScale: 0.7,
             toolId: toolId,
             targetEmpty: emptySpace
-        });
+        };
+
+        if (this.currentMod) {
+            this.currentMod.toolsAdded.push(tool);
+        }
+
+        DEFAULT_INVENTORY.push(tool);
 
         this.game.mobs.forEach(m => m.initInventory());
     }
@@ -120,6 +130,21 @@ export class GameAsContext implements GameContext {
      */
     getBlock(x: number, y: number, layer: Layer): number {
         return this.game.gameMap.getTile(x, y, layer);
+    }
+    /**
+     * @see GameContext.replaceAllBlocks
+     */
+    replaceAllBlocks(originalBlock: number, newBlock: number): void {
+        for (let x=0;x<MAP_WIDTH;x++) {
+            for (let y=0;y<MAP_DEPTH;y++) {
+                if (this.game.gameMap.getTile(x, y, Layer.FOREGROUND) === originalBlock) {
+                    this.setBlock(x, y, Layer.FOREGROUND, newBlock);
+                }
+                if (this.game.gameMap.getTile(x, y, Layer.BACKGROUND) === originalBlock) {
+                    this.setBlock(x, y, Layer.BACKGROUND, newBlock);
+                }
+            }
+        }
     }
 
     /**
@@ -194,6 +219,10 @@ export interface ModRecord {
     resources: Record<string, string>;
     /** True if this mod has been intialized */
     inited: boolean;
+    /** Tools that this mod added so they can be removed on uninstall */
+    toolsAdded: InventItem[];
+    /** Blocks that his mod added so they can be removed on uninstall */
+    blocksAdded: Block[];
 }
 
 /**

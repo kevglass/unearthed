@@ -641,7 +641,11 @@ export class Mob {
                     this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
                 }
             }
-            this.vy = 0;;
+
+            // check to see if vy has been modified by a mod after a standing event
+            if (this.vy > 0) {
+                this.vy = 0;
+            }
         }
 
         if (this.y > this.fallThroughUntil) {

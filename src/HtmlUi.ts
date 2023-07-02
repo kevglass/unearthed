@@ -288,6 +288,8 @@ export class HtmlUi {
                 this.chatInput.value = "";
                 document.getElementById("settingsPanel")!.style.display = "none";
                 this.hideChat();
+
+                hideCodeEditor();
             }
             if (event.key === "Enter") {
                 this.sendChat(this.chatInput.value);
@@ -352,15 +354,7 @@ export class HtmlUi {
         });
 
         document.getElementById("codeSaveButton")!.addEventListener("click", () => {
-            if (this.selectedMod) {
-                if (this.game.serverSettings.updateMod(this.selectedMod, getCodeEditorContent())) {
-
-                    if (this.selectedModDiv) {
-                        this.selectedModDiv.innerHTML = this.selectedMod.mod.name + " ("+this.selectedMod.mod.version+")";
-                    }
-                    hideCodeEditor();
-                }
-            }
+            this.saveCodeEditor();
         });
         document.getElementById("codeDownloadButton")!.addEventListener("click", () => {
             if (this.selectedMod) {
@@ -435,6 +429,21 @@ export class HtmlUi {
         if (this.network.connected()) {
             this.chatInput!.style.display = "block";
             this.chatInput.focus();
+        }
+    }
+
+    /**
+     * Save the contents of the code editor
+     */
+    saveCodeEditor() {
+        if (this.selectedMod) {
+            if (this.game.serverSettings.updateMod(this.selectedMod, getCodeEditorContent())) {
+
+                if (this.selectedModDiv) {
+                    this.selectedModDiv.innerHTML = this.selectedMod.mod.name + " ("+this.selectedMod.mod.version+")";
+                }
+                hideCodeEditor();
+            }
         }
     }
 
