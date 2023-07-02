@@ -30,7 +30,7 @@ const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
 
-const USE_WEBGL: boolean = false;
+const USE_WEBGL: boolean = true;
 
 /**
  * The main game controller. This needs breaking up a bit more yet.
