@@ -288,8 +288,6 @@ export class HtmlUi {
                 this.chatInput.value = "";
                 document.getElementById("settingsPanel")!.style.display = "none";
                 this.hideChat();
-
-                hideCodeEditor();
             }
             if (event.key === "Enter") {
                 this.sendChat(this.chatInput.value);
