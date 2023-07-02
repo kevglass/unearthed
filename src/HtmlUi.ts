@@ -407,13 +407,37 @@ export class HtmlUi {
 
     setFullscreen(fs: boolean) {
         if (fs) {
-            document.body.requestFullscreen().then(() => {
-                setTimeout(() => { this.renderFullscreenButton(); }, 1000);
-            });
+            const doc: any = document.body;
+            if (doc.requestFullscreen) {
+                doc.requestFullscreen().then(() => {
+                    setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+                });
+            } else if (doc.mozRequestFullscreen) {
+                doc.mozRequestFullscreen().then(() => {
+                    setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+                });
+
+            } else if (doc.webkitRequestFullscreen) {
+                doc.webkitRequestFullscreen().then(() => {
+                    setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+                });
+
+            }
         } else {
-            document.exitFullscreen().then(() => {
-                setTimeout(() => { this.renderFullscreenButton(); }, 1000);
-            });
+            const doc: any = document;
+            if (doc.exitFullscreen) {
+                doc.exitFullscreen().then(() => {
+                    setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+                });
+            } else if (doc.mozExitFullscreen) {
+                doc.mozExitFullscreen().then(() => {
+                    setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+                });
+            } else if (doc.webkitExitFullscreen) {
+                doc.webkitExitFullscreen().then(() => {
+                    setTimeout(() => { this.renderFullscreenButton(); }, 1000);
+                });
+            }
         }
     }
 
