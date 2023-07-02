@@ -30,6 +30,8 @@ const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
 
+const USE_WEBGL: boolean = false;
+
 /**
  * The main game controller. This needs breaking up a bit more yet.
  */
@@ -143,7 +145,7 @@ export class Game implements ControllerListener {
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
 		
-		if (1) {
+		if (USE_WEBGL) {
 			this.g = new WebglGraphics(this.canvas);
 		} else {
 			this.g = new HtmlGraphics(this.canvas);
