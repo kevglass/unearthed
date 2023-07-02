@@ -640,6 +640,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
             }
 
             this.loadTexFromCanvas(canvas);
+            this.lastTextureRefresh = Date.now();
         }
     }
 
@@ -647,6 +648,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * Sets the game's texture. Can be called mid-game to change all the artwork.
      */
     loadTexFromCanvas(canvas: HTMLCanvasElement) {
+        console.log("[WEBGL] Reloading texture");
         var gl = this.gl;
 
         // Create a gl texture from image file.
