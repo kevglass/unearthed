@@ -862,7 +862,7 @@ export class Game implements ControllerListener {
         this.animTime += 0.03;
         this.animTime = this.animTime % 1;
 		
-		if(resourcesLoaded() && !this.g.isReady()) {
+		if(resourcesLoaded()) {
 			this.g.doneLoadingImages(SPRITES)
 		}
 

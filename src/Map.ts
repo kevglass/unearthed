@@ -843,13 +843,26 @@ export class GameMap {
         });
     }
 	
-	getLightCornerAverage(x: number, y: number): number {
-        //if (game.g.getType() === GraphicsType.WEBGL) {
-			const px = Math.floor(this.game.player.x / TILE_SIZE);
-			const py = Math.floor(this.game.player.y / TILE_SIZE);
-			if (Math.abs(x - px + .5) < 2 && Math.abs(y - py + .5) < 2) return 0;
-		//}
-		return 255 - (this.getLightMap(x, y) + this.getLightMap(x + 1, y) + this.getLightMap(x, y + 1) + this.getLightMap(x + 1, y + 1)) / 4 * 255;
+	getDarkValue(x: number, y: number): number {
+        // light all the mobs
+        const lightDistance = TILE_SIZE * 3.75;
+        let closestMobDistance = lightDistance * 2;
+        for (const mob of this.game.mobs) {
+            const dx = mob.x - ((x + 0.5) * TILE_SIZE);
+            const dy = mob.y - ((y + 0.5) * TILE_SIZE);
+
+            const dis = Math.sqrt((dx * dx) + (dy * dy));
+            if (dis < closestMobDistance) {
+                closestMobDistance = dis;
+            }
+        }
+
+        let mobLight = 255;
+        if (closestMobDistance < lightDistance) {
+            mobLight = Math.floor((closestMobDistance / lightDistance) * 255);
+        }
+
+		return Math.floor(Math.min(mobLight, 255 - (this.getLightMap(x, y) * 255)));
 	}
 
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
@@ -866,20 +879,17 @@ export class GameMap {
             // Prepare to be sorely disappointed by my webgl lighting.
             const px = Math.floor(this.game.player.x / TILE_SIZE);
             const py = Math.floor(this.game.player.y / TILE_SIZE);
-            lightScale = TILE_SIZE;
 			g.setFillColor(0, 0, 0, 1);
             for (let x = xp; x < xp + tilesAcross; x++) {
                 for (let y = yp; y < yp + tilesDown; y++) {
-                    if (this.isDiscovered(x, y)) {
-						g.fillRectWithCornerAlphas(
-							Math.floor(screenX - offsetx) + (x - xp) * lightScale,
-							Math.floor(screenY - offsety) + (y - yp) * lightScale,
-							lightScale,
-							lightScale,
-							this.getLightCornerAverage(x - 1, y - 1), this.getLightCornerAverage(x, y - 1),
-							this.getLightCornerAverage(x - 1, y), this.getLightCornerAverage(x, y)
-						);
-                    }
+                    g.fillRectWithCornerAlphas(
+                        Math.floor(Math.floor(screenX - offsetx) + ((x - xp) + 0.5) * TILE_SIZE),
+                        Math.floor(Math.floor(screenY - offsety) + ((y - yp) + 0.5) * TILE_SIZE),
+                        TILE_SIZE,
+                        TILE_SIZE,
+                        this.getDarkValue(x, y), this.getDarkValue(x + 1, y),
+                        this.getDarkValue(x, y + 1), this.getDarkValue(x + 1, y + 1)
+                    );
                 }
             }
             return;

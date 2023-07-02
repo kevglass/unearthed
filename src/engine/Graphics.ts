@@ -1,3 +1,5 @@
+import { LAST_SPRITES_UPDATE } from "./Resources";
+
 /**
  * Abstraction of an image that can be blitted to the the display
  */
@@ -10,11 +12,11 @@ export class GraphicsImage {
     texX: number;
     texY: number;
 
-    constructor(name:string, image: HTMLImageElement) {
+    constructor(name: string, image: HTMLImageElement) {
         this.name = name;
         this.image = image;
-		this.texX = 0;
-		this.texY = 0;
+        this.texX = 0;
+        this.texY = 0;
     }
 
     /**
@@ -88,7 +90,7 @@ export interface Graphics {
      * Restore the previously saved state. push/pop style.
      */
     restore(): void;
-	
+
     /**
      * Renders everything to the screen. If using webgl or a backbuffer.
      */
@@ -98,14 +100,14 @@ export interface Graphics {
      * True if all images are loaded and everything is set up.
      */
     isReady(): boolean;
-	
-	/**
-	 * Call this after all the images are done loading.
-	 */
-	doneLoadingImages(images: Record<string, GraphicsImage>): void;
-	
-    clearScreen(r:number, g:number, b:number): void;
-	
+
+    /**
+     * Call this after all the images are done loading.
+     */
+    doneLoadingImages(images: Record<string, GraphicsImage>): void;
+
+    clearScreen(r: number, g: number, b: number): void;
+
     /**
      * Set the color used to fill the next operations
      * @param r is 0-255
@@ -113,8 +115,8 @@ export interface Graphics {
      * @param b is 0-255
      * @param a is 0-1
      */
-    setFillColor(r:number, g:number, b:number, a:number): void;
-	
+    setFillColor(r: number, g: number, b: number, a: number): void;
+
     /**
      * Fill a rectangle on the screen
      * 
@@ -124,8 +126,8 @@ export interface Graphics {
      * @param height The height of the rectangle
      */
     fillRect(x: number, y: number, width: number, height: number): void;
-	
-	fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void
+
+    fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void
 
     /**
      * Translate the drawing position 
@@ -185,14 +187,14 @@ export interface Graphics {
      * @param x The x coordinate to draw the image at
      * @param y The y coordinate to draw the image at
      */
-    fillText(text: string, x: number, y: number): void ;
+    fillText(text: string, x: number, y: number): void;
 
     /**
      * Set the alignment when drawing text
      * 
      * @param align The alignment of the text 
      */
-    setTextAlign(align: CanvasTextAlign): void ;
+    setTextAlign(align: CanvasTextAlign): void;
 
     /**
      * Rotate the drawing context by a given angle
@@ -309,20 +311,20 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
     }
 
     isReady(): boolean {
-		return true
+        return true
     }
-	
-	doneLoadingImages(images: Record<string, GraphicsImage>): void {
-	}
-	
+
+    doneLoadingImages(images: Record<string, GraphicsImage>): void {
+    }
+
     render(): void {
     }
-	
+
     clearScreen(r: number, g: number, b: number) {
-		this.setFillColor(r, g, b, 1)
-		this.fillRect(0, 0, this.canvas.width, this.canvas.height)
-	}
-	
+        this.setFillColor(r, g, b, 1)
+        this.fillRect(0, 0, this.canvas.width, this.canvas.height)
+    }
+
     /**
      * Set the color used to fill the next operations
      * @param r is 0-255
@@ -330,7 +332,7 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
      * @param b is 0-255
      * @param a is 0-1
      */
-    setFillColor(r:number, g:number, b:number, a:number) {
+    setFillColor(r: number, g: number, b: number, a: number) {
         this.g.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
     }
 
@@ -345,10 +347,10 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
     fillRect(x: number, y: number, width: number, height: number): void {
         this.g.fillRect(x, y, width, height);
     }
-	
-	fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void {
+
+    fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void {
         this.g.fillRect(x, y, width, height);
-	}
+    }
 
     /**
      * Translate the drawing position 
@@ -449,7 +451,7 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The amount to scale y axis by
      */
     scale(x: number, y: number): void {
-        this.g.scale(x,y);
+        this.g.scale(x, y);
     }
 
     /**
@@ -484,7 +486,7 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
      * @param r1 The radius of the end circle
      */
     createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): GraphicsGradient {
-       return this.g.createRadialGradient(x0, y0, r0, x1, y1, r1);
+        return this.g.createRadialGradient(x0, y0, r0, x1, y1, r1);
     }
 
     /**
@@ -533,165 +535,176 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
     /** The graphics context from the canvas */
     private gl: WebGLRenderingContext;
     /** Store data for all draws, to send to webgl. */
-	private positions: Int16Array;
-	private rotations: Float32Array;
-	private rgbas: Uint32Array;
+    private positions: Int16Array;
+    private rotations: Float32Array;
+    private rgbas: Uint32Array;
     /** Size in pixels of the large PNG containing all the graphics. */
-	private texWidth: number = 0;
-	private texHeight: number = 0;
+    private texWidth: number = 0;
+    private texHeight: number = 0;
     /** Max calls to drawImage per frame. Can be any number. Size of our array. */
-	private maxDraws: number = 10000;
+    private maxDraws: number = 10000;
     /** Total images drawn so far this frame. */
-	private draws: number = 0;
+    private draws: number = 0;
     /** Extension for speedup. */
-	private extension: ANGLE_instanced_arrays;
+    private extension: ANGLE_instanced_arrays;
     /** The shaders. */
-	private shaderProgram: WebGLProgram;
+    private shaderProgram: WebGLProgram;
     /** Stack of saved states for transforms. */
-	private states: any[] = [];
+    private states: any[] = [];
     /** The current transforms on this saved state. */
-	private transforms: any[] = [];
+    private transforms: any[] = [];
     /** The current color for rectangles/text. */
-	private rgba: number = 0xFFFFFFFF;
+    private rgba: number = 0xFFFFFFFF;
     /** The alpha for everything. show superbright images if you go over to 512. */
-	private alpha: number = 255;
+    private alpha: number = 255;
     /** 0 = normal. 255 = turns the image to white. */
-	private brightness: number = 0;
+    private brightness: number = 0;
     /** The current transform values. */
-	private translateX: number = 0;
-	private translateY: number = 0;
-	private scaleX: number = 1;
-	private scaleY: number = 1;
-	private rotation: number = 0;
+    private translateX: number = 0;
+    private translateY: number = 0;
+    private scaleX: number = 1;
+    private scaleY: number = 1;
+    private rotation: number = 0;
     /** The current text drawing values. */
-	private fontSize: number = 16;
-	private textAlign: CanvasTextAlign = 'left';
-	
+    private fontSize: number = 16;
+    private textAlign: CanvasTextAlign = 'left';
+    private lastTextureRefresh: number = 0;
+    private texture: WebGLTexture | null = null;
+
     getType(): GraphicsType {
         return GraphicsType.WEBGL;
     }
 
     isReady(): boolean {
-		return (this.texWidth > 0);
+        return (this.texWidth > 0);
     }
-	
-	/**
-	 * Call this every frame to actually draw everything onto the canvas.
-	 * Renders all drawImage calls that happened since the last time you called render()
-	 */
-	render() {
-		var gl = this.gl;
-		
-		// Only send to gl the amount slots in our arrayBuffer that we used this frame.
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.rgbas.subarray(0, this.draws * 7));
-		
-		// Draw everything. 6 is because 2 triangles make a rectangle.
-		this.extension.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, this.draws);
-		
-		// Go back to index 0 of our arrayBuffer, since we overwrite its slots every frame.
-		this.draws = 0;
-	}
-	
-	/**
-	 * Call this after all the images are done loading.
-	 */
-	doneLoadingImages(images: Record<string, GraphicsImage>): void {
-		// Sort images by tallest. For my cheap texture packing algo.
-		let list = [];
-		for(var name in images) {
-			let image = images[name];
-			list.push(image);
-		}
-		list.sort((a,b) => a.getHeight() > b.getHeight() ? -1: 1);
-		
-		// Assume everything fits in a 2048x2048 image.
-		var canvas = document.createElement('canvas')
-		canvas.width = canvas.height = 2048
-		
-		// Top left pixel is white so fillRect can stretch and tint that pixel to any color and size.
-		var pen = canvas.getContext('2d') as CanvasRenderingContext2D;
-		pen.fillStyle = '#FFF';
-		pen.fillRect(0, 0, 1, 1);
-		
-		// Pack all images into 1 texture.
-		var x = 2, y = 0, rowHeight = 0;
-		for(var image of list) {
-			if(x + image.getWidth() > canvas.width) {
-				x = 0;
-				y += rowHeight;
-				rowHeight = 0;
-			}
-			if(!rowHeight) {
-				rowHeight = image.getHeight();
-			}
-			image.texX = x;
-			image.texY = y;
-			pen.drawImage(image.get(), x, y);
-			x += image.getWidth();
-		}
-		
-		this.loadTexFromCanvas(canvas);
-		
-		window.addEventListener("resize", () => setTimeout(() => this.resize(), 40))
-	}
 
-	/**
-	 * Sets the game's texture. Can be called mid-game to change all the artwork.
-	 */
-	loadTexFromCanvas(canvas: HTMLCanvasElement) {
-		var gl = this.gl;
-		
-		// Create a gl texture from image file.
-		gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-		gl.generateMipmap(gl.TEXTURE_2D);
-		gl.activeTexture(gl.TEXTURE0);
-		
-		// Tell gl that when draw images scaled up, keep it pixellated and don't smooth it.
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-		
-		// Store texture size in vertex shader.
-		this.texWidth = canvas.width;
-		this.texHeight = canvas.height;
-		gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uTexSize"), this.texWidth, this.texHeight);
-		
-		this.resize();
-	}
-	
-	/**
-	 * Keeps everything full screen. Call when browser resizes.
-	 */
-	resize() {
-		var gl = this.gl;
-		
-		// Resize the gl viewport to be the new size of the canvas.
-		gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-		
-		// Update the shader variables for canvas size.
-		// Sending it to gl now so we don't have to do the math in JavaScript on every draw,
-		// since gl wants to draw at a position from 0 to 1, and we want to do drawImage with a screen pixel position.
-		gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uCanvasSize"), this.canvas.width/2, this.canvas.height/2);
-	}
-	
-	/**
-	 * Set up shaders. Can call this before loading any images.
-	 */
+    /**
+     * Call this every frame to actually draw everything onto the canvas.
+     * Renders all drawImage calls that happened since the last time you called render()
+     */
+    render() {
+        var gl = this.gl;
+
+        // Only send to gl the amount slots in our arrayBuffer that we used this frame.
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.rgbas.subarray(0, this.draws * 7));
+
+        // Draw everything. 6 is because 2 triangles make a rectangle.
+        this.extension.drawElementsInstancedANGLE(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, this.draws);
+
+        // Go back to index 0 of our arrayBuffer, since we overwrite its slots every frame.
+        this.draws = 0;
+    }
+
+    /**
+     * Call this after all the images are done loading.
+     */
+    doneLoadingImages(images: Record<string, GraphicsImage>): void {
+        if (!this.isReady() || this.lastTextureRefresh < LAST_SPRITES_UPDATE) {
+            if (!this.isReady()) {
+                // first time add the resize listener
+		        window.addEventListener("resize", () => setTimeout(() => this.resize(), 40))
+            }
+            // Sort images by tallest. For my cheap texture packing algo.
+            let list = [];
+            for (var name in images) {
+                let image = images[name];
+                list.push(image);
+            }
+            list.sort((a, b) => a.getHeight() > b.getHeight() ? -1 : 1);
+
+            // Assume everything fits in a 2048x2048 image.
+            var canvas = document.createElement('canvas')
+            canvas.width = canvas.height = 2048
+
+            // Top left pixel is white so fillRect can stretch and tint that pixel to any color and size.
+            var pen = canvas.getContext('2d') as CanvasRenderingContext2D;
+            pen.fillStyle = '#FFF';
+            pen.fillRect(0, 0, 1, 1);
+
+            // Pack all images into 1 texture.
+            var x = 2, y = 0, rowHeight = 0;
+            for (var image of list) {
+                if (x + image.getWidth() > canvas.width) {
+                    x = 0;
+                    y += rowHeight;
+                    rowHeight = 0;
+                }
+                if (!rowHeight) {
+                    rowHeight = image.getHeight();
+                }
+                image.texX = x;
+                image.texY = y;
+                pen.drawImage(image.get(), x, y);
+                x += image.getWidth();
+            }
+
+            this.loadTexFromCanvas(canvas);
+        }
+    }
+
+    /**
+     * Sets the game's texture. Can be called mid-game to change all the artwork.
+     */
+    loadTexFromCanvas(canvas: HTMLCanvasElement) {
+        var gl = this.gl;
+
+        // Create a gl texture from image file.
+        if (this.texture) {
+            gl.deleteTexture(this.texture);
+        }
+        this.texture = gl.createTexture();
+
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.activeTexture(gl.TEXTURE0);
+
+        // Tell gl that when draw images scaled up, keep it pixellated and don't smooth it.
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+        // Store texture size in vertex shader.
+        this.texWidth = canvas.width;
+        this.texHeight = canvas.height;
+        gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uTexSize"), this.texWidth, this.texHeight);
+
+        this.resize();
+    }
+
+    /**
+     * Keeps everything full screen. Call when browser resizes.
+     */
+    resize() {
+        var gl = this.gl;
+
+        // Resize the gl viewport to be the new size of the canvas.
+        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
+        // Update the shader variables for canvas size.
+        // Sending it to gl now so we don't have to do the math in JavaScript on every draw,
+        // since gl wants to draw at a position from 0 to 1, and we want to do drawImage with a screen pixel position.
+        gl.uniform2f(gl.getUniformLocation(this.shaderProgram, "uCanvasSize"), this.canvas.width / 2, this.canvas.height / 2);
+    }
+
+    /**
+     * Set up shaders. Can call this before loading any images.
+     */
     constructor(canvas: HTMLCanvasElement) {
-		// Get the canvas/context from html.
-		this.canvas = canvas
-		var gl = canvas.getContext('experimental-webgl', { antialias: false, alpha: false, preserveDrawingBuffer: true }) as WebGLRenderingContext
-		this.gl = gl
-		
-		// This extension allows us to repeat the draw operation 6 times (to make 2 triangles) on the same 12 slots in this.positions,
-		//  so we only have to put the image data into this.positions once for each image each time we want to draw an image.
-		var extension = gl.getExtension('ANGLE_instanced_arrays') as ANGLE_instanced_arrays
-		this.extension = extension
-		
-		// Vertex shader source code.
-		// Each time we draw an image it will run this 6 times. Once for each point of the 2 triangles we use to make the image's rectangle area.
-		// The only thing that changes on each repeated draw for the same image is aSizeMult, so we can get to each corner of the image's rectangle area.
-		var vertCode = "\
+        // Get the canvas/context from html.
+        this.canvas = canvas
+        var gl = canvas.getContext('experimental-webgl', { antialias: false, alpha: false, preserveDrawingBuffer: true }) as WebGLRenderingContext
+        this.gl = gl
+
+        // This extension allows us to repeat the draw operation 6 times (to make 2 triangles) on the same 12 slots in this.positions,
+        //  so we only have to put the image data into this.positions once for each image each time we want to draw an image.
+        var extension = gl.getExtension('ANGLE_instanced_arrays') as ANGLE_instanced_arrays
+        this.extension = extension
+
+        // Vertex shader source code.
+        // Each time we draw an image it will run this 6 times. Once for each point of the 2 triangles we use to make the image's rectangle area.
+        // The only thing that changes on each repeated draw for the same image is aSizeMult, so we can get to each corner of the image's rectangle area.
+        var vertCode = "\
 			attribute vec2 aSizeMult;\
 			attribute vec2 aPos;\
 			attribute vec2 aSize;\
@@ -729,13 +742,13 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 			}\
 		"
 
-		// Create a vertex shader object with code.
-		var vertShader = gl.createShader(gl.VERTEX_SHADER) as WebGLShader
-		gl.shaderSource(vertShader, vertCode)
-		gl.compileShader(vertShader)
+        // Create a vertex shader object with code.
+        var vertShader = gl.createShader(gl.VERTEX_SHADER) as WebGLShader
+        gl.shaderSource(vertShader, vertCode)
+        gl.compileShader(vertShader)
 
-		// Fragment shader source code.
-		var fragCode = "\
+        // Fragment shader source code.
+        var fragCode = "\
 			varying highp vec2 fragTexturePos;\
 			varying highp vec4 fragAbgr;\
 			uniform sampler2D uSampler;\
@@ -744,106 +757,105 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 				gl_FragColor = texture2D(uSampler, fragTexturePos) * fragAbgr;\
 			}\
 		"
-		
-		// Create fragment shader object with code.
-		var fragShader = gl.createShader(gl.FRAGMENT_SHADER) as WebGLShader
-		gl.shaderSource(fragShader, fragCode)
-		gl.compileShader(fragShader)
 
-		// Create a shader program object and attach the shaders.
-		var shaderProgram = gl.createProgram() as WebGLProgram
-		gl.attachShader(shaderProgram, vertShader)
-		gl.attachShader(shaderProgram, fragShader)
-		gl.linkProgram(shaderProgram)
-		gl.useProgram(shaderProgram)
-		this.shaderProgram = shaderProgram
-		
-		// Tell gl that when we set the opacity, it should be semi transparent above what was already drawn.
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-		gl.enable(gl.BLEND)
-		gl.disable(gl.DEPTH_TEST)
-		
-		// Map triangle vertexes to our multiplier array, for which corner of the image drawn's rectangle each triangle point is at.
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([0, 1, 2, 2, 1, 3]), gl.STATIC_DRAW)
+        // Create fragment shader object with code.
+        var fragShader = gl.createShader(gl.FRAGMENT_SHADER) as WebGLShader
+        gl.shaderSource(fragShader, fragCode)
+        gl.compileShader(fragShader)
 
-		// Our multiplier array for width/height so we can get to each corner of the image drawn.
-		gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,0, 0,1, 1,0, 1,1]), gl.STATIC_DRAW)
+        // Create a shader program object and attach the shaders.
+        var shaderProgram = gl.createProgram() as WebGLProgram
+        gl.attachShader(shaderProgram, vertShader)
+        gl.attachShader(shaderProgram, fragShader)
+        gl.linkProgram(shaderProgram)
+        gl.useProgram(shaderProgram)
+        this.shaderProgram = shaderProgram
 
-		// Size multiplier vec2 variable. This code goes here so that it's linked to the Float32Array above, using those values.
-		var attribute = gl.getAttribLocation(shaderProgram, "aSizeMult")
-		gl.enableVertexAttribArray(attribute)
-		gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0)
+        // Tell gl that when we set the opacity, it should be semi transparent above what was already drawn.
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+        gl.enable(gl.BLEND)
+        gl.disable(gl.DEPTH_TEST)
 
-		// Whenever we call our drawImage(), we put in 2 shorts into our arrayBuffer for position (drawX,drawY)
-		var shortsPerImagePosition = 2
-		// Whenever we call our drawImage(), we put in 2 shorts into our arrayBuffer for size (width,height)
-		var shortsPerImageSize = 2
-		// Whenever we call our drawImage(), we also store 4 shorts into our arrayBuffer (texX,texY,texWidth,texHeight)
-		var shortsPerImageTexPos = 4
-		// Whenever we call our drawImage(), we also store 4 bytes into our arrayBuffer (r,g,b,a) for color and alpha.
-		var bytesPerImageRgba = 4
-		// Whenever we call our drawImage(), we also store 4 bytes into our arrayBuffer for topleft/topright corner alpha.
-		var bytesPerImageCornerAlpha = 4
-		// Whenever we call our drawImage(), we also put a float for rotation.
-		var floatsPerImageRotation = 1
-		
-		// Total bytes stored into arrayBuffer per image = 28
-		var bytesPerImage = shortsPerImagePosition * 2 + shortsPerImageSize * 2 + shortsPerImageTexPos * 2 + bytesPerImageRgba + bytesPerImageCornerAlpha + floatsPerImageRotation * 4
-		
-		// Make a buffer big enough to have all the data for the max images we can show at the same time.
-		var arrayBuffer = new ArrayBuffer(this.maxDraws * bytesPerImage)
-		
-		// Make 3 views on the same arrayBuffer, because we store 3 data types into this same byte array.
-		// When we store image positions/UVs into our arrayBuffer we store them as shorts (int16's)
-		this.positions = new Int16Array(arrayBuffer)
-		// When we store image rotation into our arrayBuffer we store it as float, because it's radians.
-		this.rotations = new Float32Array(arrayBuffer)
-		// When we store image rgbas into our arrayBuffer we store it as 1 4-byte int32.
-		this.rgbas = new Uint32Array(arrayBuffer)
-		
-		// Make the gl vertex buffer and link it to our arrayBuffer. Using DYNAMIC_DRAW because these change as images move around the screen.
-		gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-		gl.bufferData(gl.ARRAY_BUFFER, arrayBuffer, gl.DYNAMIC_DRAW)
-		
-		var byteOffset = 0
-		
-		// Tell gl where read from our arrayBuffer to set our shader attibute variables each time an image is drawn.
-		var setupAttribute = function(name: string, dataType: number, amount: number)
-		{
-			if(shaderProgram) {
-				var attribute = gl.getAttribLocation(shaderProgram, name)
-				if(attribute) {
-					gl.enableVertexAttribArray(attribute)
-					gl.vertexAttribPointer(attribute, amount, dataType, false, bytesPerImage, byteOffset)
-					extension.vertexAttribDivisorANGLE(attribute, 1)
-					if(dataType == gl.SHORT)
-						amount *= 2
-					if(dataType == gl.FLOAT)
-						amount *= 4
-					byteOffset += amount
-				}
-			}
-		}
-		
-		// Tell gl that each time an image is drawn, have it read 2 array slots from our arrayBuffer as short, and store them in the vec2 I made "aPos"
-		setupAttribute("aPos", gl.SHORT, shortsPerImagePosition)
-		
-		// Then read the next 2 array slots and store them in my vec2 "aSize"
-		setupAttribute("aSize", gl.SHORT, shortsPerImageSize)
-		
-		// Then read the next 4 array slots and store them in my vec4 "aTexPos"
-		setupAttribute("aTexPos", gl.SHORT, shortsPerImageTexPos)
-		
-		// Then read the next 4 bytes and store them in my vec4 "aRgba"
-		setupAttribute("aRgba", gl.UNSIGNED_BYTE, bytesPerImageRgba)
-		
-		// Then read the next 4 bytes as 1 float and store it in my float "aRotation"
-		setupAttribute("aRotation", gl.FLOAT, floatsPerImageRotation)
-		
-		// Then read the next 4 bytes and store them in my vec4 "aCornerA"
-		setupAttribute("aCornerA", gl.UNSIGNED_BYTE, bytesPerImageCornerAlpha)
+        // Map triangle vertexes to our multiplier array, for which corner of the image drawn's rectangle each triangle point is at.
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([0, 1, 2, 2, 1, 3]), gl.STATIC_DRAW)
+
+        // Our multiplier array for width/height so we can get to each corner of the image drawn.
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 0, 1, 1, 0, 1, 1]), gl.STATIC_DRAW)
+
+        // Size multiplier vec2 variable. This code goes here so that it's linked to the Float32Array above, using those values.
+        var attribute = gl.getAttribLocation(shaderProgram, "aSizeMult")
+        gl.enableVertexAttribArray(attribute)
+        gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0)
+
+        // Whenever we call our drawImage(), we put in 2 shorts into our arrayBuffer for position (drawX,drawY)
+        var shortsPerImagePosition = 2
+        // Whenever we call our drawImage(), we put in 2 shorts into our arrayBuffer for size (width,height)
+        var shortsPerImageSize = 2
+        // Whenever we call our drawImage(), we also store 4 shorts into our arrayBuffer (texX,texY,texWidth,texHeight)
+        var shortsPerImageTexPos = 4
+        // Whenever we call our drawImage(), we also store 4 bytes into our arrayBuffer (r,g,b,a) for color and alpha.
+        var bytesPerImageRgba = 4
+        // Whenever we call our drawImage(), we also store 4 bytes into our arrayBuffer for topleft/topright corner alpha.
+        var bytesPerImageCornerAlpha = 4
+        // Whenever we call our drawImage(), we also put a float for rotation.
+        var floatsPerImageRotation = 1
+
+        // Total bytes stored into arrayBuffer per image = 28
+        var bytesPerImage = shortsPerImagePosition * 2 + shortsPerImageSize * 2 + shortsPerImageTexPos * 2 + bytesPerImageRgba + bytesPerImageCornerAlpha + floatsPerImageRotation * 4
+
+        // Make a buffer big enough to have all the data for the max images we can show at the same time.
+        var arrayBuffer = new ArrayBuffer(this.maxDraws * bytesPerImage)
+
+        // Make 3 views on the same arrayBuffer, because we store 3 data types into this same byte array.
+        // When we store image positions/UVs into our arrayBuffer we store them as shorts (int16's)
+        this.positions = new Int16Array(arrayBuffer)
+        // When we store image rotation into our arrayBuffer we store it as float, because it's radians.
+        this.rotations = new Float32Array(arrayBuffer)
+        // When we store image rgbas into our arrayBuffer we store it as 1 4-byte int32.
+        this.rgbas = new Uint32Array(arrayBuffer)
+
+        // Make the gl vertex buffer and link it to our arrayBuffer. Using DYNAMIC_DRAW because these change as images move around the screen.
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, arrayBuffer, gl.DYNAMIC_DRAW)
+
+        var byteOffset = 0
+
+        // Tell gl where read from our arrayBuffer to set our shader attibute variables each time an image is drawn.
+        var setupAttribute = function (name: string, dataType: number, amount: number) {
+            if (shaderProgram) {
+                var attribute = gl.getAttribLocation(shaderProgram, name)
+                if (attribute) {
+                    gl.enableVertexAttribArray(attribute)
+                    gl.vertexAttribPointer(attribute, amount, dataType, false, bytesPerImage, byteOffset)
+                    extension.vertexAttribDivisorANGLE(attribute, 1)
+                    if (dataType == gl.SHORT)
+                        amount *= 2
+                    if (dataType == gl.FLOAT)
+                        amount *= 4
+                    byteOffset += amount
+                }
+            }
+        }
+
+        // Tell gl that each time an image is drawn, have it read 2 array slots from our arrayBuffer as short, and store them in the vec2 I made "aPos"
+        setupAttribute("aPos", gl.SHORT, shortsPerImagePosition)
+
+        // Then read the next 2 array slots and store them in my vec2 "aSize"
+        setupAttribute("aSize", gl.SHORT, shortsPerImageSize)
+
+        // Then read the next 4 array slots and store them in my vec4 "aTexPos"
+        setupAttribute("aTexPos", gl.SHORT, shortsPerImageTexPos)
+
+        // Then read the next 4 bytes and store them in my vec4 "aRgba"
+        setupAttribute("aRgba", gl.UNSIGNED_BYTE, bytesPerImageRgba)
+
+        // Then read the next 4 bytes as 1 float and store it in my float "aRotation"
+        setupAttribute("aRotation", gl.FLOAT, floatsPerImageRotation)
+
+        // Then read the next 4 bytes and store them in my vec4 "aCornerA"
+        setupAttribute("aCornerA", gl.UNSIGNED_BYTE, bytesPerImageCornerAlpha)
     }
 
     /**
@@ -859,46 +871,46 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * Save the current state so it can be restored later. push/pop style
      */
     save(): void {
-		this.transforms = [];
-		this.states.push(this.transforms);
-		if(this.states.length > 99)console.error("save() without restore()!");
+        this.transforms = [];
+        this.states.push(this.transforms);
+        if (this.states.length > 99) console.error("save() without restore()!");
     }
 
     /**
      * Restore the previously saved state. push/pop style.
      */
     restore(): void {
-		// Remove last state.
-		this.states.pop();
-		this.transforms = this.states[this.states.length-1];
-		
-		// Reset.
-		this.translateX = this.translateY = this.rotation = 0;
-		this.scaleX = this.scaleY = 1;
-		
-		// Reapply all transforms.
-		for(var transforms of this.states) {
-			for(var transform of transforms) {
-				var name = transform[0];
-				if(name == 'translate') {
-					this._translate(transform[1], transform[2]);
-				} else if(name == 'scale') {
-					this.scaleX *= transform[1];
-					this.scaleY *= transform[2];
-				} else if(name == 'rotate') {
-					this.rotation += transform[1];
-				}
-			}
-		}
+        // Remove last state.
+        this.states.pop();
+        this.transforms = this.states[this.states.length - 1];
+
+        // Reset.
+        this.translateX = this.translateY = this.rotation = 0;
+        this.scaleX = this.scaleY = 1;
+
+        // Reapply all transforms.
+        for (var transforms of this.states) {
+            for (var transform of transforms) {
+                var name = transform[0];
+                if (name == 'translate') {
+                    this._translate(transform[1], transform[2]);
+                } else if (name == 'scale') {
+                    this.scaleX *= transform[1];
+                    this.scaleY *= transform[2];
+                } else if (name == 'rotate') {
+                    this.rotation += transform[1];
+                }
+            }
+        }
     }
 
     clearScreen(r: number, g: number, b: number) {
-		this.gl.clearColor(r / 255, g / 255, b / 255, 1);
-		
-		// Clear the canvas.
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-	}
-	
+        this.gl.clearColor(r / 255, g / 255, b / 255, 1);
+
+        // Clear the canvas.
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    }
+
     /**
      * Set the color used to fill the next operations
      * @param r is 0-255
@@ -906,7 +918,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param b is 0-255
      * @param a is 0-1
      */
-    setFillColor(r:number, g:number, b:number, a:number) {
+    setFillColor(r: number, g: number, b: number, a: number) {
         this.rgba = (r * 16777216) + (g << 16) + (b << 8) + Math.floor(a * 255);
     }
 
@@ -919,9 +931,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param height The height of the rectangle
      */
     fillRect(x: number, y: number, width: number, height: number): void {
-		var rgba = Math.floor(this.rgba / 256) * 256
-		var a = Math.floor((this.alpha + (this.rgba % 256)) / 2)
-		this._drawImage(0, 0, 1, 1, x, y, width, height, rgba, a, a, a, a)
+        var rgba = Math.floor(this.rgba / 256) * 256
+        var a = Math.floor((this.alpha + (this.rgba % 256)) / 2)
+        this._drawImage(0, 0, 1, 1, x, y, width, height, rgba, a, a, a, a)
     }
 
     /**
@@ -938,55 +950,55 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param bottomRightA alpha 0-255
      */
     fillRectWithCornerAlphas(x: number, y: number, width: number, height: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number): void {
-		var rgba = Math.floor(this.rgba / 256) * 256
-		this._drawImage(0, 0, 1, 1, x, y, width, height, rgba, topLeftA, topRightA, bottomLeftA, bottomRightA)
+        var rgba = Math.floor(this.rgba / 256) * 256
+        this._drawImage(0, 0, 1, 1, x, y, width, height, rgba, topLeftA, topRightA, bottomLeftA, bottomRightA)
     }
 
     /**
      * Draws a this rectangular portion of the big png.
      */
-	private _drawImage(texX: number, texY: number, texWidth: number, texHeight: number, drawX: number, drawY: number, width: number, height: number, rgba: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number) {
-		// 7 because every time we draw an image we set 28 bytes of data. i is a 4 byte index for this.rgbas
-		var i = this.draws * 7
-		
-		// Store rgba after position/texture. Default to white and fully opaque. i+4 because positions are stored first.
-		this.rgbas[i+4] = rgba
-		
-		// Store how rotated we want this image to be.
-		this.rotations[i+5] = this.rotation
-		
-		this.rgbas[i+6] = (Math.floor(topLeftA)*256*256*256) + (topRightA<<16) + (bottomLeftA<<8) + Math.floor(bottomRightA)
-		
-		// Positions array is 2-byte shorts not 4-byte floats so there's twice as many slots.
-		i *= 2
-		
-		// Use a local variable so it's faster to access.
-		var positions = this.positions
-		
-		// Global rotation. TODO: move this math into the shader for speedup.
-		if(this.rotation) {
-			var dist = Math.sqrt(drawX*drawX + drawY*drawY)
-			var angle = Math.atan2(drawY, drawX)
-			drawX = Math.cos(angle + this.rotation) * dist
-			drawY = Math.sin(angle + this.rotation) * dist
-		}
-		
-		// Store where we want to draw the image.
-		positions[i  ] = drawX * this.scaleX + this.translateX
-		positions[i+1] = drawY * this.scaleY + this.translateY
-		positions[i+2] = width * this.scaleX
-		positions[i+3] = height * this.scaleY
-		
-		// Store what portion of our PNG we want to draw.
-		positions[i+4] = texX
-		positions[i+5] = texY
-		positions[i+6] = texWidth
-		positions[i+7] = texHeight
-		
-		// Count how many images were drawn this frame so we only send that many array slots to webgl.
-		this.draws++
-	}
-	
+    private _drawImage(texX: number, texY: number, texWidth: number, texHeight: number, drawX: number, drawY: number, width: number, height: number, rgba: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number) {
+        // 7 because every time we draw an image we set 28 bytes of data. i is a 4 byte index for this.rgbas
+        var i = this.draws * 7
+
+        // Store rgba after position/texture. Default to white and fully opaque. i+4 because positions are stored first.
+        this.rgbas[i + 4] = rgba
+
+        // Store how rotated we want this image to be.
+        this.rotations[i + 5] = this.scaleX < 0 ? -this.rotation : this.rotation;
+
+        this.rgbas[i + 6] = (Math.floor(topLeftA) * 256 * 256 * 256) + (topRightA << 16) + (bottomLeftA << 8) + Math.floor(bottomRightA)
+
+        // Positions array is 2-byte shorts not 4-byte floats so there's twice as many slots.
+        i *= 2
+
+        // Use a local variable so it's faster to access.
+        var positions = this.positions
+
+        // Global rotation. TODO: move this math into the shader for speedup.
+        if (this.rotation) {
+            var dist = Math.sqrt(drawX * drawX + drawY * drawY)
+            var angle = Math.atan2(drawY, drawX);
+            drawX = Math.cos(angle + this.rotation) * dist
+            drawY = Math.sin(angle + this.rotation) * dist
+        }
+
+        // Store where we want to draw the image.
+        positions[i] = drawX * this.scaleX + this.translateX
+        positions[i + 1] = drawY * this.scaleY + this.translateY
+        positions[i + 2] = width * this.scaleX
+        positions[i + 3] = height * this.scaleY
+
+        // Store what portion of our PNG we want to draw.
+        positions[i + 4] = texX;
+        positions[i + 5] = texY;
+        positions[i + 6] = texWidth;
+        positions[i + 7] = texHeight;
+
+        // Count how many images were drawn this frame so we only send that many array slots to webgl.
+        this.draws++
+    }
+
     /**
      * Translate the drawing position 
      * 
@@ -994,17 +1006,17 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The amount to translate on the y axis
      */
     translate(x: number, y: number) {
-		this._translate(x, y)
-		this.transforms.push(["translate",x,y])
+        this._translate(x, y)
+        this.transforms.push(["translate", x, y])
     }
-	_translate(x:number, y:number) {
-		x *= this.scaleX;
-		y *= this.scaleY;
-		var angle = Math.atan2(y, x);
-		var dist = Math.sqrt(x*x + y*y);
-		this.translateX += Math.cos(angle + this.rotation) * dist;
-		this.translateY += Math.sin(angle + this.rotation) * dist;
-	}
+    _translate(x: number, y: number) {
+        x *= this.scaleX;
+        y *= this.scaleY;
+        var angle = Math.atan2(y, x);
+        var dist = Math.sqrt(x * x + y * y);
+        this.translateX += Math.cos(angle + (this.scaleX < 0 ? -this.rotation : this.rotation)) * dist;
+        this.translateY += Math.sin(angle + this.rotation) * dist;
+    }
 
     /**
      * Draw an image scaled to the graphics context
@@ -1016,7 +1028,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param height The height to draw the image
      */
     drawScaledImage(img: GraphicsImage, x: number, y: number, width: number, height: number) {
-		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, width, height, 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
+        this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, width, height, 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
     }
 
     /**
@@ -1027,7 +1039,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The y coordinate to draw the image at
      */
     drawImage(img: GraphicsImage, x: number, y: number) {
-		this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth(), img.getHeight(), 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
+        // add one pixel to size the image to account for scaling, this prevents
+        // slight differences in math causing visible lines
+        this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth() + 1, img.getHeight() + 1, 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
     }
 
     /**
@@ -1046,12 +1060,12 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param alpha The alpha value to use
      */
     setGlobalAlpha(alpha: number): void {
-		alpha = Math.floor(alpha * 255);
-		this.alpha = Math.min(255, alpha);
-		this.brightness = 0;
-		if(alpha > 255) {
-			this.brightness = alpha - 255;
-		}
+        alpha = Math.floor(alpha * 255);
+        this.alpha = Math.min(255, alpha);
+        this.brightness = 0;
+        // if(alpha > 255) {
+        // 	this.brightness = alpha - 255;
+        // }
     }
 
     /**
@@ -1060,7 +1074,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param font The font definition (in CSS format)
      */
     setFont(font: string): void {
-		this.fontSize = parseInt(font) || 16;
+        this.fontSize = parseInt(font) || 16;
     }
 
     /**
@@ -1071,34 +1085,34 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The y coordinate to draw the image at
      */
     fillText(text: string, x: number, y: number): void {
-		text = text.toUpperCase();
-		
-		var h = this.fontSize * .55;
-		var w = h / 2;
-		var spacing = w * 1.2;
-		var textWidth = text.length * spacing;
-		if(this.textAlign == 'center') {
-			x -= textWidth / 2;
-		} else if(this.textAlign == 'right') {
-			x -= textWidth;
-		}
-		y -= h;
-		
-		var fat = 3;
-		for(var i = 0; i < text.length; i++) {
-			//we don't have a bitmap font yet so just draw rectangles.
-			var letter = text[i];
-			'AHJMNOQUVW034789'.includes(letter) && this.fillRect(x+w-fat, y, fat, h);
-			'BCDEGJLOQSUVWZ023568'.includes(letter) && this.fillRect(x, y+h-fat, w, fat);
-			'ABCDEFGMNOPQRSTZ02356789'.includes(letter) && this.fillRect(x, y, w, fat);
-			'IMTWY1'.includes(letter) && this.fillRect(x+w/2-1, y+fat, fat, h-fat);
-			'ABEFHKPRSXYZ2345689'.includes(letter) && this.fillRect(x, y+h/2-fat, w, fat);
-			'BDGKRSX56'.includes(letter) && this.fillRect(x+w-fat, y+h-3, fat, -h/2+3);
-			'BDKPRXYZ2'.includes(letter) && this.fillRect(x+w-fat, y+3, fat, h/2-3);
-			'ABCDEFGHKLMNOPQRUVW068SXY459'.includes(letter) && this.fillRect(x, y, fat, h/2);
-			'ABCDEFGHKLMNOPQRUVW068JXZ2'.includes(letter) && this.fillRect(x, y+h, fat, -h/2);
-			x += spacing;
-		}
+        text = text.toUpperCase();
+
+        var h = this.fontSize * .55;
+        var w = h / 2;
+        var spacing = w * 1.2;
+        var textWidth = text.length * spacing;
+        if (this.textAlign == 'center') {
+            x -= textWidth / 2;
+        } else if (this.textAlign == 'right') {
+            x -= textWidth;
+        }
+        y -= h;
+
+        var fat = 3;
+        for (var i = 0; i < text.length; i++) {
+            //we don't have a bitmap font yet so just draw rectangles.
+            var letter = text[i];
+            'AHJMNOQUVW034789'.includes(letter) && this.fillRect(x + w - fat, y, fat, h);
+            'BCDEGJLOQSUVWZ023568'.includes(letter) && this.fillRect(x, y + h - fat, w, fat);
+            'ABCDEFGMNOPQRSTZ02356789'.includes(letter) && this.fillRect(x, y, w, fat);
+            'IMTWY1'.includes(letter) && this.fillRect(x + w / 2 - 1, y + fat, fat, h - fat);
+            'ABEFHKPRSXYZ2345689'.includes(letter) && this.fillRect(x, y + h / 2 - fat, w, fat);
+            'BDGKRSX56'.includes(letter) && this.fillRect(x + w - fat, y + h - 3, fat, -h / 2 + 3);
+            'BDKPRXYZ2'.includes(letter) && this.fillRect(x + w - fat, y + 3, fat, h / 2 - 3);
+            'ABCDEFGHKLMNOPQRUVW068SXY459'.includes(letter) && this.fillRect(x, y, fat, h / 2);
+            'ABCDEFGHKLMNOPQRUVW068JXZ2'.includes(letter) && this.fillRect(x, y + h, fat, -h / 2);
+            x += spacing;
+        }
     }
 
     /**
@@ -1116,8 +1130,8 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param ang The angle to rotate by in radians
      */
     rotate(ang: number): void {
-		this.rotation += ang;
-		this.transforms.push(["rotate", ang]);
+        this.rotation += ang;
+        this.transforms.push(["rotate", ang]);
     }
 
     /**
@@ -1127,9 +1141,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The amount to scale y axis by
      */
     scale(x: number, y: number): void {
-		this.scaleX *= x;
-		this.scaleY *= y;
-		this.transforms.push(["scale", x, y]);
+        this.scaleX *= x;
+        this.scaleY *= y;
+        this.transforms.push(["scale", x, y]);
     }
 
     /**
@@ -1162,7 +1176,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param r1 The radius of the end circle
      */
     createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): GraphicsGradient {
-		return 0 as unknown as GraphicsGradient;
+        return 0 as unknown as GraphicsGradient;
     }
 
     /**

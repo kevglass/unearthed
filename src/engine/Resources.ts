@@ -22,6 +22,9 @@ const reportedErrors: Record<string, boolean> = {};
 
 /** The collection of all sprites loaded by the game */
 export const SPRITES: Record<string, GraphicsImage> = {};
+/** Date/Time of last time SPRITES were added */
+export let LAST_SPRITES_UPDATE: number = Date.now();
+
 /** The collection of all sound effects loaded by the game */
 const sfx: Record<string, ArrayBuffer> = {};
 /** The audio elements changed to sources for the audio context */
@@ -43,6 +46,8 @@ function loadImage(name: string, resource: string): GraphicsImage {
     image.get().src = RESOURCES[resource];
     image.get().onload = () => { loadedCount--; };
     loadedCount++;
+    LAST_SPRITES_UPDATE = Date.now();
+
     return SPRITES[name];
 }
 
@@ -59,6 +64,8 @@ export function loadImageFromUrl(name: string, url: string): GraphicsImage {
     image.get().src = url;
     image.get().onload = () => { loadedCount--; };
     loadedCount++;
+    LAST_SPRITES_UPDATE = Date.now();
+
     return SPRITES[name];
 }
 
