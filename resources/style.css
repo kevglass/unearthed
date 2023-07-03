@@ -531,3 +531,12 @@ input {
     width: 100%;
     border: 1px solid black;
 }
+
+#github {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 10%;
+    min-width: 70px;
+    max-width: 90px;
+}

@@ -1,149 +1,157 @@
 <html>
-    <head>
-        <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-        <link rel="stylesheet" type="text/css" href="style.css?v=<%= version %>">
-        
-        <!-- Primary Meta Tags -->
-        <title>Unearthed</title>
-        <meta name="title" content="Unearthed">
-        <meta name="description" content="Unearthed is totally not Minecraft.">
 
-        <!-- Open Graph / Facebook -->
-        <meta property="og:type" content="website">
-        <meta property="og:url" content="https://unearthedgame.net/">
-        <meta property="og:title" content="Unearthed">
-        <meta property="og:description" content="Come build, create and share worlds with your friends.">
-        <meta property="og:image" content="https://unearthedgame.net/summary.png">
+<head>
+    <meta name="viewport"
+        content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="style.css?v=<%= version %>">
 
-        <!-- Twitter -->
-        <meta property="twitter:card" content="summary_large_image">
-        <meta property="twitter:url" content=" https://unearthedgame.net/">
-        <meta property="twitter:title" content="Unearthed">
-        <meta property="twitter:description" content="Come build, create and share worlds with your friends.">
-        <meta property="twitter:image" content=" https://unearthedgame.net/summary.png">
+    <!-- Primary Meta Tags -->
+    <title>Unearthed</title>
+    <meta name="title" content="Unearthed">
+    <meta name="description" content="Unearthed is totally not Minecraft.">
 
-        <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon.png">
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-        <link rel="manifest" href="/site.webmanifest">
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
-        <meta name="msapplication-TileColor" content="#da532c">
-        <meta name="theme-color" content="#ffffff">
-    </head>
-    <body>
-        <canvas id="game"></canvas>
-        <div id="playerList"></div>
-        <div id="settings">Settings</div>
-        <div id="chat">Chat</div>
-        <div id="chatList"></div>
-        <div id="connect" class="panel">
-            <div id="startGame" class="button">Start Game</div>
-            <div id="joinGame" class="button">Join Game</div>
-            <div id="setupButton" class="button">Setup</div>
-        </div>
-        <div id="join" class="panel">
-            <div class="label">Enter Server ID</div>
-            <input id="serverId" class="textfield" />
-            <div id="joinButton" class="button">Join</div>
-        </div>
-        <div id="setup" class="panel">
-            <div class="label">Player Name</div>
-            <input id="playerName" class="textfield" />
-            <div class="configpanel">
-                <div class="option">
-                    <div class="optionLabel">Head</div>
-                    <select class="optionSelect" id="headSelect">
-                        <option>a</option>
-                        <option>b</option>
-                        <option>c</option>
-                        <option>d</option>
-                    </select>
-                </div>
-                <div class="option">
-                    <div class="optionLabel">Body</div>
-                    <select class="optionSelect" id="bodySelect">
-                        <option>a</option>
-                        <option>b</option>
-                        <option>c</option>
-                        <option>d</option>
-                    </select>
-                </div>
-                <div class="option">
-                    <div class="optionLabel">Arms</div>
-                    <select class="optionSelect" id="armsSelect">
-                        <option>a</option>
-                        <option>b</option>
-                        <option>c</option>
-                        <option>d</option>
-                    </select>
-                </div>
-                <div class="option">
-                    <div class="optionLabel">Legs</div>
-                    <select class="optionSelect" id="legsSelect">
-                        <option>a</option>
-                        <option>b</option>
-                        <option>c</option>
-                        <option>d</option>
-                    </select>
-                </div>
-            </div>
-            <div id="doneButton" class="button">Save</div>
-        </div>
-        <div id="settingsPanel" class="panel">
-            <button id="closeButton" class="button">X</button>
-            <div id="settingButtons">
-                <div><button id="soundButton" class="button"></button></div>
-                <div><button id="controllerButton" class="button"></button></div>
-                <div><button id="keyboardSetupButton" class="button"></button></div>
-                <div><button id="fullscreenButton" class="button"></button></div>
-            </div>
-            <div class="label">Your Server Code</div>
-            <div id="serverLink"></div>
-            <div id="serverSettingsButton" class="button">Server Settings</div>
-        </div>
-        <div id="serverSettingsPanel" class="panel">
-            <button id="closeServerSettingsButton" class="button">X</button>
-            <div class="label">Server Setup</div>
-            <div class="setting label">
-                <div class="settingLabel">Edit World</div>
-                <div id="changeWorldButton" class="settingButton mapButton">Yes</div>
-            </div>
-            <div class="label">Game Mods</div>
-            <div id="mods">
-                <div id="modsList">
-                </div>
-                <div id="modControls">
-                    <div id="addMod" class="settingButton mapButton">Add</div>
-                    <div id="editMod" class="settingButton mapButton">Edit</div>
-                    <div id="removeMod" class="settingButton mapButton">Del</div>
-                </div>
-            </div>
-            <div id="mapBar">
-                <div id="resetMapButton" class="mapButton">Reset Map</div>
-                <div id="loadMapButton" class="mapButton">Load Map</div>
-                <div id="saveMapButton" class="mapButton">Save Map</div>
-            </div>
-        </div>
-        <input id="chatinput" type="text" />
-        <input id="portalinput" type="text" />
-        <div id="tooltip"></div>
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://unearthedgame.net/">
+    <meta property="og:title" content="Unearthed">
+    <meta property="og:description" content="Come build, create and share worlds with your friends.">
+    <meta property="og:image" content="https://unearthedgame.net/summary.png">
 
-        <div id="codePanel">
-            <div id="codeEditor"></div>
-            <div id="codeBar">
-                <div id="codeDownloadButton" class="mapButton">Download</div>
-                <div id="codeCancelButton" class="mapButton">Cancel</div>
-                <div id="codeSaveButton" class="mapButton">Save</div>
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content=" https://unearthedgame.net/">
+    <meta property="twitter:title" content="Unearthed">
+    <meta property="twitter:description" content="Come build, create and share worlds with your friends.">
+    <meta property="twitter:image" content=" https://unearthedgame.net/summary.png">
+
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+</head>
+
+<body>
+    <canvas id="game"></canvas>
+    <div id="playerList"></div>
+    <div id="settings">Settings</div>
+    <div id="chat">Chat</div>
+    <div id="chatList"></div>
+    <div id="connect" class="panel">
+        <div id="startGame" class="button">Start Game</div>
+        <div id="joinGame" class="button">Join Game</div>
+        <div id="setupButton" class="button">Setup</div>
+    </div>
+    <div id="join" class="panel">
+        <div class="label">Enter Server ID</div>
+        <input id="serverId" class="textfield" />
+        <div id="joinButton" class="button">Join</div>
+    </div>
+    <div id="setup" class="panel">
+        <div class="label">Player Name</div>
+        <input id="playerName" class="textfield" />
+        <div class="configpanel">
+            <div class="option">
+                <div class="optionLabel">Head</div>
+                <select class="optionSelect" id="headSelect">
+                    <option>a</option>
+                    <option>b</option>
+                    <option>c</option>
+                    <option>d</option>
+                </select>
+            </div>
+            <div class="option">
+                <div class="optionLabel">Body</div>
+                <select class="optionSelect" id="bodySelect">
+                    <option>a</option>
+                    <option>b</option>
+                    <option>c</option>
+                    <option>d</option>
+                </select>
+            </div>
+            <div class="option">
+                <div class="optionLabel">Arms</div>
+                <select class="optionSelect" id="armsSelect">
+                    <option>a</option>
+                    <option>b</option>
+                    <option>c</option>
+                    <option>d</option>
+                </select>
+            </div>
+            <div class="option">
+                <div class="optionLabel">Legs</div>
+                <select class="optionSelect" id="legsSelect">
+                    <option>a</option>
+                    <option>b</option>
+                    <option>c</option>
+                    <option>d</option>
+                </select>
             </div>
         </div>
-        <div id="splash">
-            <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png" />
+        <div id="doneButton" class="button">Save</div>
+    </div>
+    <div id="settingsPanel" class="panel">
+        <button id="closeButton" class="button">X</button>
+        <div id="settingButtons">
+            <div><button id="soundButton" class="button"></button></div>
+            <div><button id="controllerButton" class="button"></button></div>
+            <div><button id="keyboardSetupButton" class="button"></button></div>
+            <div><button id="fullscreenButton" class="button"></button></div>
         </div>
-        <input id="fileInput" type="file" style="visibility:hidden" />
-        <input id="modInput" type="file" style="visibility:hidden" />
-        <script src="bundle.js?v=<%= version %>"></script>
-    </body>
+        <div class="label">Your Server Code</div>
+        <div id="serverLink"></div>
+        <div id="serverSettingsButton" class="button">Server Settings</div>
+    </div>
+    <div id="serverSettingsPanel" class="panel">
+        <button id="closeServerSettingsButton" class="button">X</button>
+        <div class="label">Server Setup</div>
+        <div class="setting label">
+            <div class="settingLabel">Edit World</div>
+            <div id="changeWorldButton" class="settingButton mapButton">Yes</div>
+        </div>
+        <div class="label">Game Mods</div>
+        <div id="mods">
+            <div id="modsList">
+            </div>
+            <div id="modControls">
+                <div id="addMod" class="settingButton mapButton">Add</div>
+                <div id="editMod" class="settingButton mapButton">Edit</div>
+                <div id="removeMod" class="settingButton mapButton">Del</div>
+            </div>
+        </div>
+        <div id="mapBar">
+            <div id="resetMapButton" class="mapButton">Reset Map</div>
+            <div id="loadMapButton" class="mapButton">Load Map</div>
+            <div id="saveMapButton" class="mapButton">Save Map</div>
+        </div>
+    </div>
+    <input id="chatinput" type="text" />
+    <input id="portalinput" type="text" />
+    <div id="tooltip"></div>
+
+    <div id="codePanel">
+        <div id="codeEditor"></div>
+        <div id="codeBar">
+            <div id="codeDownloadButton" class="mapButton">Download</div>
+            <div id="codeCancelButton" class="mapButton">Cancel</div>
+            <div id="codeSaveButton" class="mapButton">Save</div>
+        </div>
+    </div>
+    <a href="https://github.com/kevglass/unearthed" target="_blank">
+        <img id="github" src="github.png">
+        </img>
+    </a>
+    <div id="splash">
+        <img src="https://www.cokeandcode.com/main/wp-content/uploads/2021/04/logobig.png" />
+    </div>
+    <input id="fileInput" type="file" style="visibility:hidden" />
+    <input id="modInput" type="file" style="visibility:hidden" />
+    <script src="bundle.js?v=<%= version %>"></script>
+</body>
+
 </html>
