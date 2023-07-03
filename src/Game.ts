@@ -882,7 +882,7 @@ export class Game implements ControllerListener {
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 		
-		this.g.clearScreen(0xb7, 0xe7, 0xfa);
+		this.g.clearScreen(207, 239, 252);
 
         const backgrounds = [{
             sprite: "bg/clouds",
