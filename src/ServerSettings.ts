@@ -5,6 +5,8 @@ import { DEFAULT_INVENTORY } from "./InventItem";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
 
+const MINIMUM_MOD_VERSION_ALLOWED: number = 0;
+
 /**
  * The configuration that gets stored into local storage
  */
@@ -86,6 +88,11 @@ export class ServerSettings {
         try {
             const potentialMod = eval(content) as ServerMod;
             if (potentialMod.name && potentialMod.id) {
+                const apiVersion = potentialMod.version ?? 1;
+                if (apiVersion < MINIMUM_MOD_VERSION_ALLOWED) {
+                    console.error("Modification version is too old ("+apiVersion+" < " + MINIMUM_MOD_VERSION_ALLOWED);
+                    return false;
+                }
                 mod.resources["mod.js"] = content;
                 mod.mod = potentialMod;
                 this.cleanUpMod(mod);
@@ -125,6 +132,12 @@ export class ServerSettings {
                 const potentialMod = eval(script) as ServerMod;
 
                 if (potentialMod.name && potentialMod.id) {
+                    const apiVersion = potentialMod.version ?? 1;
+                    if (apiVersion < MINIMUM_MOD_VERSION_ALLOWED) {
+                        console.error("Modification version is too old ("+apiVersion+" < " + MINIMUM_MOD_VERSION_ALLOWED);
+                        return;
+                    }
+
                     const existing = this.serverMods.mods.find(m => m.mod.id === potentialMod.id);
                     if (existing) {
                         this.removeMod(existing);
