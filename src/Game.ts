@@ -1,7 +1,7 @@
 
 import { Graphics, HtmlGraphics, WebglGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
-import {GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
@@ -17,6 +17,7 @@ import { initTiles, BLOCKS } from "./Block";
 import { initInventory } from "./InventItem";
 import { getSkeleton } from "./Skeletons";
 import { getCodeEditor, hideCodeEditor } from "./mods/Editor";
+import JSZip from "jszip";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -144,12 +145,12 @@ export class Game implements ControllerListener {
 
         this.tooltipDiv = document.getElementById("tooltip") as HTMLDivElement;
         this.canvas = document.getElementById("game") as HTMLCanvasElement;
-		
-		if (USE_WEBGL) {
-			this.g = new WebglGraphics(this.canvas);
-		} else {
-			this.g = new HtmlGraphics(this.canvas);
-		}
+
+        if (USE_WEBGL) {
+            this.g = new WebglGraphics(this.canvas);
+        } else {
+            this.g = new HtmlGraphics(this.canvas);
+        }
 
         // check if we have a server ID stored locally, if not then generated one
         // and store it
@@ -261,10 +262,46 @@ export class Game implements ControllerListener {
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
         }
 
+        const installLocation = params.get("install");
+        if (installLocation) {
+            setTimeout(() => {
+                if (window.confirm("Do you want to install mod from " + params.get("install") + "?")) {
+                    this.loadModFromUrl(installLocation);
+                }
+            }, 1000);
+        }
+
         console.log("Connect to this server on: " + this.serverId)
         document.getElementById("serverLink")!.innerHTML = this.serverId;
 
         this.configureEventHandlers();
+    }
+
+    private async loadModFromUrl(url: string): Promise<void> {
+        console.log("Loading mod from: " + url);
+        fetch("https://unearthedgame.net/getmod.php?p="+Date.now()+"&url="+encodeURIComponent(url)).then(async (response: Response) => {
+            if (url.endsWith(".js")) {
+                const modData: any = {};
+                modData["mod.js"] = await response.text();
+                this.serverSettings.addMod(modData, true);
+            } else {
+                // ZIP with resources
+                new JSZip().loadAsync(await response.blob()).then((zip: JSZip) => {
+                    const modData: any = {};
+                    let count = 0;
+                    zip.forEach((path, file) => {
+                        count++;
+                        file.async(path.endsWith(".js") || path.endsWith(".json") ? "string" : "base64").then((value: string) => {
+                            modData[path] = value;
+                            count--;
+                            if (count === 0) {
+                                this.serverSettings.addMod(modData, true);
+                            }
+                        });
+                    });
+                });
+            }
+        });
     }
 
     buttonPressed(button: number): void {
@@ -346,7 +383,7 @@ export class Game implements ControllerListener {
             }
 
             // if we're focused on the chat input that takes precedence
-            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput || 
+            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput ||
                 document.activeElement === this.ui.portalInput) {
                 return;
             }
@@ -668,7 +705,7 @@ export class Game implements ControllerListener {
 
         this.playerTriggeredLocation(this.player, x, y, true);
     }
-    
+
     playerTriggeredLocation(player: Mob, x: number, y: number, local: boolean) {
         if (local) {
             this.triggerPortal(x, y);
@@ -861,10 +898,10 @@ export class Game implements ControllerListener {
         // move the animation forward
         this.animTime += 0.03;
         this.animTime = this.animTime % 1;
-		
-		if(resourcesLoaded()) {
-			this.g.doneLoadingImages(SPRITES)
-		}
+
+        if (resourcesLoaded()) {
+            this.g.doneLoadingImages(SPRITES)
+        }
 
         // determine the scale of the screen and any limitation
         // on the viewing area
@@ -881,8 +918,8 @@ export class Game implements ControllerListener {
         let ox = this.player.x - (this.canvas.width / 2);
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
-		
-		this.g.clearScreen(207, 239, 252);
+
+        this.g.clearScreen(207, 239, 252);
 
         const backgrounds = [{
             sprite: "bg/clouds",
@@ -898,15 +935,15 @@ export class Game implements ControllerListener {
 
         for (const bg of backgrounds) {
             const background = getSprite(bg.sprite);
-			if(background.getWidth()) {
-				this.g.save();
-				this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
-				for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
-					// draw the background clouds
-					this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
-				}
-				this.g.restore();
-			}
+            if (background.getWidth()) {
+                this.g.save();
+                this.g.translate(-((ox / bg.parallax) % (background.getWidth() * bg.scale)), bg.offset);
+                for (let x = 0; x < this.canvas.width * 2; x += (background.getWidth() * bg.scale) - bg.scale) {
+                    // draw the background clouds
+                    this.g.drawScaledImage(background, x, 0, background.getWidth() * bg.scale, background.getHeight() * bg.scale);
+                }
+                this.g.restore();
+            }
         }
 
         if (this.controllerSetupStep >= 0) {
@@ -972,9 +1009,9 @@ export class Game implements ControllerListener {
                 this.g.save();
                 this.g.translate((this.canvas.width / 2) + (logo.getWidth() / 2) + 150, 150 + (logo.getHeight() * 2));
                 this.g.rotate(-(Math.PI / 8) - (Math.PI / 32) + (Math.sin(Math.PI * this.animTime) * (Math.PI / 32)));
-				this.g.setFillColor(0, 0, 0, 1);
+                this.g.setFillColor(0, 0, 0, 1);
                 this.g.fillText(this.motd, 1, 1);
-				this.g.setFillColor(0, 255, 0, 1);
+                this.g.setFillColor(0, 255, 0, 1);
                 this.g.fillText(this.motd, 0, 0);
                 this.g.restore();
             }
@@ -1003,8 +1040,8 @@ export class Game implements ControllerListener {
                 this.g.setTextAlign("center");
                 this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
             }
-			this.g.restore();
-			this.g.render();
+            this.g.restore();
+            this.g.render();
             return;
         }
 
@@ -1048,9 +1085,9 @@ export class Game implements ControllerListener {
 
             // finally draw update and draw the mobs
             for (const mob of [...this.mobs]) {
-				this.g.setGlobalAlpha(1.1 + Math.sin(Date.now() / 55) * .1)
+                this.g.setGlobalAlpha(1.1 + Math.sin(Date.now() / 55) * .1)
                 mob.draw(this.g, SHOW_BOUNDS);
-				this.g.setGlobalAlpha(1)
+                this.g.setGlobalAlpha(1)
 
                 if (Date.now() - mob.lastUpdate > 10000 && mob !== this.player) {
                     this.mobs.splice(this.mobs.indexOf(mob), 1);
@@ -1064,7 +1101,7 @@ export class Game implements ControllerListener {
 
         this.g.restore();
 
-		
+
         // Draw the UI components
 
         // if we have limited screen real estate adjust the positions of the UI
@@ -1119,8 +1156,8 @@ export class Game implements ControllerListener {
             this.g.drawScaledImage(getSprite("ui/trigger"), this.canvas.width - 520, this.canvas.height - 160, 140, 140);
         }
 
-		this.g.render();
-		
+        this.g.render();
+
         // schedule our next frame
         requestAnimationFrame(() => { this.loop() });
     }

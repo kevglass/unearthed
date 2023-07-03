@@ -152,7 +152,7 @@ export class Network {
         // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
         // provider that uses kev's hidden livekit key. 
         const request = new XMLHttpRequest();
-        request.open("GET", "https://cokeandcode.com/demos/unearthed/room3.php?username=" + encodeURIComponent(this.game.username!) +
+        request.open("GET", "https://unearthedgame.net/room3.php?username=" + encodeURIComponent(this.game.username!) +
             "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
         request.send();
         const token = request.responseText.split("&")[0];

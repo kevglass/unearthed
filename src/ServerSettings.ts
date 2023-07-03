@@ -125,6 +125,10 @@ export class ServerSettings {
                 const potentialMod = eval(script) as ServerMod;
 
                 if (potentialMod.name && potentialMod.id) {
+                    const existing = this.serverMods.mods.find(m => m.mod.id === potentialMod.id);
+                    if (existing) {
+                        this.removeMod(existing);
+                    }
                     const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [] };
                     this.serverMods.mods.push(modRecord);
 
