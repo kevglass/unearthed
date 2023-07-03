@@ -32,6 +32,8 @@ const audioBuffers: Record<string, AudioBuffer> = {};
 
 /** The number of assets left to load */
 let loadedCount = 0;
+/** The last time each of the sound effects were played to prevent cycling */
+const lastPlayed: Record<string, number> = {};
 
 /**
  * Load a sprite into the resources cache
@@ -186,6 +188,12 @@ export function playSfx(name: string, volume: number, variations: number | null 
     const effect = sfx[variationName];
 
     if (effect) {
+        const last = lastPlayed[variationName] ?? 0;
+        if (Date.now() - last < 100) {
+            return;
+        }
+        lastPlayed[variationName] = Date.now();
+
         if (!audioBuffers[variationName]) {
             audioContext.decodeAudioData(effect).then((buffer: AudioBuffer) => {
                 audioBuffers[variationName] = buffer;

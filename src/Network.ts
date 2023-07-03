@@ -455,7 +455,23 @@ export class Network {
      */
     sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
         const oldBlock = this.gameMap.getTile(x,y, layer);
+        if (oldBlock === tile) {
+            return;
+        }
 
+        if (this.thisIsTheHostServer) {
+            // if we're the server we're authoritative so the mods can run based on the change
+            if (toolId.length > 0) {
+                // using a tool
+                this.game.mods.tool(player, x, y, layer, toolId);
+
+                // if a mod has replaced the tile that was put down then don't continue 
+                // setting the tile since we'll override the mod
+                if (oldBlock !== this.gameMap.getTile(x,y, layer)) {
+                    return;
+                }
+            }
+        }
         if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
             // if we're the host then forward the update to all players
             // only set zero if we're using the default pick
@@ -465,12 +481,7 @@ export class Network {
         }
         if (this.thisIsTheHostServer) {
             // if we're the server we're authoritative so the mods can run based on the change
-            if (tile === 0) {
-                // using a tool
-                this.game.mods.tool(player, x, y, layer, toolId);
-            } else {
-                this.game.mods.tile(player, x,y, layer, tile, oldBlock);
-            }
+            this.game.mods.tile(player, x,y, layer, tile, oldBlock);
         }
 
         if (!NETWORKING_ENABLED) {

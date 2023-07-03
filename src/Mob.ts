@@ -534,17 +534,19 @@ export class Mob {
             const layer = placingOnBackgroundLayer ? Layer.BACKGROUND : Layer.FOREGROUND;
 
             let targetEmpty = this.itemHeld?.place !== 0 || this.itemHeld?.targetEmpty;
-            if (this.controls.mouse && this.itemHeld?.targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
+            if (this.controls.mouse && this.itemHeld?.targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== this.itemHeld.place) {
                 this.work();
                 this.blockDamage++;
 
                 const delay = this.itemHeld.delay ?? 60;
                 if (this.blockDamage >= delay) {
                     if (this.local) {
-                        this.network.sendNetworkTile(this, this.overX, this.overY, 0, layer, this.itemHeld.toolId);
+                        this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
+                        if (this.gameMap.getTile(this.overX, this.overY, layer) === this.itemHeld.place) {
+                            playSfx('mining_break', 0.6, 5);
+                        }
                     }
                     this.blockDamage = 0;
-                    playSfx('mining_break', 0.6, 5);
                     this.gameMap.game.gamepad.vibrate();
                 } else {
                     if (this.blockDamage % 20 === 0) {
@@ -562,16 +564,17 @@ export class Mob {
                 if (dy > 0) {
                     this.headTilt = -0.2;
                 }
-            }
-            if (this.controls.mouse && targetEmpty && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
+            } else if (this.controls.mouse && targetEmpty && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
                 if (this.itemHeld.place !== 0) {
                     const block = BLOCKS[this.itemHeld.place];
                     if (layer !== Layer.BACKGROUND || (block && !block.backgroundDisabled)) {
                         if (this.local) {
                             this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer);
+                            if (this.gameMap.getTile(this.overX, this.overY, layer) === this.itemHeld.place) {
+                                playSfx('place', 0.2);
+                            }
                         }
 
-                        playSfx('place', 0.2);
                         for (let i = 0; i < 5; i++) {
                             addParticle(createDirtParticle((this.overX + 0.5) * TILE_SIZE, (this.overY + 0.5) * TILE_SIZE));
                         }

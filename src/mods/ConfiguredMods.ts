@@ -86,10 +86,16 @@ export class GameAsContext implements GameContext {
      * @see GameContext.addBlock
      */
     addBlock(value: number, tileDef: Block): void {
+        if (value > 255*255) {
+            throw "Can't use block numbers greater than 64k";
+        }
         if (this.currentMod) {
             this.currentMod.blocksAdded.push(tileDef);
         }
 
+        if (BLOCKS[value]) {
+            this.log("Replacing block definition for block ID = " + value);
+        }
         BLOCKS[value] = tileDef;
     }
 
@@ -107,7 +113,7 @@ export class GameAsContext implements GameContext {
         if (delayOnOperation === undefined) {
             delayOnOperation = 0;
         }
-        
+
         const tool: InventItem = {
             sprite: image,
             place: place,
@@ -376,7 +382,6 @@ export class ConfiguredMods {
      * @param tool The ID of the tool being used
      */
     tool(mob: Mob | undefined, x: number, y: number, layer: number, tool: string): void {
-        console.log("using tool: " + tool);
         for (const record of this.mods) {
             if (record.mod.onUseTool) {
                 try {
