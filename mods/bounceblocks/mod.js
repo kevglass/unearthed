@@ -1,4 +1,4 @@
-return new class {
+new class {
     id = "bounce";
     name = "Bounce Block";
     chatName = "Bounce";

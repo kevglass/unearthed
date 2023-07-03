@@ -1,4 +1,4 @@
-return new class {
+new class {
     id = "generator";
     name = "Generator Mod";
     chatName = "GenX";
