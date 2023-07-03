@@ -5,7 +5,7 @@
 // are effected by the rotation of parents.
 //
 
-import { HumanBones } from "./Skeletons";
+import { BoneNames } from "./Skins";
 
 // A point in time in a skeletal animation. At the time given (range 0->1) the 
 // bone should be rotated to the given angle
@@ -27,10 +27,20 @@ export interface Anim {
 // item - thats raised a little for that classic post.
 export const IDLE_ANIM: Anim = {
     frames: {
-        [HumanBones.LEFT_LEG]: [{ time: 0, ang: 0 },],
-        [HumanBones.RIGHT_LEG]: [{ time: 0, ang: -0 },],
-        [HumanBones.LEFT_ARM]: [{ time: 0, ang: 0.5 },],
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: -0.5 },],
+        [BoneNames.LEFT_LEG]: [{ time: 0, ang: 0 },],
+        [BoneNames.RIGHT_LEG]: [{ time: 0, ang: -0 },],
+        [BoneNames.LEFT_ARM]: [{ time: 0, ang: 0.5 },],
+        [BoneNames.RIGHT_ARM]: [{ time: 0, ang: -0.5 },],
+    },
+    name: "idle"
+}
+
+export const FOX_IDLE_ANIM: Anim = {
+    frames: {
+        [BoneNames.LEFT_LEG]: [{ time: 0, ang: 0 },],
+        [BoneNames.RIGHT_LEG]: [{ time: 0, ang: -0 },],
+        [BoneNames.BACK_LEFT_LEG]: [{ time: 0, ang: 0 },],
+        [BoneNames.BACK_RIGHT_LEG]: [{ time: 0, ang: -0 },],
     },
     name: "idle"
 }
@@ -45,10 +55,20 @@ let intent = 1;
 export const WALK_ANIM: Anim = {
     name: "walk",
     frames: {
-        [HumanBones.LEFT_LEG]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
-        [HumanBones.RIGHT_LEG]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
-        [HumanBones.LEFT_ARM]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
+        [BoneNames.LEFT_LEG]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
+        [BoneNames.RIGHT_LEG]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
+        [BoneNames.LEFT_ARM]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
+        [BoneNames.RIGHT_ARM]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
+    }
+}
+
+export const FOX_WALK_ANIM: Anim = {
+    name: "walk",
+    frames: {
+        [BoneNames.LEFT_LEG]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
+        [BoneNames.RIGHT_LEG]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
+        [BoneNames.BACK_LEFT_LEG]: [{ time: 0, ang: -intent }, { time: 0.5, ang: extent }],
+        [BoneNames.BACK_RIGHT_LEG]: [{ time: 0, ang: intent }, { time: 0.5, ang: -extent }],
     }
 }
 
@@ -58,18 +78,27 @@ export const WALK_ANIM: Anim = {
 export const WORK_ANIM: Anim = {
     name: "work",
     frames: {
-        [HumanBones.RIGHT_ARM]: [{ time: 0, ang: 0 }, { time: 0.5, ang: -2 }],
+        [BoneNames.RIGHT_ARM]: [{ time: 0, ang: 0 }, { time: 0.5, ang: -2 }],
     }
 }
-
+export const FOX_WORK_ANIM: Anim = {
+    name: "work",
+    frames: {
+    }
+}
 // List of all the animations to make finding easier. 
-const ALL_ANIM = [IDLE_ANIM, WALK_ANIM, WORK_ANIM];
+const ALL_ANIM: Record<string, Anim[]> = {
+    "human": [IDLE_ANIM, WALK_ANIM, WORK_ANIM],
+    "fox": [FOX_IDLE_ANIM, FOX_WALK_ANIM, WORK_ANIM],
+}
 
 /**
  * Find an animation by its SYMBOLIC NAME
- * @param name Find 
+ * 
+ * @param type Skeleton type
+ * @param name The name of the animation to find
  * @returns 
  */
-export function findAnimation(name: string) {
-    return ALL_ANIM.find(a => a.name === name);
+export function findAnimation(type: string, name: string) {
+    return ALL_ANIM[type].find(a => a.name === name);
 }

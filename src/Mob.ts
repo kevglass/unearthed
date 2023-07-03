@@ -1,11 +1,11 @@
-import { Anim, IDLE_ANIM, WALK_ANIM, WORK_ANIM, findAnimation } from "./Animations";
+import { Anim, findAnimation } from "./Animations";
 import { Bone } from "./engine/Bones";
 import { Graphics } from "./engine/Graphics";
 import { GameMap, Layer, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
-import { HumanBones } from "./Skeletons";
+import { BoneNames, getSkin } from "./Skins";
 import { BLOCKS } from "./Block";
 import { DEFAULT_INVENTORY, InventItem } from "./InventItem";
 
@@ -61,7 +61,9 @@ export class Mob {
     /** True if this mob is flipped horizontally - flip = true is left */
     flip: boolean = false;
     /** The animation this mob is applying */
-    anim: Anim = IDLE_ANIM;
+    anim?: Anim;
+    /** True if we're moving this frame */
+    moving: boolean = false;
     /** True if this mob is working (mining) */
     working: boolean = false;
     /** The head tile to apply to the head bone - this is used to have the mob look at what they're doing */
@@ -108,6 +110,9 @@ export class Mob {
     /** The item in the mob's inventory */
     inventory: InventItem[] = [...DEFAULT_INVENTORY]
 
+    /** The type of the mob */
+    type: string = "human";
+
     /** Current state of this mob's controls - based on local controls or network updates */
     controls: Controls = {
         left: false,
@@ -128,15 +133,19 @@ export class Mob {
      * @param x The x coordinate of the mob's initial position
      * @param y The y coordinate of the mob's initial position
      */
-    constructor(network: Network, gameMap: GameMap, id: string, name: string, original: Bone, x: number, y: number) {
+    constructor(network: Network, gameMap: GameMap, id: string, name: string, type: string, x: number, y: number) {
         this.gameMap = gameMap;
         this.network = network;
-        this.rootBone = original.copy();
+        const skin = getSkin(type);
+        this.width = skin.width;
+        this.height = skin.height;
+        this.rootBone = skin.skeleton.copy();
         this.allBones = this.rootBone.findAll();
         this.x = x;
         this.y = y;
         this.id = id;
         this.name = name;
+        this.type = type;
     }
 
     /**
@@ -179,7 +188,7 @@ export class Mob {
         }
 
         // update the rest of the state based on what we've been told
-        this.anim = findAnimation(state.anim)!;
+        this.anim = findAnimation(this.type, state.anim)!;
         this.blockDamage = state.damage;
         this.overX = state.overX;
         this.overY = state.overY;
@@ -187,6 +196,7 @@ export class Mob {
         this.name = state.name;
         this.itemHeld = state.itemHeld;
         this.bodyParts = state.bodyParts;
+        this.type = state.type;
     }
 
     /**
@@ -204,7 +214,7 @@ export class Mob {
             vy: this.vy,
             flip: this.flip,
             controls: this.controls,
-            anim: this.anim.name,
+            anim: this.anim?.name ?? "",
             working: this.working,
             damage: this.blockDamage,
             overX: this.overX,
@@ -212,6 +222,7 @@ export class Mob {
             name: this.name,
             itemHeld: this.itemHeld,
             bodyParts: this.bodyParts,
+            type: this.type
         };
     }
 
@@ -413,7 +424,8 @@ export class Mob {
      */
     still(): void {
         this.headTilt = 0;
-        this.anim = IDLE_ANIM;
+        this.anim = findAnimation(this.type, "idle")!;
+        this.moving = false;
         this.working = false;
 
         this.controls.left = false;
@@ -428,7 +440,8 @@ export class Mob {
      */
     private moveRight(): void {
         this.headTilt = 0.1;
-        this.anim = WALK_ANIM;
+        this.anim = findAnimation(this.type, "walk")!;
+        this.moving = true;
         this.flip = true;
     }
 
@@ -462,7 +475,8 @@ export class Mob {
      */
     private moveLeft(): void {
         this.headTilt = 0.1;
-        this.anim = WALK_ANIM;
+        this.anim = findAnimation(this.type, "walk")!;
+        this.moving = true;
         this.flip = false;
     }
 
@@ -492,24 +506,26 @@ export class Mob {
      */
     update(animTime: number, placingOnBackgroundLayer: boolean): void {
         // override the bone images based on this mob's configuration
-        for (const bone of this.allBones) {
-            if (bone.name === HumanBones.HELD) {
-                bone.sprite = this.itemHeld?.sprite;
-                bone.spriteOffsetX = this.itemHeld?.spriteOffsetX;
-                bone.spriteOffsetY = this.itemHeld?.spriteOffsetY;
-                bone.scale = this.itemHeld?.spriteScale ?? 1;
-            }
-            if (bone.name === HumanBones.HEAD) {
-                bone.sprite = "skins/" + this.bodyParts.head + "/head";
-            }
-            if (bone.name === HumanBones.LEFT_ARM || bone.name === HumanBones.RIGHT_ARM) {
-                bone.sprite = "skins/" + this.bodyParts.arms + "/arm";
-            }
-            if (bone.name === HumanBones.BODY) {
-                bone.sprite = "skins/" + this.bodyParts.body + "/body";
-            }
-            if (bone.name === HumanBones.LEFT_LEG || bone.name === HumanBones.RIGHT_LEG) {
-                bone.sprite = "skins/" + this.bodyParts.body + "/leg";
+        if (this.type === "human") {
+            for (const bone of this.allBones) {
+                if (bone.name === BoneNames.HELD) {
+                    bone.sprite = this.itemHeld?.sprite;
+                    bone.spriteOffsetX = this.itemHeld?.spriteOffsetX;
+                    bone.spriteOffsetY = this.itemHeld?.spriteOffsetY;
+                    bone.scale = this.itemHeld?.spriteScale ?? 1;
+                }
+                if (bone.name === BoneNames.HEAD) {
+                    bone.sprite = "skins/" + this.bodyParts.head + "/head";
+                }
+                if (bone.name === BoneNames.LEFT_ARM || bone.name === BoneNames.RIGHT_ARM) {
+                    bone.sprite = "skins/" + this.bodyParts.arms + "/arm";
+                }
+                if (bone.name === BoneNames.BODY) {
+                    bone.sprite = "skins/" + this.bodyParts.body + "/body";
+                }
+                if (bone.name === BoneNames.LEFT_LEG || bone.name === BoneNames.RIGHT_LEG) {
+                    bone.sprite = "skins/" + this.bodyParts.body + "/leg";
+                }
             }
         }
 
@@ -607,7 +623,7 @@ export class Mob {
 
         // this is particularly poor, if we're using the WALK animation then
         // we consider ourself attempting to move - so apply the directional movement
-        if (this.anim === WALK_ANIM) {
+        if (this.moving) {
             // we're trying to walk
             if (this.flip) {
                 if (!this.blockedRight()) {
@@ -618,7 +634,7 @@ export class Mob {
                 } else {
                     // if we're blocked then move us out of the collision
                     this.x = (Math.floor((this.x + this.width) / TILE_SIZE) * TILE_SIZE) - this.width;
-                    this.anim = IDLE_ANIM;
+                    this.anim = findAnimation(this.type, "idle");
                 }
             } else {
                 if (!this.blockedLeft()) {
@@ -628,8 +644,8 @@ export class Mob {
                     }
                 } else {
                     // if we're blocked then move us out of the collision
-                    this.x = (Math.floor((this.x - this.height) / TILE_SIZE) * TILE_SIZE) + TILE_SIZE - 1 + this.width;
-                    this.anim = IDLE_ANIM;
+                    this.x = (Math.floor((this.x - this.width) / TILE_SIZE) * TILE_SIZE) + TILE_SIZE + this.width - 1;
+                    this.anim = findAnimation(this.type, "idle");
                 }
             }
         }
@@ -656,13 +672,18 @@ export class Mob {
             this.fallThroughUntil = 0;
         }
         // update the state of the  bones for animation
-        for (const bone of this.allBones) {
-            bone.update(animTime, this.anim);
+        if (this.anim) {
+            for (const bone of this.allBones) {
+                bone.update(animTime, this.anim);
+            }
         }
 
         // if we're working (mining) then apply that animation to the right arm
         if (this.working) {
-            this.rootBone.findNamedBone(HumanBones.RIGHT_ARM)!.update(animTime, WORK_ANIM);
+            const workAnim = findAnimation(this.type, "work");
+            if (workAnim) {
+                this.rootBone.findNamedBone(BoneNames.RIGHT_ARM)!.update(animTime, workAnim);
+            }
             if (this.overX * TILE_SIZE > this.x) {
                 this.flip = true;
             }
@@ -677,7 +698,10 @@ export class Mob {
         }
 
         // apply whatever head tilt we have now
-        this.rootBone.findNamedBone(HumanBones.HEAD)!.ang = -this.headTilt;
+        const head = this.rootBone.findNamedBone(BoneNames.HEAD);
+        if (head) {
+            head.ang = -this.headTilt;
+        }
     }
 
     /**

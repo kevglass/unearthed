@@ -5,7 +5,6 @@ import { Game } from './Game';
 import { ServerConfig } from './ServerSettings';
 import { Particle, addParticle } from './engine/Particles';
 import { getSprite } from './engine/Resources';
-import { getSkeleton } from './Skeletons';
 import { v4 as uuidv4 } from 'uuid';
 
 //
@@ -384,7 +383,7 @@ export class Network {
 
                             let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
                             if (!targetMob) {
-                                targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, getSkeleton("human"), mobData.x, mobData.y);
+                                targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, mobData.type, mobData.x, mobData.y);
                                 this.localMobs.push(targetMob);
                                 this.updatePlayerList(this.localMobs);
                             }

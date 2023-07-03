@@ -15,8 +15,7 @@ import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
 import { initInventory } from "./InventItem";
-import { getSkeleton } from "./Skeletons";
-import { getCodeEditor, hideCodeEditor } from "./mods/Editor";
+import {  hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 
 //
@@ -192,7 +191,7 @@ export class Game implements ControllerListener {
         this.serverSettings.load();
 
         // create the local player and configure and skin settings
-        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, getSkeleton("human"), 200, (SKY_HEIGHT - 6) * TILE_SIZE);
+        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE);
 
         const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {
