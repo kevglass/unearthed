@@ -188,7 +188,6 @@ export class Network {
                     if (!this.thisIsTheHostServer) {
                         const buffer = new Uint8Array(payload.length);
                         buffer.set(Array.from(payload), 0);
-                        console.log(buffer[0]+","+buffer[1]);
                         const array = new Uint16Array(buffer.buffer, 0, buffer.length / 2);
             
                         // parse the blob and update the game map
@@ -455,7 +454,6 @@ export class Network {
         const foreground = new Uint8Array(fgDataBlocks.buffer, 0, fgDataBlocks.byteLength);
         const background = new Uint8Array(bgDataBlocks.buffer, 0, fgDataBlocks.byteLength);
 
-        console.log(foreground[0]);
         if (target) {
             this.room.localParticipant.publishData(foreground, DataPacket_Kind.RELIABLE, { topic: "fgmap", destination: [target] });
             this.room.localParticipant.publishData(background, DataPacket_Kind.RELIABLE, { topic: "bgmap", destination: [target] });
