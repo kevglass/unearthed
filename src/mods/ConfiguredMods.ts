@@ -59,11 +59,13 @@ export class GameAsContext implements GameContext {
      * @see GameContext.getModResource
      */
     getModResource(name: string): string {
-        this.log("Getting resources: " + name);
-        if (!this.currentMod?.resources[name]) {
-            this.log(" === RESOURCE NOT FOUND ");
+        if (this.isHost() || !name.endsWith(".bin")) {
+            this.log("Getting resources: " + name);
+            if (!this.currentMod?.resources[name]) {
+                this.log(" === RESOURCE NOT FOUND ");
+            }
         }
-        return this.currentMod?.resources[name] ?? "unknown image " + name;
+        return this.currentMod?.resources[name] ?? "unknown resource: " + name;
     }
 
     /**
@@ -148,17 +150,20 @@ export class GameAsContext implements GameContext {
     getBlock(x: number, y: number, layer: Layer): number {
         return this.game.gameMap.getTile(x, y, layer);
     }
+
     /**
      * @see GameContext.replaceAllBlocks
      */
     replaceAllBlocks(originalBlock: number, newBlock: number): void {
-        for (let x=0;x<MAP_WIDTH;x++) {
-            for (let y=0;y<MAP_DEPTH;y++) {
-                if (this.game.gameMap.getTile(x, y, Layer.FOREGROUND) === originalBlock) {
-                    this.setBlock(x, y, Layer.FOREGROUND, newBlock);
-                }
-                if (this.game.gameMap.getTile(x, y, Layer.BACKGROUND) === originalBlock) {
-                    this.setBlock(x, y, Layer.BACKGROUND, newBlock);
+        if (this.isHost()) {
+            for (let x=0;x<MAP_WIDTH;x++) {
+                for (let y=0;y<MAP_DEPTH;y++) {
+                    if (this.game.gameMap.getTile(x, y, Layer.FOREGROUND) === originalBlock) {
+                        this.setBlock(x, y, Layer.FOREGROUND, newBlock);
+                    }
+                    if (this.game.gameMap.getTile(x, y, Layer.BACKGROUND) === originalBlock) {
+                        this.setBlock(x, y, Layer.BACKGROUND, newBlock);
+                    }
                 }
             }
         }
@@ -205,7 +210,7 @@ export class GameAsContext implements GameContext {
      * @see GameContext.displayChat
      */
     displayChat(message: string): void {
-        if (this.currentMod) {
+        if (this.currentMod && this.isHost()) {
             this.game.network.sendChatMessage(this.currentMod.mod.chatName ?? this.currentMod.mod.name, message);
         }
     }
@@ -222,6 +227,24 @@ export class GameAsContext implements GameContext {
      */
     addParticlesAtPos(image: string, x: number, y: number, count: number): void {
         this.game.network.sendParticles(image, x, y, count);
+    }
+
+    /**
+     * @see GameContext.loadMap
+     */
+    loadMap(resource: string): void {
+        if (this.isHost()) {
+            const buffer = Uint8Array.from(atob(resource), c => c.charCodeAt(0))
+            this.game.ui.loadMapFromBuffer(buffer);
+            this.game.network.sendMapUpdate(undefined);
+        }
+    }
+
+    /**
+     * @see GameContext.isHost
+     */
+    isHost(): boolean {
+        return this.game.isHostingTheServer;
     }
 }
 

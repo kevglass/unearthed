@@ -941,7 +941,7 @@ export class Game implements ControllerListener {
         }
 
         // if the network hasn't been started we're at the main menu
-        if (!this.network.connected()) {
+        if (!this.network.connected() || !this.network.hadMap) {
             // update the sample player
             this.network.update(this.player, this.mobs);
             requestAnimationFrame(() => { this.loop() });

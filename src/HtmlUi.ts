@@ -67,34 +67,7 @@ export class HtmlUi {
                 const reader = new FileReader();
                 reader.onload = () => {
                     const rawData = new Uint8Array(reader.result as ArrayBuffer);
-                    if (rawData[0] === 255) {
-                        // new file format with room for meta
-                        console.log("Reading: " + rawData.length);
-                        const lengthOfMeta = ((rawData[1] << 8) & 0xFF00) + rawData[2];
-                        const decoder = new TextDecoder();
-                        const metaAsText = decoder.decode(rawData.slice(3, 3+lengthOfMeta));
-                        const meta = JSON.parse(metaAsText);
-
-                        const len: number = meta.mapSize;
-                        let blockData: Uint8Array | Uint16Array = rawData.slice(3+lengthOfMeta);
-                        // 2 bytes per block mode
-                        if (meta.blockSize === 2) {
-                            blockData = new Uint16Array(rawData.buffer, 3+lengthOfMeta, len * 2);
-                        }
-                        const fullArray: number[] = Array.from(blockData);
-                        this.gameMap.setMapData({
-                            f: fullArray.slice(0, len),
-                            b: fullArray.slice(len)
-                        });
-                        Object.assign(this.gameMap.metaData, meta);
-                    } else {
-                        const fullArray: number[] = Array.from(rawData);
-                        const len: number = fullArray.length / 2;
-                        this.gameMap.setMapData({
-                            f: fullArray.slice(0, len),
-                            b: fullArray.slice(len)
-                        });
-                    }
+                    this.loadMapFromBuffer(rawData);
 
                     this.game.player.x = 200;
                     this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
@@ -173,7 +146,6 @@ export class HtmlUi {
             const blob = new Blob([dataBlocks], {
                 type: "application/octet-stream"
             });
-            console.log("Saving: " + dataBlocks.length);
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -400,6 +372,36 @@ export class HtmlUi {
                 this.selectedModDiv = undefined;
             }
         });
+    }
+
+    loadMapFromBuffer(rawData: Uint8Array) {
+        if (rawData[0] === 255) {
+            // new file format with room for meta
+            const lengthOfMeta = ((rawData[1] << 8) & 0xFF00) + rawData[2];
+            const decoder = new TextDecoder();
+            const metaAsText = decoder.decode(rawData.slice(3, 3+lengthOfMeta));
+            const meta = JSON.parse(metaAsText);
+
+            const len: number = meta.mapSize;
+            let blockData: Uint8Array | Uint16Array = rawData.slice(3+lengthOfMeta);
+            // 2 bytes per block mode
+            if (meta.blockSize === 2) {
+                blockData = new Uint16Array(rawData.buffer, 3+lengthOfMeta, len * 2);
+            }
+            const fullArray: number[] = Array.from(blockData);
+            this.gameMap.setMapData({
+                f: fullArray.slice(0, len),
+                b: fullArray.slice(len)
+            });
+            Object.assign(this.gameMap.metaData, meta);
+        } else {
+            const fullArray: number[] = Array.from(rawData);
+            const len: number = fullArray.length / 2;
+            this.gameMap.setMapData({
+                f: fullArray.slice(0, len),
+                b: fullArray.slice(len)
+            });
+        }
     }
 
     codeEditorShowing() {

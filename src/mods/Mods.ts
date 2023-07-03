@@ -190,6 +190,19 @@ export interface GameContext {
      * @param blob The blob to store for this mod
      */
     setMetaDataBlob(blob: any): void;
+
+    /**
+     * Load a map from a file thats part of the mod
+     * 
+     * @param resource The reference to the resource (@see getModResource)
+     */
+    loadMap(resource: string): void;
+
+    /**
+     * Check if we're running on the host. Only some parts of the mod run 
+     * on the client side.
+     */
+    isHost(): boolean;
 }
 
 /**
