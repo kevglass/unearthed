@@ -1,16 +1,14 @@
-(() => {
-    return new class {
-        id = "helloworld";
-        name =  "Hello World Mod";
-        chatName = "Mod";
-        version = 2;
+new class {
+    id = "helloworld";
+    name = "Hello World Mod";
+    chatName = "Mod";
+    version = 2;
 
-        onGameStart = (game) => {
-            game.addImage("tiles/tnt", game.getModResource("tntalt.png"));
-        };
+    onGameStart = (game) => {
+        game.addImage("tiles/tnt", game.getModResource("tntalt.png"));
+    };
 
-        onWorldStart = (game) => {
-            game.displayChat("Hello World!");
-        };
-    }
-})();
+    onWorldStart = (game) => {
+        game.displayChat("Hello World!");
+    };
+}
