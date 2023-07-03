@@ -921,7 +921,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param a is 0-1
      */
     setFillColor(r: number, g: number, b: number, a: number) {
-        this.rgba = (r * 16777216) + (g << 16) + (b << 8) + Math.floor(a * 255);
+        this.rgba = (r * 0x1000000) + (g << 16) + (b << 8) + Math.floor(a * 255);
     }
 
     /**
@@ -967,9 +967,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
         this.rgbas[i + 4] = rgba
 
         // Store how rotated we want this image to be.
-        this.rotations[i + 5] = this.scaleX < 0 ? -this.rotation : this.rotation;
+        this.rotations[i + 5] = this.rotation * Math.sign(this.scaleX) * Math.sign(this.scaleY);
 
-        this.rgbas[i + 6] = (Math.floor(topLeftA) * 256 * 256 * 256) + (topRightA << 16) + (bottomLeftA << 8) + Math.floor(bottomRightA)
+        this.rgbas[i + 6] = (Math.floor(topLeftA) * 0x1000000) + (topRightA << 16) + (bottomLeftA << 8) + Math.floor(bottomRightA)
 
         // Positions array is 2-byte shorts not 4-byte floats so there's twice as many slots.
         i *= 2
@@ -1008,16 +1008,23 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param y The amount to translate on the y axis
      */
     translate(x: number, y: number) {
+		x = Math.floor(x)
+		y = Math.floor(y)
         this._translate(x, y)
         this.transforms.push(["translate", x, y])
     }
     _translate(x: number, y: number) {
         x *= this.scaleX;
         y *= this.scaleY;
-        var angle = Math.atan2(y, x);
-        var dist = Math.sqrt(x * x + y * y);
-        this.translateX += Math.cos(angle + (this.scaleX < 0 ? -this.rotation : this.rotation)) * dist;
-        this.translateY += Math.sin(angle + this.rotation) * dist;
+		if(this.rotation) {
+			var angle = Math.atan2(y, x);
+			var dist = Math.sqrt(x * x + y * y);
+			this.translateX += Math.cos(angle + this.rotation * Math.sign(this.scaleX)) * dist;
+			this.translateY += Math.sin(angle + this.rotation * Math.sign(this.scaleY)) * dist;
+		} else {
+			this.translateX += x;
+			this.translateY += y;
+		}
     }
 
     /**
@@ -1043,7 +1050,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
     drawImage(img: GraphicsImage, x: number, y: number) {
         // add one pixel to size the image to account for scaling, this prevents
         // slight differences in math causing visible lines
-        this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth() + 1, img.getHeight() + 1, 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
+        this._drawImage(img.texX, img.texY, img.getWidth(), img.getHeight(), x, y, img.getWidth(), img.getHeight(), 0xFFFFFF00 + this.brightness, this.alpha, this.alpha, this.alpha, this.alpha);
     }
 
     /**

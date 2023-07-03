@@ -876,7 +876,6 @@ export class GameMap {
         const offsety = screenY - (yp * TILE_SIZE);
 
         if (g.getType() === GraphicsType.WEBGL) {
-            // Prepare to be sorely disappointed by my webgl lighting.
             const px = Math.floor(this.game.player.x / TILE_SIZE);
             const py = Math.floor(this.game.player.y / TILE_SIZE);
 			g.setFillColor(0, 0, 0, 1);
