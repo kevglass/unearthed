@@ -177,6 +177,8 @@ export class HtmlUi {
 
             this.game.isHostingTheServer = true;
             document.getElementById("connect")!.style.display = "none";
+            document.getElementById("githublink")!.style.display = "none";
+            
             this.network.startNetwork(this.game.isHostingTheServer);
             this.game.connecting = true;
             this.game.waitingForHost = true;
@@ -188,6 +190,7 @@ export class HtmlUi {
             confirmAudioContext();
 
             document.getElementById("connect")!.style.display = "none";
+            document.getElementById("githublink")!.style.display = "none";
             document.getElementById("join")!.style.display = "block";
         });
         // join game button - just show the setup dialog
