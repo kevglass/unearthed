@@ -69,12 +69,19 @@ export class HtmlUi {
                     const rawData = new Uint8Array(reader.result as ArrayBuffer);
                     if (rawData[0] === 255) {
                         // new file format with room for meta
+                        console.log("Reading: " + rawData.length);
                         const lengthOfMeta = ((rawData[1] << 8) & 0xFF00) + rawData[2];
                         const decoder = new TextDecoder();
                         const metaAsText = decoder.decode(rawData.slice(3, 3+lengthOfMeta));
                         const meta = JSON.parse(metaAsText);
-                        const fullArray: number[] = Array.from(rawData.slice(3+lengthOfMeta));
+
                         const len: number = meta.mapSize;
+                        let blockData: Uint8Array | Uint16Array = rawData.slice(3+lengthOfMeta);
+                        // 2 bytes per block mode
+                        if (meta.blockSize === 2) {
+                            blockData = new Uint16Array(rawData.buffer, 3+lengthOfMeta, len * 2);
+                        }
+                        const fullArray: number[] = Array.from(blockData);
                         this.gameMap.setMapData({
                             f: fullArray.slice(0, len),
                             b: fullArray.slice(len)
@@ -95,7 +102,10 @@ export class HtmlUi {
                     this.game.gameMap.save();
                     this.network.sendMapUpdate(undefined);
                 }
-                reader.readAsArrayBuffer(this.fileInput.files[0]);
+
+                if (this.fileInput.files.length > 0) {
+                    reader.readAsArrayBuffer(this.fileInput.files[0]);
+                }
             }
         });
 
@@ -153,12 +163,17 @@ export class HtmlUi {
             // copy the metadata
             const meta = JSON.parse(JSON.stringify(this.gameMap.metaData));
             meta.mapSize = data.f.length;
+            meta.blockSize = 2;
             const metaAsBytes = Array.from(encoder.encode(JSON.stringify(meta)));
-            const dataBlocks = new Uint8Array([255, metaAsBytes.length >> 8, (metaAsBytes.length & 0xFF), ...metaAsBytes, ...data.f, ...data.b]);
+            const metaData = new Uint8Array([255, metaAsBytes.length >> 8, (metaAsBytes.length & 0xFF), ...metaAsBytes]);
+            const wordData = new Uint16Array([...data.f, ...data.b]);
+            const dataBlocks = new Uint8Array(3 + metaData.length + wordData.buffer.byteLength);
+            dataBlocks.set(metaData, 0);
+            dataBlocks.set(new Uint8Array(wordData.buffer), metaData.length);
             const blob = new Blob([dataBlocks], {
                 type: "application/octet-stream"
             });
-            console.log(dataBlocks);
+            console.log("Saving: " + dataBlocks.length);
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;

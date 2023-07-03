@@ -1,6 +1,6 @@
 import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
-import { GameMap, GameMapMetaData, SKY_HEIGHT, TILE_SIZE } from './Map';
+import { GameMap, GameMapMetaData, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from './Map';
 import { Game } from './Game';
 import { ServerConfig } from './ServerSettings';
 import { Particle, addParticle } from './engine/Particles';
@@ -182,17 +182,35 @@ export class Network {
 
             // if the topic is "map" then we've got a big
             // binary blob coming that is the tile mapS
-            if (topic === "map") {
+            if (topic === "fgmap") {
+                // only accept map updates from authenticated hosts
+                if (messageIsFromHost) {
+                    if (!this.thisIsTheHostServer) {
+                        const buffer = new Uint8Array(payload.length);
+                        buffer.set(Array.from(payload), 0);
+                        console.log(buffer[0]+","+buffer[1]);
+                        const array = new Uint16Array(buffer.buffer, 0, buffer.length / 2);
+            
+                        // parse the blob and update the game map
+                        const fullArray: number[] = Array.from(array);
+                        this.gameMap.setForegroundMapData(fullArray);
+                        this.hadMap = true;
+
+                        this.localPlayer?.reset();
+                    }
+                }
+            } else if (topic === "bgmap") {
                 // only accept map updates from authenticated hosts
                 if (messageIsFromHost) {
                     if (!this.thisIsTheHostServer) {
                         // parse the blob and update the game map
-                        const fullArray: number[] = Array.from(payload);
-                        const len: number = fullArray.length / 2;
-                        this.gameMap.setMapData({
-                            f: fullArray.slice(0, len),
-                            b: fullArray.slice(len)
-                        });
+                        const buffer = new Uint8Array(payload.length);
+                        buffer.set(Array.from(payload), 0);
+                        const array = new Uint16Array(buffer.buffer, 0, buffer.length / 2);
+            
+                        // parse the blob and update the game map
+                        const fullArray: number[] = Array.from(array);
+                        this.gameMap.setBackgroundMapData(fullArray);
                         this.hadMap = true;
 
                         this.localPlayer?.reset();
@@ -430,11 +448,20 @@ export class Network {
         }
 
         const data = this.gameMap.getMapData();
-        const dataBlocks = new Uint8Array([...data.f, ...data.b]);
+
+        // make it even with the header that livekit adds
+        const fgDataBlocks = new Uint16Array([...data.f]);
+        const bgDataBlocks = new Uint16Array([...data.b]);
+        const foreground = new Uint8Array(fgDataBlocks.buffer, 0, fgDataBlocks.byteLength);
+        const background = new Uint8Array(bgDataBlocks.buffer, 0, fgDataBlocks.byteLength);
+
+        console.log(foreground[0]);
         if (target) {
-            this.room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map", destination: [target] });
+            this.room.localParticipant.publishData(foreground, DataPacket_Kind.RELIABLE, { topic: "fgmap", destination: [target] });
+            this.room.localParticipant.publishData(background, DataPacket_Kind.RELIABLE, { topic: "bgmap", destination: [target] });
         } else {
-            this.room.localParticipant.publishData(dataBlocks, DataPacket_Kind.RELIABLE, { topic: "map" });
+            this.room.localParticipant.publishData(foreground, DataPacket_Kind.RELIABLE, { topic: "fgmap" });
+            this.room.localParticipant.publishData(background, DataPacket_Kind.RELIABLE, { topic: "bgmap" });
         }
 
         this.sendMetaData(this.gameMap.metaData);

@@ -143,6 +143,15 @@ export class GameMap {
         }
     }
 
+    private clearOnSet() {
+        this.lightMap = [];
+        this.discovered = [];
+        for (let i = 0; i < DEFAULT_MAP.length; i++) {
+            this.lightMap.push(1);
+            this.discovered.push(false);
+        }
+    }
+
     /**
      * Set the lighting at a given tile
      * 
@@ -492,6 +501,31 @@ export class GameMap {
         this.refreshFullLightMap();
     }
 
+    /**
+     * Set the foreground tiles from the network
+     * 
+     * @param f The array of data from the network
+     */
+    setForegroundMapData(f: number[]) {
+        this.clearOnSet();
+        this.foreground = f;
+
+        this.setDiscovered(0, 0);
+        this.refreshFullLightMap();
+    }
+
+    /**
+     * Set the background tiles from the network
+     * 
+     * @param b The array of data from the network
+     */
+    setBackgroundMapData(b: number[]) {
+        this.clearOnSet();
+        this.background = b;
+        
+        this.setDiscovered(0, 0);
+        this.refreshFullLightMap();
+    }
 
     /**
      * Check if a particular location is discovered by the player
