@@ -542,7 +542,7 @@ export class Network {
      */
     sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
         const oldBlock = this.gameMap.getTile(x,y, layer);
-        if (oldBlock === tile) {
+        if (oldBlock === tile && !toolId) {
             return;
         }
 
