@@ -19,13 +19,15 @@ export interface InventItem {
     targetEmpty: boolean;
     /** True if the tool works on an full space (one with a block in) */
     targetFull: boolean;
+    /** Delay on operation */
+    delay?: number;
 }
 
 export let DEFAULT_INVENTORY: InventItem[];
 
 export function initInventory() {
     DEFAULT_INVENTORY = [
-        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, toolId: "iron-pick", targetEmpty: false, targetFull: true},
+        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, toolId: "iron-pick", targetEmpty: false, targetFull: true },
         { sprite: "tiles/dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false},
         { sprite: "tiles/brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
         { sprite: "tiles/brick_red", place: 4, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },

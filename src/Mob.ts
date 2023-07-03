@@ -538,7 +538,8 @@ export class Mob {
                 this.work();
                 this.blockDamage++;
 
-                if (this.blockDamage >= 60) {
+                const delay = this.itemHeld.delay ?? 60;
+                if (this.blockDamage >= delay) {
                     if (this.local) {
                         this.network.sendNetworkTile(this, this.overX, this.overY, 0, layer, this.itemHeld.toolId);
                     }

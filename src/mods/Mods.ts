@@ -99,8 +99,9 @@ export interface GameContext {
      * @param toolId An ID to assign for this tool so that callbacks can identify particular calls being used
      * @param targetEmpty True if this tool can target empty spaces 
      * @param targetFull True if this tool can target spaces with a block in
+     * @param delayOnOperation Time before operation takes place on a full block
      */
-    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean): void;
+    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number): void;
 
     /**
      * Set a block in the game world. 
