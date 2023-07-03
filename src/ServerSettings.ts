@@ -88,7 +88,7 @@ export class ServerSettings {
         try {
             const potentialMod = eval(content) as ServerMod;
             if (potentialMod.name && potentialMod.id) {
-                const apiVersion = potentialMod.version ?? 1;
+                const apiVersion = potentialMod.apiVersion ?? 1;
                 if (apiVersion < MINIMUM_MOD_VERSION_ALLOWED) {
                     console.error("Modification version is too old ("+apiVersion+" < " + MINIMUM_MOD_VERSION_ALLOWED);
                     return false;
@@ -132,7 +132,7 @@ export class ServerSettings {
                 const potentialMod = eval(script) as ServerMod;
 
                 if (potentialMod.name && potentialMod.id) {
-                    const apiVersion = potentialMod.version ?? 1;
+                    const apiVersion = potentialMod.apiVersion ?? 1;
                     if (apiVersion < MINIMUM_MOD_VERSION_ALLOWED) {
                         console.error("Modification version is too old ("+apiVersion+" < " + MINIMUM_MOD_VERSION_ALLOWED);
                         return;

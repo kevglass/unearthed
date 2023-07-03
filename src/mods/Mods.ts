@@ -218,7 +218,9 @@ export interface ServerMod {
     chatName: string;
     /** The version of the mod */
     version: number;
-
+    /** API version this mod uses - not present = 0 */
+    apiVersion: number;
+    
     /**
      * Implement this function if the mod wants to be the world generator. The first mod found with this method implemented
      * will be used to regenerate the map when its reset. If no mod is found with this function then default world generation
