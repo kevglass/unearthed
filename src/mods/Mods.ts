@@ -97,9 +97,10 @@ export interface GameContext {
      * @param image The ID of the image in the cache to show for this tool.
      * @param place The ID of the block to place for this tool (or zero for none)
      * @param toolId An ID to assign for this tool so that callbacks can identify particular calls being used
-     * @param emptyTarget True if this tool can target get spaces (otherwise it's assumed its a block effecting tool)
+     * @param targetEmpty True if this tool can target empty spaces 
+     * @param targetFull True if this tool can target spaces with a block in
      */
-    addTool(image: string, place: number, toolId: string, emptyTarget: boolean): void;
+    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean): void;
 
     /**
      * Set a block in the game world. 

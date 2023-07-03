@@ -46,8 +46,8 @@
                     blocksLight: false
                 },
             );
-            game.addTool("tiles/blockoff", 121, "", false);
-            game.addTool("tiles/blockswitch", 122, "", false);
+            game.addTool("tiles/blockoff", 121, "", true, false);
+            game.addTool("tiles/blockswitch", 122, "", true, false);
         };
 
         onWorldStart = (game) => {

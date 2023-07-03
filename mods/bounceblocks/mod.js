@@ -19,7 +19,7 @@
                     blocksLight: false
                 },
             );
-            game.addTool("tiles/bounce", 110, "", false);
+            game.addTool("tiles/bounce", 110, "", true, false);
         };
 
         onWorldStart = (game) => {

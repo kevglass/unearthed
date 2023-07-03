@@ -96,17 +96,23 @@ export class GameAsContext implements GameContext {
     /**
      * @see GameContext.addTool
      */
-    addTool(image: string, place: number, toolId: string, emptySpace: boolean): void {
-        this.log("Adding tool: " + toolId + " (targetEmpty=" + emptySpace + ")");
+    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean): void {
+        this.log("Adding tool: " + toolId + " (targetEmpty=" + targetEmpty + ", targetFull=" + targetFull + ")");
 
-        const tool = {
+        // backwards compatible
+        if (targetFull === undefined) {
+            targetFull = !targetEmpty;
+        }
+
+        const tool: InventItem = {
             sprite: image,
             place: place,
             spriteOffsetX: -70,
             spriteOffsetY: -130,
             spriteScale: 0.7,
             toolId: toolId,
-            targetEmpty: emptySpace
+            targetEmpty,
+            targetFull
         };
 
         if (this.currentMod) {

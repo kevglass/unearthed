@@ -13,7 +13,7 @@
             // 0                - The block to place by default (0 for none)
             // "magic-wand"     - an ID for the tool for callbacks
             // true             - Should this tool target empty spaces
-            game.addTool("holding/wand", 0, "magic-wand", true);
+            game.addTool("holding/wand", 0, "magic-wand", true, false);
         };
 
         onUseTool = (game, player, x, y, layer, toolId) => {

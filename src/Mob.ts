@@ -534,7 +534,7 @@ export class Mob {
             const layer = placingOnBackgroundLayer ? Layer.BACKGROUND : Layer.FOREGROUND;
 
             let targetEmpty = this.itemHeld?.place !== 0 || this.itemHeld?.targetEmpty;
-            if (this.controls.mouse && !targetEmpty && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
+            if (this.controls.mouse && this.itemHeld?.targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== 0) {
                 this.work();
                 this.blockDamage++;
 
