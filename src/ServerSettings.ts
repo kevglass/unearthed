@@ -129,7 +129,9 @@ export class ServerSettings {
                     if (existing) {
                         this.removeMod(existing);
                     }
+
                     const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [] };
+                    console.log("[" + potentialMod.name + "] Installing");
                     this.serverMods.mods.push(modRecord);
 
                     if (updateUiAndConfig) {
