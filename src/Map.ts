@@ -662,7 +662,7 @@ export class GameMap {
                 this.setTile(x, y - 1, 0, layer);
             }
 
-            if (layer === 0) {
+            if ((layer === 0) && (!this.game.mods.inModContext())) {
                 const behind = this.getTile(x, y, Layer.BACKGROUND);
                 if (behind === 0) {
                     const tile = BLOCKS[before];
