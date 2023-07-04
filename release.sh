@@ -1,3 +1,8 @@
+# package up the mods 
+cd mods/zips
+./package.sh
+cd -
+
 VALUE=`jq .version < version.json`
 VALUE=`echo $VALUE + 1 | bc`
 echo "{ \"version\" : $VALUE }" > version.json
