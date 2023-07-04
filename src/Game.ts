@@ -1152,6 +1152,7 @@ export class Game implements ControllerListener {
                 if (this.keyDown["" + i]) {
                     if (this.player.itemHeld !== this.player.quickSlots[i - 1]) {
                         this.player.itemHeld = this.player.quickSlots[i - 1];
+                        this.quickSlotSelected = i - 1;
                         playSfx('click', 1);
                     }
                 }
