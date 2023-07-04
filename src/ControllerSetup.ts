@@ -167,6 +167,8 @@ export interface ControllerButtons {
     layer: number;
     /** The trigger item button */
     trigger: number;
+    /** The show invent button */
+    invent: number;
 }
 
 export interface KeyControls {
@@ -186,7 +188,10 @@ export interface KeyControls {
     layer: string;
     /** The trigger item button */
     trigger: string;
+    /** The inventory button */
+    invent: string;
 }
+
 /**
  * The steps for the user to follow for configuring a controller
  */
@@ -200,8 +205,12 @@ export const CONTROLLER_SETUP_STEPS: ControllerSetupStep[] = [
     new ButtonSetupStep("Press Next Item Button!", "next"),
     new ButtonSetupStep("Press Layer Switch Button!", "layer"),
     new ButtonSetupStep("Press Trigger Button!", "trigger"),
+    new ButtonSetupStep("Press Inventory Button!", "invent"),
 ];
 
+/**
+ * The steps for the user to follow for configuring keyboard
+ */
 export const KEYS_SETUP_STEPS: ControllerSetupStep[] = [
     new KeySetupStep("Press the Key For Up!", "up"),
     new KeySetupStep("Press the Key For Down!", "down"),
@@ -211,4 +220,5 @@ export const KEYS_SETUP_STEPS: ControllerSetupStep[] = [
     new KeySetupStep("Press the Key For Previous Item!", "prev"),
     new KeySetupStep("Press the Key For Layer Switch!", "layer"),
     new KeySetupStep("Press the Key For Triggering!", "trigger"),
+    new KeySetupStep("Press the Key For Inventory!", "invent"),
 ];

@@ -89,7 +89,7 @@ export class Mob {
     /** The sequence of the last update we applied - prevents us applying out of date updates */
     lastUpdateSeq: number = 0;
     /** The item thats currently being held */
-    itemHeld?: InventItem;
+    itemHeld: InventItem | null = null;
     /** Parts */
     bodyParts: BodyParts = {
         body: "a",
@@ -108,7 +108,9 @@ export class Mob {
     fallThroughUntil: number = 0;
 
     /** The item in the mob's inventory */
-    inventory: InventItem[] = [...DEFAULT_INVENTORY]
+    inventory: InventItem[] = [...DEFAULT_INVENTORY];
+    /** The quick slot items selected */
+    quickSlots: (InventItem | null)[] = [null, null, null, null, null, null, null, null];
 
     /** The type of the mob */
     type: string = "human";
@@ -140,7 +142,7 @@ export class Mob {
      * @param x The x coordinate of the mob's initial position
      * @param y The y coordinate of the mob's initial position
      */
-    constructor(network: Network, gameMap: GameMap, id: string, name: string, type: string, x: number, y: number) {
+    constructor(network: Network, gameMap: GameMap, id: string, name: string, type: string, x: number, y: number, local: boolean = false) {
         this.gameMap = gameMap;
         this.network = network;
         const skin = getSkin(type);
@@ -153,6 +155,7 @@ export class Mob {
         this.id = id;
         this.name = name;
         this.type = type;
+        this.local = local;
     }
 
     /**
@@ -160,6 +163,45 @@ export class Mob {
      */
     initInventory(): void {
         this.inventory = [...DEFAULT_INVENTORY];
+
+        // load the quickslots
+        this.loadQuickSlots();
+
+        if (this.quickSlots[0] === null) {
+            this.quickSlots[0] = this.inventory.find(i => i.toolId === "iron-pick") ?? null;
+        }
+    }
+
+    /**
+     * Load the quick slot setup from local storage
+     */
+    loadQuickSlots(): void {
+        const toLoad = localStorage.getItem("quickslots");
+        if (toLoad) {
+            const quickSlotsData = JSON.parse(toLoad);
+            for (let i=0;i<8;i++) {
+                const slot = quickSlotsData[i];
+                const byToolId = (slot.toolId ? this.inventory.find(item => item.toolId === slot.toolId) : null);
+                const byPlace = (slot.place === 0 ? null : this.inventory.find(item => item.place === slot.place));
+                const bySprite = this.inventory.find(item => item.sprite === slot.sprite);
+
+                this.quickSlots[i] = byToolId ?? byPlace ?? bySprite ?? null;
+            }
+        }
+    }
+
+    /**
+     * Save the current state of the quick slots to local storage
+     */
+    saveQuickSlots(): void {
+        const toSave = this.quickSlots.map(m => {
+            return {
+                toolId: m?.toolId,
+                place: m?.place,
+                sprite: m?.sprite
+            }
+        });
+        localStorage.setItem("quickslots", JSON.stringify(toSave));
     }
 
     /**

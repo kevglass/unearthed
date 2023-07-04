@@ -77,6 +77,16 @@ export enum GraphicsType {
  */
 export interface Graphics {
     /**
+     * Get the width of the graphics context
+     */
+    getWidth(): number;
+
+    /**
+     * Get the height of the graphics context
+     */
+    getHeight(): number;
+
+    /**
      * Get the type of graphics renderer being used
      */
     getType(): GraphicsType;
@@ -267,6 +277,16 @@ export interface Graphics {
      * @param gradient The gradient to apply
      */
     setGradientFillStyle(gradient: GraphicsGradient): void;
+    
+    /**
+     * Clip graphics operations to a specific location
+     * 
+     * @param x The x coordinate of the top left of the clip rectangle 
+     * @param y The y coordinate of the top left of the clip rectangle 
+     * @param width The width of the top left of the clip rectangle 
+     * @param height The height of the top left of the clip rectangle 
+     */
+    clip(x: number, y: number, width: number, height: number): void;
 }
 
 /**
@@ -281,6 +301,20 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.g = this.canvas.getContext("2d")!;
+    }
+
+    clip(x: number, y: number, width: number, height: number): void {
+        const clip = new Path2D();
+        clip.rect(x, y, width, height);
+        this.g.clip(clip);
+    }
+
+    getWidth(): number {
+        return this.canvas.width;
+    }
+
+    getHeight(): number {
+        return this.canvas.height;
     }
 
     getType(): GraphicsType {
@@ -579,6 +613,14 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
         return (this.texWidth > 0);
     }
 
+    getWidth(): number {
+        return this.canvas.width;
+    }
+
+    getHeight(): number {
+        return this.canvas.height;
+    }
+    
     /**
      * Call this every frame to actually draw everything onto the canvas.
      * Renders all drawImage calls that happened since the last time you called render()
@@ -1218,6 +1260,10 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      * @param gradient The gradient to apply
      */
     setGradientFillStyle(gradient: GraphicsGradient): void {
+    }
+
+    clip(x: number, y: number, width: number, height: number): void { 
+        // TODO - no idea how you'd implement clip
     }
 }
 

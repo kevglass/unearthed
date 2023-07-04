@@ -14,9 +14,10 @@ import { ControllerButtons, CONTROLLER_SETUP_STEPS, KeyControls, KEYS_SETUP_STEP
 import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
-import { initInventory } from "./InventItem";
+import { InventItem, initInventory } from "./InventItem";
 import {  hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
+import { InventPanel } from "./InventPanel";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -26,7 +27,7 @@ import JSZip from "jszip";
 /** True if we should be showing bounds when rendering mobs */
 const SHOW_BOUNDS: boolean = false;
 /** The ZOOM level - higher = less zoomed - I know, I know. */
-const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
+export const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 /** Some default names if the player can't be bothered to set one */
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
 
@@ -90,8 +91,6 @@ export class Game implements ControllerListener {
     limitedPortraitScreen: boolean = false;
     /** True if we're on a limited size landscape screen - adjusts UI */
     limitedLandscapeScreen: boolean = false;
-    /** The page of the inventory we're showing - only for mobile */
-    inventPage = 0;
     /** the time at which the splash screen should be removed - 1 second of Coke and Code */
     finishStartup = Date.now() + 1000;
     /** The message of the day */
@@ -112,15 +111,26 @@ export class Game implements ControllerListener {
     controllerSetupSteps: ControllerSetupStep[] = [];
     /** Server settings */
     serverSettings: ServerSettings;
+    /** The inventory panel */
+    inventPanel: InventPanel;
+    /** The quick slot that currently selected */
+    quickSlotSelected: number = 0;
 
+    /**
+     * The configuration of the controller buttons to actions
+     */
     controllerButtons: ControllerButtons = {
         jump: 0,
         next: 1,
         prev: 2,
         layer: 3,
-        trigger: 4
+        trigger: 4,
+        invent: 5
     };
 
+    /**
+     * The configuration of the key controls buttons to actions
+     */
     keyControls: KeyControls = {
         up: "w",
         down: "s",
@@ -129,7 +139,8 @@ export class Game implements ControllerListener {
         next: "e",
         prev: "q",
         layer: "x",
-        trigger: "r"
+        trigger: "r",
+        invent: "i",
     }
 
     constructor() {
@@ -137,6 +148,7 @@ export class Game implements ControllerListener {
         initTiles();
         initInventory();
 
+        this.inventPanel = new InventPanel(this);
         this.serverSettings = new ServerSettings(this);
 
         this.gamepad = new Controller();
@@ -191,7 +203,7 @@ export class Game implements ControllerListener {
         this.serverSettings.load();
 
         // create the local player and configure and skin settings
-        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE);
+        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
 
         const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {
@@ -251,7 +263,7 @@ export class Game implements ControllerListener {
         // set up the mobs list ready to kick off
         this.mobs.push(this.player);
         this.network.updatePlayerList(this.mobs);
-        this.player.itemHeld = this.player.inventory[0];
+        this.player.itemHeld = this.player.quickSlots[0];
 
         // honour a server parameter if its there so we can pass links
         // to each other
@@ -303,13 +315,18 @@ export class Game implements ControllerListener {
         });
     }
 
+    /**
+     * Notification that a controller button was pressed
+     * 
+     * @param button The index of hte button pressed
+     */
     buttonPressed(button: number): void {
         if (this.network.connected() && this.controllerSetupStep === -1) {
             if (button === this.controllerButtons.next) {
-                this.nextInventItem();
+                this.nextQuickSlot();
             }
             if (button === this.controllerButtons.prev) {
-                this.prevInventItem();
+                this.prevQuickSlot();
             }
             if (button === this.controllerButtons.layer) {
                 this.togglePlacementLayer();
@@ -320,10 +337,18 @@ export class Game implements ControllerListener {
         }
     }
 
+    /**
+     * Retrieve any mods that have been installed 
+     */
     get mods(): ConfiguredMods {
         return this.serverSettings.getConfiguredMods();
     }
 
+    /**
+     * Notification that a controller button was released
+     * 
+     * @param button The index of hte button released
+     */
     buttonReleased(button: number): void {
         if ((button > 0) && (button < 4)) {
             this.mouseButtonDown[0] = false;
@@ -379,6 +404,13 @@ export class Game implements ControllerListener {
 
             if (event.key === "Escape") {
                 hideCodeEditor();
+                this.inventPanel.hide();
+            }
+
+            if (event.key === this.keyControls.invent) {
+                this.inventPanel.showing() ? this.inventPanel.hide() : this.inventPanel.show();
+                event.preventDefault();
+                event.stopPropagation();
             }
 
             // if we're focused on the chat input that takes precedence
@@ -404,21 +436,37 @@ export class Game implements ControllerListener {
 
             // Pressing Q/E cycles through cycles through the inventory
             if (event.key === this.keyControls.prev) {
-                this.prevInventItem();
+                if (this.inventPanel.showing()) {
+                    this.inventPanel.prevItem();
+                } else {
+                    this.prevQuickSlot();
+                }
             }
             if (event.key === this.keyControls.next) {
-                this.nextInventItem();
+                if (this.inventPanel.showing()) {
+                    this.inventPanel.nextItem();
+                } else {
+                    this.nextQuickSlot();
+                }
             }
 
             // Pressing X changes the layer we're targeting
             if (event.key === this.keyControls.layer) {
-                this.togglePlacementLayer();
+                if (this.inventPanel.showing()) {
+                    this.inventPanel.layer();
+                } else {
+                    this.togglePlacementLayer();
+                }
             }
 
             if (event.key === this.keyControls.trigger) {
-                this.trigger();
-                event.preventDefault();
-                event.stopPropagation();
+                if (this.inventPanel.showing()) {
+                    this.inventPanel.trigger();
+                } else {
+                    this.trigger();
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
             }
         });
 
@@ -473,6 +521,11 @@ export class Game implements ControllerListener {
                 this.mouseDown(event.x * ZOOM, event.y * ZOOM, 1);
                 event.preventDefault();
             });
+            this.canvas.addEventListener("wheel", (event: WheelEvent) => {
+                if (this.inventPanel.showing()) {
+                    this.inventPanel.wheel(event.deltaY);
+                }
+            });
 
             this.canvas.addEventListener("mouseup", (event: MouseEvent) => {
                 this.mouseUp(event.x * ZOOM, event.y * ZOOM, 1);
@@ -481,27 +534,29 @@ export class Game implements ControllerListener {
         }
     }
 
-    prevInventItem() {
-        let index = 0;
-        if (this.player.itemHeld) {
-            index = this.player.inventory.indexOf(this.player.itemHeld) + 1;
-            if (index >= this.player.inventory.length) {
-                index = 0;
-            }
+    /**
+     * Move the previous quick slot
+     */
+    prevQuickSlot() {
+        const rows = (isMobile()) ? 1 : 2;
+        this.quickSlotSelected--;
+        if (this.quickSlotSelected < 0) {
+            this.quickSlotSelected = (rows * 4) - 1;
         }
-        this.player.itemHeld = this.player.inventory[index];
+        this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
         playSfx('click', 1);
     }
 
-    nextInventItem() {
-        let index = 0;
-        if (this.player.itemHeld) {
-            index = this.player.inventory.indexOf(this.player.itemHeld) - 1;
-            if (index < 0) {
-                index = this.player.inventory.length - 1;
-            }
+    /**
+     * Move the next quick slot
+     */
+    nextQuickSlot() {
+        const rows = (isMobile()) ? 1 : 2;
+        this.quickSlotSelected++;
+        if (this.quickSlotSelected >= (rows * 4)) {
+            this.quickSlotSelected = 0;
         }
-        this.player.itemHeld = this.player.inventory[index];
+        this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
         playSfx('click', 1);
     }
 
@@ -515,6 +570,11 @@ export class Game implements ControllerListener {
      */
     mouseDown(x: number, y: number, touchId: number) {
         confirmAudioContext();
+
+        if (this.inventPanel.showing()) {
+            this.inventPanel.mouseDown(x, y);
+            return;
+        }
 
         let foundInventButton = false;
         let foundControlButton = false;
@@ -530,30 +590,28 @@ export class Game implements ControllerListener {
 
         // if we've touched in the inventory area work out which item
         // we hit and apply it
-        if ((x > this.canvas.width - (130 * 4)) && (y > this.canvas.height - (130 * 4))) {
-            let xp = Math.floor((this.canvas.width - x) / 130);
-            let yp = Math.floor((this.canvas.height - y) / 130);
-            let index = (xp + (yp * 4)) + (this.inventPage * 4);
-            if (!isMobile() || (yp === 0 && xp < 4 && xp >= 0)) {
-                if (index >= 0 && index < this.player.inventory.length) {
+        const rows = (isMobile()) ? 1 : 2;
+        const xp = Math.floor((x - (this.canvas.width - (4 * 130) - 10)) / 130);
+        const yp = Math.floor((y - (this.canvas.height - (rows * 130) - 10)) / 130);
+        let index = (xp + (yp * 4));
+        if (yp >= 0 && yp < rows) {
+            if (xp < 4 && xp >= 0) {
+                if (index >= 0 && index < this.player.quickSlots.length) {
+                    this.quickSlotSelected = index;
                     foundInventButton = true;
-                    this.player.itemHeld = this.player.inventory[index];
+                    this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
                     playSfx('click', 1);
-                }
-            } else {
-                if ((xp === 0 && yp === 1)) {
-                    this.inventPage++;
-                    if (this.inventPage > Math.floor((this.player.inventory.length - 1) / 4)) {
-                        this.inventPage = 0;
-                    }
                 }
             }
         }
+
         // if we've hit the layer toggle button then apply it
         if (x > this.canvas.width - 680 && y > this.canvas.height - 140 && x < this.canvas.width - 680 + 126 && y < this.canvas.height - 140 + 125) {
             this.placingTilesOnFrontLayer = !this.placingTilesOnFrontLayer;
             foundInventButton = true;
             this.showTip("Placing Tiles on " + (this.placingTilesOnFrontLayer ? "Foreground" : "Background"));
+        } else if (x > this.canvas.width - 810 && y > this.canvas.height - 140 && x < this.canvas.width - 680 + 126 && y < this.canvas.height - 140 + 125) {
+            this.inventPanel.show();
         }
         if (this.limitedPortraitScreen) {
             y -= 160;
@@ -660,6 +718,10 @@ export class Game implements ControllerListener {
     private mouseUp(x: number, y: number, touchId: number) {
         confirmAudioContext();
 
+        if (this.inventPanel.showing()) {
+            this.inventPanel.mouseUp(x, y);
+            return;
+        }
         if (touchId === this.mainAreaTouchId) {
             this.mainAreaTouchId = 0;
             this.mouseButtonDown[0] = false;
@@ -686,6 +748,11 @@ export class Game implements ControllerListener {
      * multi-touch controls on mobile.
      */
     private mouseMove(x: number, y: number, touchId: number) {
+        if (this.inventPanel.showing()) {
+            this.inventPanel.mouseMove(x, y);
+            return;
+        }
+
         if (touchId === this.mainAreaTouchId || !isMobile()) {
             this.mouseX = x;
             this.mouseY = y;
@@ -705,6 +772,14 @@ export class Game implements ControllerListener {
         this.playerTriggeredLocation(this.player, x, y, true);
     }
 
+    /**
+     * Utility for firing when a trigger is fired
+     * 
+     * @param player The player that pressed the trigger
+     * @param x The x coordinate of the location of the triggered tile
+     * @param y The y coordinate of the location of the triggered tile
+     * @param local True if if this was a local player (as opposed to a remote one from the network)
+     */
     playerTriggeredLocation(player: Mob, x: number, y: number, local: boolean) {
         if (local) {
             this.triggerPortal(x, y);
@@ -1073,10 +1148,10 @@ export class Game implements ControllerListener {
             // render the whole game map
             this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
 
-            for (let i = 1; i < 10; i++) {
+            for (let i = 1; i < 9; i++) {
                 if (this.keyDown["" + i]) {
-                    if (this.player.itemHeld !== this.player.inventory[i - 1]) {
-                        this.player.itemHeld = this.player.inventory[i - 1];
+                    if (this.player.itemHeld !== this.player.quickSlots[i - 1]) {
+                        this.player.itemHeld = this.player.quickSlots[i - 1];
                         playSfx('click', 1);
                     }
                 }
@@ -1115,20 +1190,21 @@ export class Game implements ControllerListener {
 
         // draw the inventory tiles 
         let index = 0;
-        const rows = (isMobile()) ? 1 : 4;
+        const rows = (isMobile()) ? 1 : 2;
         for (let y = 0; y < rows; y++) {
             for (let x = 0; x < 4; x++) {
-                const xp = this.canvas.width - ((x + 1) * 130) - 10;
-                const yp = this.canvas.height - ((y + 1) * 130) - 10;
-                const item = this.player.inventory[index + (this.inventPage * 4)];
-                if (item) {
-                    if (item === this.player.itemHeld) {
-                        this.g.drawScaledImage(getSprite("ui/sloton"), xp, yp, 125, 125);
-                    } else {
-                        this.g.drawScaledImage(getSprite("ui/slotoff"), xp, yp, 125, 125);
-                    }
-                    this.g.drawScaledImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
+                const xp = this.canvas.width - (4 * 130) + (x * 130) - 10;
+                const yp = this.canvas.height - (rows * 130) + (y * 130) - 10;
 
+                const item = this.player.quickSlots[index];
+                if (index === this.quickSlotSelected) {
+                    this.g.drawScaledImage(getSprite("ui/sloton"), xp, yp, 125, 125);
+                } else {
+                    this.g.drawScaledImage(getSprite("ui/slotoff"), xp, yp, 125, 125);
+                }
+
+                if (item) {
+                    this.g.drawScaledImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
                 }
                 index++;
             }
@@ -1136,11 +1212,7 @@ export class Game implements ControllerListener {
 
         // draw the tile layer selector
         this.g.drawScaledImage(getSprite(this.placingTilesOnFrontLayer ? "ui/front" : "ui/back"), this.canvas.width - 680, this.canvas.height - 140, 125, 125);
-        if (isMobile()) {
-            const xp = this.canvas.width - ((0 + 1) * 130) - 10;
-            const yp = this.canvas.height - ((1 + 1) * 130) - 10;
-            this.g.drawScaledImage(getSprite("ui/arrowup"), xp + 20, yp + 50, 80, 80);
-        }
+        this.g.drawScaledImage(getSprite("ui/invent"), this.canvas.width - 810, this.canvas.height - 140, 125, 125);
 
         if (this.limitedPortraitScreen || this.limitedLandscapeScreen) {
             this.g.restore();
@@ -1155,9 +1227,62 @@ export class Game implements ControllerListener {
             this.g.drawScaledImage(getSprite("ui/trigger"), this.canvas.width - 520, this.canvas.height - 160, 140, 140);
         }
 
+        if (this.inventPanel.showing()) {
+            this.inventPanel.draw(this.g);
+        }
+
         this.g.render();
 
         // schedule our next frame
         requestAnimationFrame(() => { this.loop() });
+    }
+
+    /**
+     * Notification that an item was dropped (as in dragged and dropped) from some
+     * other UI element onto the main screen
+     * 
+     * @param item The item it was dropped at 
+     * @param x The x coordinate of the location of the drop
+     * @param y The y coordinate of the location of the drop
+     */
+    itemDropped(item: InventItem, x: number, y: number): void {
+        if (this.limitedPortraitScreen) {
+            y += 160;
+        }
+        if (this.limitedLandscapeScreen) {
+            x += -(this.canvas.width / 2) + 370;
+        }
+
+        const rows = (isMobile()) ? 1 : 2;
+        const xp = Math.floor((x - (this.canvas.width - (4 * 130) - 10)) / 130);
+        const yp = Math.floor((y - (this.canvas.height - (rows * 130) - 10)) / 130);
+
+        if ((xp >= 0) && (xp < 4) && (yp >= 0) && (yp < rows)) {
+            const index = xp + (yp * 4);
+            if ((index >= 0) && (index <= this.player.quickSlots.length)) {
+                this.player.quickSlots[index] = item;
+                this.player.itemHeld = item;
+                this.quickSlotSelected = index;
+                this.player.saveQuickSlots();
+            }
+        }
+    }
+
+    /**
+     * Replace the item currently held
+     * 
+     * @param item The item currently held 
+     */
+    replaceItem(item: InventItem): void {
+        let index = this.player.quickSlots.findIndex(slot => slot === null);
+        if (index < 0) {
+            index = this.quickSlotSelected;
+        }
+        if (index >= 0) {
+            this.player.quickSlots[index] = item;
+            this.player.itemHeld = item;
+            this.quickSlotSelected = index;
+            this.player.saveQuickSlots();
+        }
     }
 }
