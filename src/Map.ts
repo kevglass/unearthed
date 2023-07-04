@@ -625,7 +625,7 @@ export class GameMap {
      * @param tile The tile to set
      * @param layer The layer to set the tile on
      */
-    setTile(x: number, y: number, tile: number, layer: Layer): void {
+    setTile(x: number, y: number, tile: number, layer: Layer, applyLeaveBackground: boolean = true): void {
         x = Math.floor(x);
         y = Math.floor(y);
 
@@ -696,11 +696,11 @@ export class GameMap {
                 this.setTile(x, y - 1, 0, layer);
             }
 
-            if ((layer === 0) && (!this.game.mods.inModContext())) {
+            if (layer === 0) {
                 const behind = this.getTile(x, y, Layer.BACKGROUND);
                 if (behind === 0) {
                     const tile = BLOCKS[before];
-                    if (tile && tile.leaveBackground) {
+                    if (tile && tile.leaveBackground && applyLeaveBackground) {
                         this.setTile(x, y, before, Layer.BACKGROUND);
                     }
                 }

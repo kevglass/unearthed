@@ -1,6 +1,6 @@
 import { DataPacket_Kind, DataPublishOptions, Participant, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
-import { GameMap, GameMapMetaData, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from './Map';
+import { GameMap, GameMapMetaData, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from './Map';
 import { Game } from './Game';
 import { ServerConfig } from './ServerSettings';
 import { Particle, addParticle } from './engine/Particles';
@@ -545,10 +545,11 @@ export class Network {
         if (oldBlock === tile && !toolId) {
             return;
         }
+        const oldBackground = this.gameMap.getTile(x, y, Layer.BACKGROUND);
 
         if (this.thisIsTheHostServer) {
             // if we're the server we're authoritative so the mods can run based on the change
-            if (toolId.length > 0) {
+            if (toolId.length > 0 && !this.game.mods.inModContext()) {
                 // using a tool
                 this.game.mods.tool(player, x, y, layer, toolId);
 
@@ -563,7 +564,9 @@ export class Network {
             // if we're the host then forward the update to all players
             // only set zero if we're using the default pick
             if (toolId === "iron-pick" || tile !== 0 || this.game.mods.inModContext()) {
-                this.gameMap.setTile(x, y, tile, layer);
+                // note if the mod changed the background tile then we don't want to apply the default leaveBackground
+                // flag
+                this.gameMap.setTile(x, y, tile, layer, oldBackground === this.gameMap.getTile(x,y, Layer.BACKGROUND));
             }
         }
         if (this.thisIsTheHostServer) {

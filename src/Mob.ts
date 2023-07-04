@@ -113,6 +113,13 @@ export class Mob {
     /** The type of the mob */
     type: string = "human";
 
+    /** The x coordinate of the last location we worked out - to prevent repeats */
+    lastToolActionX: number = -1;
+    /** The y coordinate of the last location we worked out - to prevent repeats */
+    lastToolActionY: number = -1;
+    /** The layer of the last location we worked out - to prevent repeats */
+    lastToolActionLayer: number = -1;
+
     /** Current state of this mob's controls - based on local controls or network updates */
     controls: Controls = {
         left: false,
@@ -545,12 +552,20 @@ export class Mob {
             this.moveUp();
         }
 
+        // if we've released the mouse then we can work on the same location again
+        if (!this.controls.mouse) {
+            this.lastToolActionX = -1;
+        }
+
         // apply use of an item if we're holding one and the mouse button (or equivalent is being pressed)
         if (this.itemHeld) {
             const layer = placingOnBackgroundLayer ? Layer.BACKGROUND : Layer.FOREGROUND;
 
-            let targetEmpty = this.itemHeld?.place !== 0 || this.itemHeld?.targetEmpty;
-            if (this.controls.mouse && this.itemHeld?.targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== this.itemHeld.place) {
+            let changedLocation = (this.lastToolActionX !== this.overX || this.lastToolActionY !== this.overY || this.lastToolActionLayer !== layer);
+            let targetEmpty = (this.itemHeld?.place !== 0 || this.itemHeld?.targetEmpty) && changedLocation;
+            let targetFull =  this.itemHeld?.targetFull && changedLocation;
+
+            if (this.controls.mouse && targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== this.itemHeld.place) {
                 this.work();
                 this.blockDamage++;
 
@@ -559,14 +574,21 @@ export class Mob {
                     if (this.local) {
                         this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
                         if (this.gameMap.getTile(this.overX, this.overY, layer) === this.itemHeld.place) {
-                            playSfx('mining_break', 0.6, 5);
+                            if (this.itemHeld.toolId === "iron-pick") {
+                                playSfx('mining_break', 0.6, 5);
+                            }
                         }
                     }
+                    this.lastToolActionX = this.overX;
+                    this.lastToolActionY = this.overY;
+                    this.lastToolActionLayer = layer;
                     this.blockDamage = 0;
                     this.gameMap.game.gamepad.vibrate();
                 } else {
                     if (this.blockDamage % 20 === 0) {
-                        playSfx('mining', 0.5, 5);
+                        if (this.itemHeld.toolId === "iron-pick") {
+                            playSfx('mining', 0.5, 5);
+                        }
                     }
                     if (Date.now() - this.lastParticleCreated > 100) {
                         this.lastParticleCreated = Date.now();
@@ -598,6 +620,9 @@ export class Mob {
                 } else {
                     if (this.local) {
                         this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
+                        this.lastToolActionX = this.overX;
+                        this.lastToolActionY = this.overY;
+                        this.lastToolActionLayer = layer;
                     }
                 }
             }

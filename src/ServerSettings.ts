@@ -64,14 +64,24 @@ export class ServerSettings {
             }
         }
 
+        const blockIds: number[] = [];
         for (const block of mod.blocksAdded) {
             for (let key=0;key<256;key++) {
                 if (BLOCKS[key] === block) {
                     console.log("[" + mod.mod.name + "] Removing block: " + key + " on refresh");
                     delete BLOCKS[key];
+                    blockIds.push(key);
                 }
             }
         }
+
+        console.log("[" + mod.mod.name + "] Removing mod blocks from map: ", blockIds);
+        for (const blockId of blockIds) {
+            this.serverMods.context.startContext(mod);
+            this.serverMods.context.replaceAllBlocks(blockId, 0);
+            this.serverMods.context.endContext();
+        }
+
         mod.toolsAdded = [];
         mod.blocksAdded = [];
         this.game.mobs.forEach(m => m.initInventory());
