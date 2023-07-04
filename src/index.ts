@@ -1,9 +1,10 @@
 //
 // Simple bootstrap 
 //
-
 import { Game } from "./Game";
 import { initCodeEditor } from "./mods/Editor";
+
+console.log("");
 
 console.log("██    ██ ███    ██ ███████  █████  ██████  ████████ ██   ██ ███████ ██████  ");
 console.log("██    ██ ████   ██ ██      ██   ██ ██   ██    ██    ██   ██ ██      ██   ██ ");

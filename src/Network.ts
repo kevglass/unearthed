@@ -312,7 +312,7 @@ export class Network {
 
         if (message.type === "trigger") {
             if (this.thisIsTheHostServer && participant) {
-                const sourceMob = this.localMobs.find(m => m.participantId === participant.sid);
+                const sourceMob = this.localMobs.find(m => m.id === message.source);
                 if (sourceMob) {
                     this.game.playerTriggeredLocation(sourceMob, message.x, message.y, false);
                 }
@@ -340,16 +340,14 @@ export class Network {
             if (messageIsFromHost || this.thisIsTheHostServer) {
                 if (this.serverConfig?.editable) {
                     if (participant) {
-                        const sourceMob = this.localMobs.find(m => m.participantId === participant.sid);
-                        if (sourceMob) {
-                            if (this.thisIsTheHostServer) {
-                                this.sendNetworkTile(sourceMob, message.x, message.y, message.tile, message.layer, message.toolId);
-                            } else {
-                                // only set zero if we're using the default pick - anything else we 
-                                // need to rely on a mod to do the change atm
-                                if (message.toolId === "iron-pick" || message.tile !== 0) {
-                                    this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
-                                }
+                        const sourceMob = this.localMobs.find(m => m.id === message.source);
+                        if (this.thisIsTheHostServer) {
+                            this.sendNetworkTile(sourceMob, message.x, message.y, message.tile, message.layer, message.toolId);
+                        } else {
+                            // only set zero if we're using the default pick - anything else we 
+                            // need to rely on a mod to do the change atm
+                            if (message.toolId === "iron-pick" || message.tile !== 0) {
+                                this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
                             }
                         }
                     }
@@ -442,7 +440,7 @@ export class Network {
      */
     sendTrigger(x: number, y: number): void {
         if (this.isConnected && !this.thisIsTheHostServer && this.hostParticipantId) {
-            const message = { type: "trigger", x, y };
+            const message = { type: "trigger", x, y, source: this.game.player.id };
             this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE, [this.hostParticipantId]);
         }
     }
@@ -575,20 +573,22 @@ export class Network {
         }
 
         if (!NETWORKING_ENABLED) {
+            console.log("networking disabled");
             return;
         }
 
         if (this.thisIsTheHostServer) {
             if (!this.isConnected) {
+                console.log("not connected");
                 return;
             }
     
-            const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId });
+            const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId, source: player?.id });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
         } else if (this.hostParticipantId) {
             if (this.serverConfig?.editable) {
                 // if we have a host then send it to just that host
-                const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId });
+                const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId, source: player?.id });
                 this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE, [this.hostParticipantId.sid]);
             }
         }

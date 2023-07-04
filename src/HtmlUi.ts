@@ -162,15 +162,7 @@ export class HtmlUi {
         document.getElementById("startGame")!.addEventListener("click", () => {
             confirmAudioContext();
 
-            this.game.isHostingTheServer = true;
-            document.getElementById("connect")!.style.display = "none";
-            document.getElementById("githublink")!.style.display = "none";
-            
-            this.network.startNetwork(this.game.isHostingTheServer);
-            this.game.connecting = true;
-            this.game.waitingForHost = true;
-            this.game.player.reset();
-            document.getElementById("serverLink")!.innerHTML = this.game.serverId;
+            this.startGame();
         });
         // join game button - just show the join game dialog
         document.getElementById("joinGame")!.addEventListener("click", () => {
@@ -402,6 +394,18 @@ export class HtmlUi {
                 b: fullArray.slice(len)
             });
         }
+    }
+
+    startGame() {
+        this.game.isHostingTheServer = true;
+        document.getElementById("connect")!.style.display = "none";
+        document.getElementById("githublink")!.style.display = "none";
+        
+        this.network.startNetwork(this.game.isHostingTheServer);
+        this.game.connecting = true;
+        this.game.waitingForHost = true;
+        this.game.player.reset();
+        document.getElementById("serverLink")!.innerHTML = this.game.serverId;
     }
 
     codeEditorShowing() {

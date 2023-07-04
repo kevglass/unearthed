@@ -116,6 +116,9 @@ export class Game implements ControllerListener {
     /** The quick slot that currently selected */
     quickSlotSelected: number = 0;
 
+    /** If we're running headless mode */
+    headless: boolean = false;
+
     /**
      * The configuration of the controller buttons to actions
      */
@@ -144,7 +147,10 @@ export class Game implements ControllerListener {
     }
 
     constructor() {
-        loadAllResources();
+        const params = new URLSearchParams(location.search);
+        this.headless = params.get("headless") === "true";
+
+        loadAllResources(this);
         initTiles();
         initInventory();
 
@@ -261,13 +267,15 @@ export class Game implements ControllerListener {
         });
 
         // set up the mobs list ready to kick off
-        this.mobs.push(this.player);
+        if (!this.headless) {
+            this.mobs.push(this.player);
+        }
         this.network.updatePlayerList(this.mobs);
         this.player.itemHeld = this.player.quickSlots[0];
 
         // honour a server parameter if its there so we can pass links
         // to each other
-        const params = new URLSearchParams(location.search);
+
         if (params.get("server") && params.get("server") !== this.serverId) {
             this.isHostingTheServer = false;
             (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
@@ -1116,14 +1124,17 @@ export class Game implements ControllerListener {
             }
             this.g.restore();
             this.g.render();
+
+            if (this.headless) {
+                this.ui.startGame();
+            }
             return;
         }
 
         // so now we know the network is started (or the pretend network is) and 
         // all the resources are loaded so we can render the real game
         if (resourcesLoaded()) {
-            this.network.update(this.player, this.mobs);
-
+            this.network.update(this.player, this.mobs);            
             // scroll the view based on bounds and player position
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 

@@ -156,6 +156,8 @@ export class Mob {
         this.name = name;
         this.type = type;
         this.local = local;
+
+        this.initInventory();
     }
 
     /**
@@ -246,6 +248,7 @@ export class Mob {
         this.itemHeld = state.itemHeld;
         this.bodyParts = state.bodyParts;
         this.type = state.type;
+        this.moving = state.moving;
     }
 
     /**
@@ -271,6 +274,7 @@ export class Mob {
             name: this.name,
             itemHeld: this.itemHeld,
             bodyParts: this.bodyParts,
+            moving: this.moving,
             type: this.type
         };
     }

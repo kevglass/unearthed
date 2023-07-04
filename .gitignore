@@ -3,6 +3,7 @@ dist
 local.properties.json
 media
 .DS_Store
+session
 
 # Jetbrains IDE's
 .idea/*

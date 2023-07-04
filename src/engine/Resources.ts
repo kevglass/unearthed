@@ -4,6 +4,7 @@
 // but its worked out ok.
 //
 
+import { Game } from "src/Game";
 import { GraphicsImage } from "./Graphics";
 
 function importAll(r: any) {
@@ -16,6 +17,9 @@ function importAll(r: any) {
 }
 
 export const RESOURCES = importAll(require.context('../', true, /.{3}.(png|mp3)$/));
+
+const params = new URLSearchParams(location.search);
+const HEADLESS = params.get("headless") === "true";;
 
 /** A list of all the reported errors for resources so we only show them once */
 const reportedErrors: Record<string, boolean> = {};
@@ -160,14 +164,19 @@ export function isSoundMuted() {
  * Confirm the audio context - 
  */
 export function confirmAudioContext(): void {
-    try {
-      audioContext.resume().catch((e) => {
-        console.log("Resume audio context failed");
-        console.error(e);
-      });
-    } catch (e) {
-      console.log("Resume audio context failed");
-      console.error(e);
+    if (!HEADLESS) {
+        if (!audioContext) {
+            audioContext = new AudioContext()
+        }
+        try {
+            audioContext.resume().catch((e) => {
+                console.log("Resume audio context failed");
+                console.error(e);
+            });
+        } catch (e) {
+            console.log("Resume audio context failed");
+            console.error(e);
+        }
     }
 }
 
@@ -178,6 +187,10 @@ export function confirmAudioContext(): void {
  * @param variations The number of variations of the sound effect to choose from
  */
 export function playSfx(name: string, volume: number, variations: number | null = null): void {
+    if (HEADLESS) {
+        return;
+    }
+
     if (!audioContext || isSoundMuted()) {
         return;
     }
@@ -222,7 +235,7 @@ function playBuffer(buffer: AudioBuffer, volume: number = 1): void {
     source.start(0);
 }
 
-let audioContext: AudioContext = new AudioContext();
+let audioContext: AudioContext;
 
 /**
  * Check if all the resources managed by this cache have been loaded
@@ -236,20 +249,24 @@ export function resourcesLoaded(): boolean {
 /**
  * Load all the resources and associate them with keys
  */
-export function loadAllResources() {
+export function loadAllResources(game: Game) {
     console.log("Loading Resources....");
 
     // load all the images and link them to a name based on directory structure
     for (const link of Object.keys(RESOURCES)) {
         if (link.startsWith("img")) {
-            const key = link.substring("img/".length, link.length-4);
+            const key = link.substring("img/".length, link.length - 4);
             loadImage(key, link);
-            console.log(" ==> Loading Image: " + key);
+            if (!game.headless) {
+                console.log(" ==> Loading Image: " + key);
+            }
         }
         if (link.startsWith("sfx")) {
-            const key = link.substring("sfx/".length, link.length-4);
+            const key = link.substring("sfx/".length, link.length - 4);
             loadSfx(key, link);
-            console.log(" ==> Loading SFX: " + key);
+            if (!game.headless) {
+                console.log(" ==> Loading SFX: " + key);
+            }
         }
     }
 }
