@@ -101,7 +101,7 @@ export interface GameContext {
      * @param targetFull True if this tool can target spaces with a block in
      * @param delayOnOperation Time before operation takes place on a full block
      */
-    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number): void;
+    addTool(image: string, place: number, toolId: string | undefined, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number): void;
 
     /**
      * Set a block in the game world. 
@@ -152,8 +152,9 @@ export interface GameContext {
      * 
      * @param id The ID of the sound effect in the cache
      * @param volume The volume at which to play the sound (0 = silent, 1 = loudest)
+     * @param variations The variations of the sound effect to attempt to apply
      */
-    playSfx(id: string, volume: number): void;
+    playSfx(id: string, volume: number, variations?: number): void;
 
     /**
      * Add a set of particulars at a particular tile location
@@ -281,6 +282,18 @@ export interface ServerMod {
      * @param toolId The id of the tool being used (as defined when doing an @see GameContext.addTool )
      */
     onUseTool?(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void;
+
+    /**
+     * Notification that a mob used a tool in is progress at a given location
+     * 
+     * @param game The context on which the mod can callback to modify the game.
+     * @param mob The mob using the tool on the location @see MobContext
+     * @param x The x coordinate in tiles of the target
+     * @param y The y coordinate in tiles of the target
+     * @param layer The layer being targeted (0=foreground, 1=background)
+     * @param toolId The id of the tool being used (as defined when doing an @see GameContext.addTool )
+     */
+    onProgressTool?(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void;
 
     /**
      * Notification that a mob pressed the trigger button on a particular location.

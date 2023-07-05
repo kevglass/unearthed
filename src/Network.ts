@@ -344,11 +344,7 @@ export class Network {
                         if (this.thisIsTheHostServer) {
                             this.sendNetworkTile(sourceMob, message.x, message.y, message.tile, message.layer, message.toolId);
                         } else {
-                            // only set zero if we're using the default pick - anything else we 
-                            // need to rely on a mod to do the change atm
-                            if (message.toolId === "iron-pick" || message.tile !== 0) {
-                                this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
-                            }
+                            this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
                         }
                     }
                 }
@@ -561,7 +557,7 @@ export class Network {
         if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
             // if we're the host then forward the update to all players
             // only set zero if we're using the default pick
-            if (toolId === "iron-pick" || tile !== 0 || this.game.mods.inModContext()) {
+            if (tile !== 0 || this.game.mods.inModContext()) {
                 // note if the mod changed the background tile then we don't want to apply the default leaveBackground
                 // flag
                 this.gameMap.setTile(x, y, tile, layer, oldBackground === this.gameMap.getTile(x,y, Layer.BACKGROUND));

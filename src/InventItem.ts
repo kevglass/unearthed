@@ -26,17 +26,5 @@ export interface InventItem {
 export let DEFAULT_INVENTORY: InventItem[];
 
 export function initInventory() {
-    DEFAULT_INVENTORY = [
-        { sprite: "holding/pick_iron", place: 0, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, toolId: "iron-pick", targetEmpty: false, targetFull: true },
-        { sprite: "tiles/dirt", place: 1, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false},
-        { sprite: "tiles/brick_grey", place: 3, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/brick_red", place: 4, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/sand", place: 6, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/wood", place: 7, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/ladder", place: 8, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/platform", place: 24, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "holding/torch", place: 26, spriteOffsetX: -90, spriteOffsetY: -150, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/tnt", place: 25, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-        { sprite: "tiles/portal", place: 27, spriteOffsetX: -70, spriteOffsetY: -130, spriteScale: 0.7, targetEmpty: true, targetFull: false },
-    ];
+    DEFAULT_INVENTORY = [];
 }

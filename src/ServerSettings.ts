@@ -4,6 +4,7 @@ import { Game } from "./Game";
 import { DEFAULT_INVENTORY } from "./InventItem";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
+import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
 
 const MINIMUM_MOD_VERSION_ALLOWED: number = 0;
 
@@ -37,6 +38,19 @@ export class ServerSettings {
     constructor(game: Game) {
         this.game = game;
         this.serverMods = new ConfiguredMods(game);
+    }
+
+    addDefaultMod(mod: ServerMod) {
+        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [] };
+        console.log("[" + mod.name + "] Installing");
+        this.serverMods.mods.push(modRecord);
+
+        if (this.game.network.started) {
+            this.serverMods.context.enableLogging(false);
+            this.serverMods.init();   
+            this.serverMods.worldStarted(); 
+            this.serverMods.context.enableLogging(true);
+        }
     }
 
     /**

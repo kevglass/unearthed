@@ -18,6 +18,8 @@ import { InventItem, initInventory } from "./InventItem";
 import {  hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 import { InventPanel } from "./InventPanel";
+import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
+import { DefaultBlockMod } from "./mods/defaultmods/DefaultBlocksMod";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -206,6 +208,11 @@ export class Game implements ControllerListener {
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
+
+        // bootstrap the default mods if enabled
+        this.serverSettings.addDefaultMod(new PickaxeMod());
+        this.serverSettings.addDefaultMod(new DefaultBlockMod());
+
         this.serverSettings.load();
 
         // create the local player and configure and skin settings
@@ -842,6 +849,8 @@ export class Game implements ControllerListener {
         this.gamepad.update();
 
         if (this.network.connected() && this.controllerSetupStep === -1) {
+            this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
+
             for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
                 if (this.isHostingTheServer) {
                     this.mods.tick();

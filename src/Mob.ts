@@ -619,11 +619,6 @@ export class Mob {
                 if (this.blockDamage >= delay) {
                     if (this.local) {
                         this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
-                        if (this.gameMap.getTile(this.overX, this.overY, layer) === this.itemHeld.place) {
-                            if (this.itemHeld.toolId === "iron-pick") {
-                                playSfx('mining_break', 0.6, 5);
-                            }
-                        }
                     }
                     this.lastToolActionX = this.overX;
                     this.lastToolActionY = this.overY;
@@ -632,9 +627,7 @@ export class Mob {
                     this.gameMap.game.gamepad.vibrate();
                 } else {
                     if (this.blockDamage % 20 === 0) {
-                        if (this.itemHeld.toolId === "iron-pick") {
-                            playSfx('mining', 0.5, 5);
-                        }
+                        this.gameMap.game.mods.toolProgress(this, this.overX, this.overY, layer, this.itemHeld.toolId ?? "");
                     }
                     if (Date.now() - this.lastParticleCreated > 100) {
                         this.lastParticleCreated = Date.now();

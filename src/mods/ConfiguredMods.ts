@@ -196,8 +196,8 @@ export class GameAsContext implements GameContext {
     /**
      * @see GameContext.playSfx
      */
-    playSfx(id: string, volume: number): void {
-        playSfx(id, volume);
+    playSfx(id: string, volume: number, variations?: number): void {
+        playSfx(id, volume, variations ?? null);
     }
 
     /**
@@ -429,6 +429,29 @@ export class ConfiguredMods {
         }
     }
 
+    /**
+     * Notify all interested mods that a tool is in progress on a location
+     * 
+     * @param mob The mob using the tool.
+     * @param x The x coordinate of the tool's target (in tiles)
+     * @param y The y coordinate of the tool's target (in tiles)
+     * @param layer The layer in which tool's targeted (0=foreground, 1=background)
+     * @param tool The ID of the tool being used
+     */
+    toolProgress(mob: Mob | undefined, x: number, y: number, layer: number, tool: string): void {
+        for (const record of this.mods) {
+            if (record.mod.onProgressTool) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onProgressTool(this.context, mob, x, y, layer, tool);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
     /**
      * Look for any mod that can generate worlds. If we find one let it generate the world
      * then return. i.e. the first world generating mod wins.
