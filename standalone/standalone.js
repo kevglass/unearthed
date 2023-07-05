@@ -44,7 +44,7 @@ fs.unlinkSync("session/SingletonLock");
     if (url.startsWith("https://modserver/")) {
       request.respond({
         content: "application/octet",
-        body: fs.readFileSync("mods/switchblocks.zip"),
+        body: fs.readFileSync("mods/" + url.substring("https://modserver/".length)),
         headers: {
           "Access-Control-Allow-Origin": "*"
         }
@@ -69,8 +69,8 @@ fs.unlinkSync("session/SingletonLock");
   for (const file of fs.readdirSync("mods")) {
     modList.push(prefix+file);
   }
-  // await page.goto('http://unearthedgame.net/?headless=true&mods=' + encodeURIComponent(JSON.stringify(modList)));
-  await page.goto('http://localhost:20000/?headless=true&mods=' + encodeURIComponent(JSON.stringify(modList)));
+  await page.goto('http://unearthedgame.net/?headless=true&mods=' + encodeURIComponent(JSON.stringify(modList)));
+  //await page.goto('http://localhost:20000/?headless=true&mods=' + encodeURIComponent(JSON.stringify(modList)));
 
   console.log("SYS:");
   console.log("SYS: -----------------------------------");
