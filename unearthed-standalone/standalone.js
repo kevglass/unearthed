@@ -20,9 +20,15 @@ const escapePress = async () => {
   }))
 }
 
-fs.unlinkSync("session/SingletonLock");
 
 (async () => {
+	const lockFile = process.cwd() + path.sep + "/session/SingletonLock";
+  try {
+    fs.unlinkSync(lockFile);
+  } catch (e) {
+    // ignore, the lock file isn't there
+  }
+
   const browser = await puppeteer.launch({ 
     userDataDir: 'session', 
     headless: 'new',
