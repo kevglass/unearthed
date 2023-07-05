@@ -105,7 +105,10 @@
         </div>
         <div class="label">Your Server Code</div>
         <div id="serverLink"></div>
-        <div id="serverSettingsButton" class="button">Server Settings</div>
+        <div id="mapBar">
+            <div id="serverSettingsButton" class="mapButton">Server Settings</div>
+            <div id="modsSettingsButton" class="mapButton">Mod Settings</div>
+        </div>
     </div>
     <div id="serverSettingsPanel" class="panel">
         <button id="closeServerSettingsButton" class="button">X</button>
@@ -114,6 +117,18 @@
             <div class="settingLabel">Edit World</div>
             <div id="changeWorldButton" class="settingButton mapButton">Yes</div>
         </div>
+        <div class="setting label">
+            <div class="settingLabel">Default Mods Enabled</div>
+            <div id="changeDefaultMods" class="settingButton mapButton">Yes</div>
+        </div>
+        <div id="mapBar">
+            <div id="resetMapButton" class="mapButton">Reset Map</div>
+            <div id="loadMapButton" class="mapButton">Load Map</div>
+            <div id="saveMapButton" class="mapButton">Save Map</div>
+        </div>
+    </div>
+    <div id="modsPanel" class="panel">
+        <button id="closeModsButton" class="button">X</button>
         <div class="label">Game Mods</div>
         <div id="mods">
             <div id="modsList">
@@ -123,11 +138,6 @@
                 <div id="editMod" class="settingButton mapButton">Edit</div>
                 <div id="removeMod" class="settingButton mapButton">Del</div>
             </div>
-        </div>
-        <div id="mapBar">
-            <div id="resetMapButton" class="mapButton">Reset Map</div>
-            <div id="loadMapButton" class="mapButton">Load Map</div>
-            <div id="saveMapButton" class="mapButton">Save Map</div>
         </div>
     </div>
     <input id="chatinput" type="text" />

@@ -14,6 +14,8 @@ const MINIMUM_MOD_VERSION_ALLOWED: number = 0;
 export interface ServerConfig {
     /** True if the server is configured to allow remote players to editr */
     editable: boolean;
+    /** True if we should use the default mods */
+    useDefaultMods: boolean;
     /** The collection of resources made available through mods */
     modScripts: (Record<string, string>)[];
 }
@@ -27,13 +29,16 @@ export class ServerSettings {
      */
     private config: ServerConfig = {
         editable: true,
-        modScripts: []
+        modScripts: [],
+        useDefaultMods: true
     }
 
     /** The game these settings will apply to */
     game: Game;
     /** A manager for server mods - handles life cycle and events */
     serverMods: ConfiguredMods;
+    /** The list of default mods */
+    defaultMods: ModRecord[] = [];
 
     constructor(game: Game) {
         this.game = game;
@@ -42,13 +47,21 @@ export class ServerSettings {
 
     addDefaultMod(mod: ServerMod) {
         const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [] };
-        console.log("[" + mod.name + "] Installing");
+        this.defaultMods.push(modRecord);
+
+        if (this.useDefaultMods()) {
+            this.addModRecord(modRecord);
+        }
+    }
+
+    private addModRecord(modRecord: ModRecord) {
+        console.log("[" + modRecord.mod.name + "] Installing");
         this.serverMods.mods.push(modRecord);
 
         if (this.game.network.started) {
             this.serverMods.context.enableLogging(false);
-            this.serverMods.init();   
-            this.serverMods.worldStarted(); 
+            this.serverMods.init();
+            this.serverMods.worldStarted();
             this.serverMods.context.enableLogging(true);
         }
     }
@@ -80,7 +93,7 @@ export class ServerSettings {
 
         const blockIds: number[] = [];
         for (const block of mod.blocksAdded) {
-            for (let key=0;key<256;key++) {
+            for (let key = 0; key < 256; key++) {
                 if (BLOCKS[key] === block) {
                     console.log("[" + mod.mod.name + "] Removing block: " + key + " on refresh");
                     delete BLOCKS[key];
@@ -114,19 +127,19 @@ export class ServerSettings {
             if (potentialMod.name && potentialMod.id) {
                 const apiVersion = potentialMod.apiVersion ?? 1;
                 if (apiVersion < MINIMUM_MOD_VERSION_ALLOWED) {
-                    console.error("Modification version is too old ("+apiVersion+" < " + MINIMUM_MOD_VERSION_ALLOWED);
+                    console.error("Modification version is too old (" + apiVersion + " < " + MINIMUM_MOD_VERSION_ALLOWED);
                     return false;
                 }
                 mod.resources["mod.js"] = content;
                 mod.mod = potentialMod;
                 this.cleanUpMod(mod);
-                
+
                 // if the mod had already been inited we'll want to 
                 // reinitalise and start again
                 if (mod.inited) {
                     mod.inited = false;
-                    this.serverMods.init();   
-                    this.serverMods.worldStarted(); 
+                    this.serverMods.init();
+                    this.serverMods.worldStarted();
                 }
 
                 this.save();
@@ -158,7 +171,7 @@ export class ServerSettings {
                 if (potentialMod.name && potentialMod.id) {
                     const apiVersion = potentialMod.apiVersion ?? 1;
                     if (apiVersion < MINIMUM_MOD_VERSION_ALLOWED) {
-                        console.error("Modification version is too old ("+apiVersion+" < " + MINIMUM_MOD_VERSION_ALLOWED);
+                        console.error("Modification version is too old (" + apiVersion + " < " + MINIMUM_MOD_VERSION_ALLOWED);
                         return;
                     }
 
@@ -179,8 +192,8 @@ export class ServerSettings {
 
                     if (this.game.network.started) {
                         this.serverMods.context.enableLogging(logging);
-                        this.serverMods.init();   
-                        this.serverMods.worldStarted(); 
+                        this.serverMods.init();
+                        this.serverMods.worldStarted();
                         this.serverMods.context.enableLogging(true);
                     }
                 } else {
@@ -240,6 +253,29 @@ export class ServerSettings {
         this.save();
     }
 
+    useDefaultMods(): boolean {
+        return this.config.useDefaultMods;
+    }
+
+    setUseDefaultMods(m: boolean): void {
+        this.config.useDefaultMods = m;
+    
+        if (m) {
+            for (const mod of this.defaultMods) {
+                if (!this.serverMods.mods.includes(mod)) {
+                    this.addModRecord(mod);
+                }
+            }
+        } else {
+            for (const mod of this.defaultMods) {
+                if (this.serverMods.mods.includes(mod)) {
+                    this.removeMod(mod);
+                }
+            }
+        }
+        this.save();
+    }
+
     /**
      * Persist the settings to local storage
      */
@@ -270,10 +306,10 @@ export class ServerSettings {
      */
     load(): void {
         const existing = localStorage.getItem("serverSettings");
-        if (existing) {
-            Object.assign(this.config, JSON.parse(existing));
-
+        if (!this.game.headless && existing) {
             if (!this.game.headless) {
+                Object.assign(this.config, JSON.parse(existing));
+                console.log(this.config);
                 const modsToLoad = this.config.modScripts;
                 this.config.modScripts = [];
 
@@ -281,6 +317,19 @@ export class ServerSettings {
                     this.addMod(mod, true);
                 }
             }
+        } else if (this.game.headless) {
+            const targetUrl = "https://settings.json";
+            console.log("Loading settings from: " + targetUrl);
+            const request = new XMLHttpRequest();
+            request.open("GET", targetUrl, false);
+            request.send();
+
+            const config = JSON.parse(request.responseText);
+            Object.assign(this.config, config);
+            console.log("Applying configuration from settings.json");
+
+            console.log("  - Editable World: " + this.config.editable);
+            console.log("  - Use Default Mods: " + this.config.useDefaultMods);
         }
     }
 }

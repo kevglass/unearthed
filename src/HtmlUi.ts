@@ -183,7 +183,12 @@ export class HtmlUi {
         document.getElementById("serverSettingsButton")?.addEventListener("click", () => {
             document.getElementById("serverSettingsPanel")!.style.display = "block";
             document.getElementById("settingsPanel")!.style.display = "none";
-        })
+        });
+        document.getElementById("modsSettingsButton")?.addEventListener("click", () => {
+            document.getElementById("modsPanel")!.style.display = "block";
+            document.getElementById("settingsPanel")!.style.display = "none";
+        });
+        
 
         // done button from the settings panel. Apply the settings and go back to main menu
         document.getElementById("doneButton")!.addEventListener("click", () => {
@@ -234,11 +239,13 @@ export class HtmlUi {
                 document.getElementById("connect")!.style.display = "block";
             }
         })
+        document.getElementById("closeModsButton")!.addEventListener("click", () => {
+            document.getElementById("modsPanel")!.style.display = "none";
+            document.getElementById("settingsPanel")!.style.display = "block";
+        })
         document.getElementById("closeServerSettingsButton")!.addEventListener("click", () => {
             document.getElementById("serverSettingsPanel")!.style.display = "none";
-            if (!this.game.network.connected()) {
-                document.getElementById("connect")!.style.display = "block";
-            }
+            document.getElementById("settingsPanel")!.style.display = "block";
         })
         
 
@@ -316,6 +323,12 @@ export class HtmlUi {
                 link.innerHTML = this.game.serverId;
             }, 2000)
         });
+
+        document.getElementById("changeDefaultMods")!.addEventListener('click', () => {
+            this.game.serverSettings.setUseDefaultMods(!this.game.serverSettings.useDefaultMods());
+            this.renderDefaultModsButton();
+        });
+        this.renderDefaultModsButton();
 
         document.getElementById("changeWorldButton")!.addEventListener('click', () => {
             this.game.serverSettings.setEditable(!this.game.serverSettings.isEditable());
@@ -414,6 +427,10 @@ export class HtmlUi {
 
     renderChangeWorldButton() {
         document.getElementById("changeWorldButton")!.innerHTML = this.game.serverSettings.isEditable() ? "Yes" : "No";
+    }
+
+    renderDefaultModsButton() {
+        document.getElementById("changeDefaultMods")!.innerHTML = this.game.serverSettings.useDefaultMods() ? "Yes" : "No";
     }
 
     joinAsClient() {

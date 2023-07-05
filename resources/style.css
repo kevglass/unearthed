@@ -31,6 +31,7 @@ input {
     margin-top: 20px;
     margin-left: 20px;
     margin-right: 20px;
+    margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     height: 2rem;
@@ -39,10 +40,6 @@ input {
 .settingLabel {
     text-align: left;    
     line-height: 2rem;
-}
-
-#serverSettingsButton {
-    margin-left: 100px;
 }
 
 #serverLink {
@@ -74,6 +71,12 @@ input {
 }
 
 #serverSettingsPanel {
+    width: 400px;
+    height: 370px;
+    display: none;
+}
+
+#modsPanel {
     width: 400px;
     height: 370px;
     display: none;
@@ -117,6 +120,11 @@ input {
 }
 
 #closeServerSettingsButton:active {
+    margin-top: 3px;
+    border-bottom: 2px solid #A00;
+}
+
+#closeModsButton:active {
     margin-top: 3px;
     border-bottom: 2px solid #A00;
 }
@@ -198,6 +206,23 @@ input {
 	margin: 20px;
 	background-image: url(soundison.png);
 	background-size: cover;
+}
+
+#closeModsButton {
+    position: absolute;
+    outline: 4px solid black;
+    color: white;
+    background: red;
+    font-size: 1rem;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    right: -11px;
+    top: -11px;
+    border-bottom: 5px solid #A00;
+    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
 }
 
 #closeServerSettingsButton {
@@ -480,7 +505,7 @@ input {
 
 #modsList {    
     width: 280px;
-    height: 140px;
+    height: 300px;
     background: white;
     padding: 5px;
     border-radius: 5px;
