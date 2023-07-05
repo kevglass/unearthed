@@ -1,5 +1,5 @@
 import { Layer } from "src/Map";
-import { GameContext, MobContext, ServerMod } from "../Mods";
+import { GameContext, GameProperty, MobContext, ServerMod } from "../Mods";
 
 export class PickaxeMod implements ServerMod {
     id: string = "default-pickaxe";

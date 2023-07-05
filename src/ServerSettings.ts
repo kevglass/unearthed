@@ -58,6 +58,10 @@ export class ServerSettings {
         console.log("[" + modRecord.mod.name + "] Installing");
         this.serverMods.mods.push(modRecord);
 
+        if (modRecord.mod.onLoaded) {
+            modRecord.mod.onLoaded(this.serverMods.context);
+        }
+
         if (this.game.network.started) {
             this.serverMods.context.enableLogging(false);
             this.serverMods.init();
@@ -134,6 +138,10 @@ export class ServerSettings {
                 mod.mod = potentialMod;
                 this.cleanUpMod(mod);
 
+                if (mod.mod.onLoaded) {
+                    mod.mod.onLoaded(this.serverMods.context);
+                }
+
                 // if the mod had already been inited we'll want to 
                 // reinitalise and start again
                 if (mod.inited) {
@@ -190,6 +198,10 @@ export class ServerSettings {
                         this.game.ui.addMod(modRecord);
                     }
 
+                    if (modRecord.mod.onLoaded) {
+                        modRecord.mod.onLoaded(this.serverMods.context);
+                    }
+                    
                     if (this.game.network.started) {
                         this.serverMods.context.enableLogging(logging);
                         this.serverMods.init();

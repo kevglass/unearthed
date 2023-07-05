@@ -1,5 +1,5 @@
 import { Game } from "src/Game";
-import { GameContext, MobContext, ServerMod } from "./Mods";
+import { GameContext, GameProperty, MobContext, ServerMod } from "./Mods";
 import { loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
 import { Block, BLOCKS } from "src/Block";
 import { DEFAULT_INVENTORY, InventItem } from "src/InventItem";
@@ -19,6 +19,14 @@ export class GameAsContext implements GameContext {
 
     constructor(game: Game) {
         this.game = game;
+    }
+
+    setGameProperty(prop: GameProperty, value: string): void {
+        this.game.globalProperties[prop] = value;
+    }
+
+    getGameProperty(prop: GameProperty): string {
+        return this.game.globalProperties[prop];
     }
 
     enableLogging(l: boolean): void {

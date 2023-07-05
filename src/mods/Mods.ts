@@ -204,6 +204,33 @@ export interface GameContext {
      * on the client side.
      */
     isHost(): boolean;
+
+    /**
+     * Set a game property 
+     * 
+     * @param prop The name of the property to set @see GameProperty
+     * @param value The value to apply to the property
+     */
+    setGameProperty(prop: GameProperty, value: string): void;
+
+    /**
+     * Get the value of a property
+     * 
+     * @param prop The name of the property whose value is retrieved
+     * @return The value of the property 
+     */
+    getGameProperty(prop: GameProperty): string;
+
+}
+
+/**
+ * The collection of properties available to configure from the mod
+ */
+export enum GameProperty {
+    /** The background color being used in game - must be 4 byte including alpha - default is #445253FF */
+    BACKGROUND_COLOR = "BACKGROUND_COLOR",
+    /** The sky fill color - must be 4 byte including alpha - default is #CFEFFCFF */
+    SKY_COLOR = "SKY_COLOR",
 }
 
 /**
@@ -222,6 +249,14 @@ export interface ServerMod {
     /** API version this mod uses - not present = 0 */
     apiVersion: number;
     
+    /**
+     * Notification when the mod has been loaded/installed. Be careful what you call here since most of the 
+     * system may not be available
+     * 
+     * @param game The context on which the mod can callback to modify the game.
+     */
+    onLoaded?(game: GameContext): void;
+
     /**
      * Implement this function if the mod wants to be the world generator. The first mod found with this method implemented
      * will be used to regenerate the map when its reset. If no mod is found with this function then default world generation

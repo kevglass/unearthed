@@ -15,11 +15,12 @@ import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
 import { InventItem, initInventory } from "./InventItem";
-import {  hideCodeEditor } from "./mods/Editor";
+import { hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 import { InventPanel } from "./InventPanel";
 import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
 import { DefaultBlockMod } from "./mods/defaultmods/DefaultBlocksMod";
+import { GameProperty } from "./mods/Mods";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -34,6 +35,16 @@ export const ZOOM: number = isMobile() && !isTablet() ? 3 : 2;
 const DEFAULT_NAMES = ["Beep", "Boop", "Pop", "Whizz", "Bang", "Snap", "Wooga", "Pow", "Zowie", "Smash", "Grab", "Kaboom", "Ziggy", "Zaggy"];
 
 const USE_WEBGL: boolean = false;
+
+function toColorComponents(col: string) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(col);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+        a: parseInt(result[4], 16)
+    } : null;
+}
 
 /**
  * The main game controller. This needs breaking up a bit more yet.
@@ -120,6 +131,12 @@ export class Game implements ControllerListener {
 
     /** If we're running headless mode */
     headless: boolean = false;
+
+    /** The collection of global properties configurable from mods */
+    globalProperties: Record<GameProperty, string> = {
+        [GameProperty.BACKGROUND_COLOR]: "#445253FF",
+        [GameProperty.SKY_COLOR]: "#CFEFFCFF",
+    };
 
     /**
      * The configuration of the controller buttons to actions
@@ -217,7 +234,7 @@ export class Game implements ControllerListener {
         // update UI state based on loaded config
         this.ui.renderChangeWorldButton();
         this.ui.renderDefaultModsButton();
-        
+
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
@@ -320,7 +337,7 @@ export class Game implements ControllerListener {
         console.log("Loading mod from: " + url);
         let targetUrl = url;
         if (!targetUrl.startsWith("https://modserver/")) {
-            targetUrl = "https://unearthedgame.net/getmod.php?p="+Date.now()+"&url="+encodeURIComponent(url);
+            targetUrl = "https://unearthedgame.net/getmod.php?p=" + Date.now() + "&url=" + encodeURIComponent(url);
         }
         fetch(targetUrl).then(async (response: Response) => {
             if (url.endsWith(".js")) {
@@ -1027,7 +1044,10 @@ export class Game implements ControllerListener {
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-        this.g.clearScreen(207, 239, 252);
+        const skyColor = toColorComponents(this.globalProperties[GameProperty.SKY_COLOR]);
+        if (skyColor) {
+            this.g.clearScreen(skyColor.r, skyColor.g, skyColor.b);
+        }
 
         const backgrounds = [{
             sprite: "bg/clouds",
@@ -1162,13 +1182,16 @@ export class Game implements ControllerListener {
         // so now we know the network is started (or the pretend network is) and 
         // all the resources are loaded so we can render the real game
         if (resourcesLoaded()) {
-            this.network.update(this.player, this.mobs);            
+            this.network.update(this.player, this.mobs);
             // scroll the view based on bounds and player position
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 
             // draw the underground background
-            this.g.setFillColor(0x44, 0x52, 0x53, 1);
-            this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
+            const bgColor = toColorComponents(this.globalProperties[GameProperty.BACKGROUND_COLOR]);
+            if (bgColor) {
+                this.g.setFillColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a / 255);
+            }
+            //this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
             if (!this.gamepadUsedToDig) {
@@ -1185,7 +1208,7 @@ export class Game implements ControllerListener {
             let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
 
             // render the whole game map
-            this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
+            //this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
 
             for (let i = 1; i < 9; i++) {
                 if (this.keyDown["" + i]) {
