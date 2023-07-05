@@ -599,6 +599,11 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
     private scaleX: number = 1;
     private scaleY: number = 1;
     private rotation: number = 0;
+    /** The current clipping rectangle. */
+	private clipX: number = 0;
+	private clipY: number = 0;
+	private clipX2: number = 0;
+	private clipY2: number = 0;
     /** The current text drawing values. */
     private fontSize: number = 16;
     private textAlign: CanvasTextAlign = 'left';
@@ -929,6 +934,8 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
         this.transforms = this.states[this.states.length - 1];
 
         // Reset.
+        this.clipX = this.clipX2 = 0;
+        this.clipY = this.clipY2 = 0;
         this.translateX = this.translateY = this.rotation = 0;
         this.scaleX = this.scaleY = 1;
 
@@ -1003,35 +1010,94 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
      */
     private _drawImage(texX: number, texY: number, texWidth: number, texHeight: number, drawX: number, drawY: number, width: number, height: number, rgba: number, topLeftA: number, topRightA: number, bottomLeftA: number, bottomRightA: number) {
         // 7 because every time we draw an image we set 28 bytes of data. i is a 4 byte index for this.rgbas
-        var i = this.draws * 7
+        var i = this.draws * 7;
 
         // Store rgba after position/texture. Default to white and fully opaque. i+4 because positions are stored first.
-        this.rgbas[i + 4] = rgba
+        this.rgbas[i + 4] = rgba;
 
         // Store how rotated we want this image to be.
         this.rotations[i + 5] = this.rotation * Math.sign(this.scaleX) * Math.sign(this.scaleY);
 
-        this.rgbas[i + 6] = (Math.floor(topLeftA) * 0x1000000) + (topRightA << 16) + (bottomLeftA << 8) + Math.floor(bottomRightA)
+        this.rgbas[i + 6] = (Math.floor(topLeftA) * 0x1000000) + (topRightA << 16) + (bottomLeftA << 8) + Math.floor(bottomRightA);
 
         // Positions array is 2-byte shorts not 4-byte floats so there's twice as many slots.
-        i *= 2
+        i *= 2;
 
         // Use a local variable so it's faster to access.
-        var positions = this.positions
+        var positions = this.positions;
 
         // Global rotation. TODO: move this math into the shader for speedup.
         if (this.rotation) {
-            var dist = Math.sqrt(drawX * drawX + drawY * drawY)
+            var dist = Math.sqrt(drawX * drawX + drawY * drawY);
             var angle = Math.atan2(drawY, drawX);
-            drawX = Math.cos(angle + this.rotation) * dist
-            drawY = Math.sin(angle + this.rotation) * dist
+            drawX = Math.cos(angle + this.rotation) * dist;
+            drawY = Math.sin(angle + this.rotation) * dist;
         }
+		
+		width *= this.scaleX;
+		height *= this.scaleY;
+		drawX *= this.scaleX;
+		drawY *= this.scaleY;
+		drawX += this.translateX;
+		drawY += this.translateY;
+		
+		// Clip on x axis. TODO: move to shader for speedup, if clip() is called in critical places.
+		if(this.clipX < this.clipX2)
+		{
+			// Whole image is drawn off the right. Draw nothing.
+			if(drawX > this.clipX2) {
+				return;
+			}
+			// Whole image is drawn off the left. Draw nothing.
+			var drawX2 = drawX + width;
+			if(drawX2 < this.clipX) {
+				return;
+			}
+			// Part of image is drawn off the right.
+			if(drawX2 > this.clipX2) {
+				var showPercent = 1 - (drawX2 - this.clipX2) / width;
+				texWidth *= showPercent;
+				width *= showPercent;
+			}
+			// Part of image is drawn off the left.
+			if(drawX < this.clipX) {
+				var showPercent = 1 - (this.clipX - drawX) / width;
+				width -= this.clipX - drawX;
+				drawX = this.clipX;
+				texX += texWidth * (1 - showPercent);
+				texWidth *= showPercent;
+			}
+		}
+		
+		// Clip on y axis.
+		if(this.clipY < this.clipY2)
+		{
+			if(drawY > this.clipY2) {
+				return;
+			}
+			var drawY2 = drawY + height;
+			if(drawY2 < this.clipY) {
+				return;
+			}
+			if(drawY2 > this.clipY2) {
+				var showPercent = 1 - (drawY2 - this.clipY2) / height;
+				texHeight *= showPercent;
+				height *= showPercent;
+			}
+			if(drawY < this.clipY) {
+				var showPercent = 1 - (this.clipY - drawY) / height;
+				height -= this.clipY - drawY;
+				drawY = this.clipY;
+				texY += texHeight * (1 - showPercent);
+				texHeight *= showPercent;
+			}
+		}
 
         // Store where we want to draw the image.
-        positions[i] = drawX * this.scaleX + this.translateX
-        positions[i + 1] = drawY * this.scaleY + this.translateY
-        positions[i + 2] = width * this.scaleX
-        positions[i + 3] = height * this.scaleY
+        positions[i] = drawX;
+        positions[i + 1] = drawY;
+        positions[i + 2] = width;
+        positions[i + 3] = height;
 
         // Store what portion of our PNG we want to draw.
         positions[i + 4] = texX;
@@ -1263,7 +1329,13 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
     }
 
     clip(x: number, y: number, width: number, height: number): void { 
-        // TODO - no idea how you'd implement clip
+		x *= this.scaleX;
+		y *= this.scaleY;
+		x += this.translateX;
+		y += this.translateY;
+		this.clipX = x;
+		this.clipY = y;
+		this.clipX2 = x + width;
+		this.clipY2 = y + height;
     }
 }
-
