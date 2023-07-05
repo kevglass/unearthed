@@ -1208,7 +1208,7 @@ export class Game implements ControllerListener {
             let canAct = (Math.abs(dx) < 2) && (dy > -3) && (dy < 2) && (dx !== 0 || dy !== 0);
 
             // render the whole game map
-            //this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
+            this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
 
             for (let i = 1; i < 9; i++) {
                 if (this.keyDown["" + i]) {

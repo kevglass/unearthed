@@ -11,7 +11,7 @@ export class PickaxeMod implements ServerMod {
     onGameStart(game: GameContext): void {
         game.addTool("holding/pick_iron", 0, "iron-pick", false, true, 60);
     }
-
+    
     onUseTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
         console.log("Invoked with: "+ toolId);
         if (toolId === "iron-pick") {

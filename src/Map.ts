@@ -617,6 +617,17 @@ export class GameMap {
         }
     }
 
+    private saveMap(): void {
+        if (!this.generating) {
+            if (this.game.isHostingTheServer) {
+                localStorage.setItem("map", JSON.stringify(this.foreground));
+            }
+            if (this.game.isHostingTheServer) {
+                localStorage.setItem("mapbg", JSON.stringify(this.background));
+            }
+        }
+    }
+
     /**
      * Set the block/tile at a specific location
      * 
@@ -640,21 +651,14 @@ export class GameMap {
 
         if (layer === 0) {
             this.foreground[x + (y * MAP_WIDTH)] = tile;
-            const sprite = BLOCKS[tile]?.sprite;
 
-            if (this.game.isHostingTheServer) {
-                localStorage.setItem("map", JSON.stringify(this.foreground));
-            }
-
-            if (tile === 0) {
+            this.saveMap();
+            if (tile === 0 && !this.generating) {
                 this.setDiscovered(x, y, true);
             }
         } else if (layer === 1) {
             this.background[x + (y * MAP_WIDTH)] = tile;
-            const sprite = BLOCKS[tile]?.sprite;
-            if (this.game.isHostingTheServer) {
-                localStorage.setItem("mapbg", JSON.stringify(this.background));
-            }
+            this.saveMap();
         }
 
         // Remove any timers on this tile
@@ -707,7 +711,9 @@ export class GameMap {
             }
         }
 
-        this.refreshFullLightMap();
+        if (!this.generating) {
+            this.refreshFullLightMap();
+        }
     }
 
     /**

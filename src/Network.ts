@@ -569,13 +569,11 @@ export class Network {
         }
 
         if (!NETWORKING_ENABLED) {
-            console.log("networking disabled");
             return;
         }
 
         if (this.thisIsTheHostServer) {
             if (!this.isConnected) {
-                console.log("not connected");
                 return;
             }
     
