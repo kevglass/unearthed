@@ -17,6 +17,7 @@ https://unearthedgame.net/
 
 - Theres a general wiki page over at https://github.com/kevglass/unearthed/wiki
 - Specifically theres a page about modding here: https://github.com/kevglass/unearthed/wiki/Modding-Page
+- The game can be run as a headless server details here: https://github.com/kevglass/unearthed/wiki/Server-Setup
   
 ## Contacts
 
