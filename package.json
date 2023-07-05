@@ -6,6 +6,7 @@
   "scripts": {
     "start": "nodemon --watch ../assets  -e \"*\" --exec ./node_modules/.bin/webpack serve --port 20000",
     "watch": "webpack --watch",
+    "zipstandalone": "./zipstandalone.sh",
     "build": "webpack",
     "debugrelease": "webpack --devtool=inline-source-map",
     "release": "webpack --mode=production --devtool=source-map"
