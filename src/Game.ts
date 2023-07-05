@@ -296,13 +296,26 @@ export class Game implements ControllerListener {
         this.configureEventHandlers();
     }
 
-    private async loadModFromUrl(url: string): Promise<void> {
+    private async loadHeadlessMods(): Promise<void> {
+        console.log("Install Mods");
+        const params = new URLSearchParams(location.search);
+        const headlessMods = JSON.parse(params.get("mods") ?? "[]");
+        for (const mod of headlessMods) {
+            await this.loadModFromUrl(mod, false);
+        }
+    }
+
+    private async loadModFromUrl(url: string, logging: boolean = true): Promise<void> {
         console.log("Loading mod from: " + url);
-        fetch("https://unearthedgame.net/getmod.php?p="+Date.now()+"&url="+encodeURIComponent(url)).then(async (response: Response) => {
+        let targetUrl = url;
+        if (!targetUrl.startsWith("https://modserver/")) {
+            targetUrl = "https://unearthedgame.net/getmod.php?p="+Date.now()+"&url="+encodeURIComponent(url);
+        }
+        fetch(targetUrl).then(async (response: Response) => {
             if (url.endsWith(".js")) {
                 const modData: any = {};
                 modData["mod.js"] = await response.text();
-                this.serverSettings.addMod(modData, true);
+                this.serverSettings.addMod(modData, true, logging);
             } else {
                 // ZIP with resources
                 new JSZip().loadAsync(await response.blob()).then((zip: JSZip) => {
@@ -314,7 +327,7 @@ export class Game implements ControllerListener {
                             modData[path] = value;
                             count--;
                             if (count === 0) {
-                                this.serverSettings.addMod(modData, true);
+                                this.serverSettings.addMod(modData, true, logging);
                             }
                         });
                     });
@@ -1126,7 +1139,9 @@ export class Game implements ControllerListener {
             this.g.render();
 
             if (this.headless) {
-                this.ui.startGame();
+                this.loadHeadlessMods().then(() => {
+                    this.ui.startGame();;
+                })
             }
             return;
         }

@@ -135,7 +135,7 @@ export class ServerSettings {
      * @param modData The resources provided by the mod, keyed by name
      * @param updateUiAndConfig True if we should update the UI (false on startup)
      */
-    addMod(modData: Record<string, string>, updateUiAndConfig: boolean): void {
+    addMod(modData: Record<string, string>, updateUiAndConfig: boolean, logging: boolean = true): void {
         try {
             const script = modData["mod.js"];
             if (script) {
@@ -164,8 +164,10 @@ export class ServerSettings {
                     }
 
                     if (this.game.network.started) {
+                        this.serverMods.context.enableLogging(logging);
                         this.serverMods.init();   
                         this.serverMods.worldStarted(); 
+                        this.serverMods.context.enableLogging(true);
                     }
                 } else {
                     console.error("Modification either didn't have a name or an ID!");
@@ -257,11 +259,13 @@ export class ServerSettings {
         if (existing) {
             Object.assign(this.config, JSON.parse(existing));
 
-            const modsToLoad = this.config.modScripts;
-            this.config.modScripts = [];
+            if (!this.game.headless) {
+                const modsToLoad = this.config.modScripts;
+                this.config.modScripts = [];
 
-            for (const mod of modsToLoad) {
-                this.addMod(mod, true);
+                for (const mod of modsToLoad) {
+                    this.addMod(mod, true);
+                }
             }
         }
     }

@@ -14,11 +14,17 @@ export class GameAsContext implements GameContext {
     game: Game;
     /** The mod currently being processed */
     currentMod: ModRecord | undefined;
+    /** True if logging is enabled */
+    logging: boolean = false;
 
     constructor(game: Game) {
         this.game = game;
     }
 
+    enableLogging(l: boolean): void {
+        this.logging = l;
+    }
+    
     getMetaDataBlob(): any {
         if (this.currentMod) {
             return this.game.gameMap.metaData.modData[this.currentMod.mod.id];
@@ -48,6 +54,10 @@ export class GameAsContext implements GameContext {
      * @see GameContext.log
      */
     log(message: string) {
+        if (!this.logging) {
+            return;
+        }
+
         if (this.currentMod) {
             console.info("[" + this.currentMod.mod.name + "] " + message);
         } else {
