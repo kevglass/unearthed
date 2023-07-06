@@ -81,6 +81,10 @@ export class Network {
     serverConfig?: ServerConfig;
     /** The list of pending multipart messages */
     pendingMultipart: MultipartMessage[] = [];
+    /** True if the connection failed for some reason */
+    connectionFailed: boolean = false;
+    /** Reason for the connection failure */
+    connectionFailedReason: string = "";
 
     /**
      * Create a new network session
@@ -130,6 +134,7 @@ export class Network {
      */
     async startNetwork(hosting: boolean): Promise<void> {
         this.started = true;
+        this.connectionFailed = false;
 
         // if we're the server, we initialise mods there
         if (hosting || !NETWORKING_ENABLED) {
@@ -148,21 +153,39 @@ export class Network {
 
         console.log("Connecting to room server");
 
-        // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
-        // provider that uses kev's hidden livekit key. 
-        const request = new XMLHttpRequest();
-        request.open("GET", "https://unearthedgame.net/room3.php?username=" + encodeURIComponent(this.game.username!) +
-            "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
-        request.send();
-        const token = request.responseText.split("&")[0];
-        const host = request.responseText.split("&")[1];
-        console.log("Central Server confirms this is host: " + host);
+        try {
+            // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
+            // provider that uses kev's hidden livekit key. 
+            const request = new XMLHttpRequest();
+            request.open("GET", "https://unearthedgame.net/room3.php?username=" + encodeURIComponent(this.game.username!) +
+                "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
+            request.send();
 
-        this.thisIsTheHostServer = hosting;
-        const wsURL = "wss://talesofyore.livekit.cloud"
+            if (request.responseText === "Invalid Password") {
+                console.log("Invalid password was specified to access the room directory. Check local.properties");
+                this.started = false;
+                this.connectionFailed = true;
+                this.connectionFailedReason = "Invalid Room Directory Password";
+                return;
+            }
 
-        // connect to the live kit room
-        await this.room.connect(wsURL, token);
+            const token = request.responseText.split("&")[0];
+            const host = request.responseText.split("&")[1];
+            console.log("Central Server confirms this is host: " + host);
+
+            this.thisIsTheHostServer = hosting;
+            const wsURL = "wss://talesofyore.livekit.cloud"
+
+            // connect to the live kit room
+            await this.room.connect(wsURL, token);
+        } catch (e) {
+            console.log("Connecting failed");
+            console.error(e);
+            this.started = false;
+            this.connectionFailed = true;
+            this.connectionFailedReason = "Network Error";
+            return;
+        }
 
         this.room.on(RoomEvent.ParticipantDisconnected, (participant) => {
             // if the hosting participant disconnects then go into frozen mode

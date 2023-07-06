@@ -233,7 +233,7 @@ export class ServerSettings {
 
         const index = this.serverMods.mods.indexOf(mod);
         if (index >= 0) {
-            this.config.modScripts.splice(index, 1);
+            this.config.modScripts.splice(this.config.modScripts.indexOf(mod.resources), 1);
             this.serverMods.mods.splice(index, 1);
             this.save();
         }

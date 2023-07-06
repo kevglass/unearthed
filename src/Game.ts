@@ -370,6 +370,12 @@ export class Game implements ControllerListener {
      * @param button The index of hte button pressed
      */
     buttonPressed(button: number): void {
+        if (this.connecting && this.network.connectionFailed) {
+            this.connecting = false;
+            this.backToMainMenu();
+            return;
+        }
+
         if (this.network.connected() && this.controllerSetupStep === -1) {
             if (button === this.controllerButtons.next) {
                 this.nextQuickSlot();
@@ -386,6 +392,10 @@ export class Game implements ControllerListener {
         }
     }
 
+    backToMainMenu(): void {
+        document.getElementById("connect")!.style.display = "block";
+    }
+    
     /**
      * Retrieve any mods that have been installed 
      */
@@ -445,6 +455,12 @@ export class Game implements ControllerListener {
     configureEventHandlers() {
         // keydown handler
         document.addEventListener("keydown", (event: KeyboardEvent) => {
+            if (this.connecting && this.network.connectionFailed) {
+                this.connecting = false;
+                this.backToMainMenu();
+                return;
+            }
+
             if (this.controllerSetupStep >= 0 && event.key === "Escape") {
                 this.controllerSetupStep = -1;
                 document.getElementById("settingsPanel")!.style.display = "block";
@@ -619,6 +635,12 @@ export class Game implements ControllerListener {
      */
     mouseDown(x: number, y: number, touchId: number) {
         confirmAudioContext();
+
+        if (this.connecting && this.network.connectionFailed) {
+            this.connecting = false;
+            this.backToMainMenu();
+            return;
+        }
 
         if (this.inventPanel.showing()) {
             this.inventPanel.mouseDown(x, y);
@@ -1166,7 +1188,14 @@ export class Game implements ControllerListener {
             } else {
                 this.g.setFont("80px KenneyFont");
                 this.g.setTextAlign("center");
-                this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
+                if (this.network.connectionFailed) {
+                    this.g.fillText("Connection Failed", this.canvas.width / 2, this.canvas.height / 2);
+                    this.g.setFont("60px KenneyFont");
+                    this.g.setTextAlign("center");
+                    this.g.fillText(this.network.connectionFailedReason, this.canvas.width / 2, (this.canvas.height / 2) + 80);
+                } else {
+                    this.g.fillText("Connecting", this.canvas.width / 2, this.canvas.height / 2);
+                }
             }
             this.g.restore();
             this.g.render();
