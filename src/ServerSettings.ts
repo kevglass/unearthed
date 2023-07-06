@@ -4,7 +4,6 @@ import { Game } from "./Game";
 import { DEFAULT_INVENTORY } from "./InventItem";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
-import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
 
 const MINIMUM_MOD_VERSION_ALLOWED: number = 0;
 
@@ -238,7 +237,7 @@ export class ServerSettings {
             this.serverMods.mods.splice(index, 1);
             this.save();
         }
-        
+
         this.game.gameMap.resetDiscoveryAndLights();
     }
 

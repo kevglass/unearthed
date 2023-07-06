@@ -10,8 +10,7 @@ import { Mob } from "src/Mob";
 const global = window as any;
 
 global.GameProperty = {
-    [GameProperty.BACKGROUND_COLOR]: GameProperty.BACKGROUND_COLOR,
-    [GameProperty.SKY_COLOR]: GameProperty.SKY_COLOR,
+    ...GameProperty
 }
 /**
  * A wrapper around the main Game that can then be exposed to mods.
@@ -358,6 +357,7 @@ export class ConfiguredMods {
             }
         }
 
+        // we may have added things that effect lights and discovery
         this.game.gameMap.resetDiscoveryAndLights();
     }
 
