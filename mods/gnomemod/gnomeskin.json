@@ -1,0 +1,90 @@
+
+{
+    "width": 30,
+    "height": 60,
+    "skeleton": {
+        "name": "root",
+        "centerX": 0,
+        "centerY": 0,
+        "angle": 0,
+        "layer": 0,
+        "children": [
+            {
+                "name": "body",
+                "centerX": -5,
+                "centerY": -8,
+                "angle": 0,
+                "layer": 3,
+                "image": "gnome_body",
+                "spriteOffsetX": -22,
+                "spriteOffsetY": 0,
+                "children": [
+                    {
+                        "name": "head",
+                        "centerX": 10,
+                        "centerY": 10,
+                        "angle": 0.1,
+                        "layer": 6,
+                        "image": "gnome_head",
+                        "spriteOffsetX": -32,
+                        "spriteOffsetY": -64
+                    },
+                    {
+                        "name": "rightArm",
+                        "centerX": -5,
+                        "centerY": 15,
+                        "angle": 0,
+                        "layer": 0,
+                        "image": "gnome_arm",
+                        "spriteOffsetX": -12,
+                        "spriteOffsetY": -10
+                    },
+                    {
+                        "name": "leftArm",
+                        "centerX": 5,
+                        "centerY": 15,
+                        "angle": 0,
+                        "layer": 4,
+                        "image": "gnome_arm",
+                        "spriteOffsetX": -12,
+                        "spriteOffsetY": -10
+                    },
+                    {
+                        "name": "leftLeg",
+                        "centerX": 5,
+                        "centerY": 45,
+                        "angle": 0,
+                        "layer": 0,
+                        "image": "gnome_leg",
+                        "spriteOffsetX": -12,
+                        "spriteOffsetY": -10
+                    },
+                    {
+                        "name": "rightLeg",
+                        "centerX": -5,
+                        "centerY": 45,
+                        "angle": 0,
+                        "layer": 2,
+                        "image": "gnome_leg",
+                        "spriteOffsetX": -12,
+                        "spriteOffsetY": -10
+                    }
+                ]
+            }
+        ]
+    },
+    "animation": {
+        "idle": {
+            "leftLeg": [{ "time": 0, "angle": 0 }],
+            "rightLeg": [{ "time": 0, "angle": -0 }],
+            "leftArm": [{ "time": 0, "angle": 0.5 }],
+            "rightArm": [{ "time": 0, "angle": -0.5 }]
+        },
+        "walk": {
+            "leftLeg": [{ "time": 0, "angle": -1 }, { "time": 0.5, "angle": 1 }],
+            "rightLeg": [{ "time": 0, "angle": 1 }, { "time": 0.5, "angle": -1 }],
+            "leftArm": [{ "time": 0, "angle": -1 }, { "time": 0.5, "angle": 1 }],
+            "rightArm": [{ "time": 0, "angle": 1 }, { "time": 0.5, "angle": -1 }]
+        }
+    }
+}
