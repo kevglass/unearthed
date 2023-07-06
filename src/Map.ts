@@ -987,7 +987,7 @@ export class GameMap {
                         const light = this.getLightMap(x, y);
                         lightMapContext.setGlobalAlpha(1 - light);
                         if (!this.isDiscovered(x, y)) {
-                            continue;
+                            lightMapContext.setGlobalAlpha(1);
                         }
 
                         lightMapContext.fillRect((x - xp) * lightScale, (y - yp) * lightScale, lightScale, lightScale);

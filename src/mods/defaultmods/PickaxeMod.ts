@@ -13,7 +13,6 @@ export class PickaxeMod implements ServerMod {
     }
     
     onUseTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
-        console.log("Invoked with: "+ toolId);
         if (toolId === "iron-pick") {
             game.setBlock(x, y, layer, 0);
             game.playSfx('mining_break', 0.6, 5);
