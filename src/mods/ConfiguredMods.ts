@@ -12,6 +12,11 @@ const global = window as any;
 global.GameProperty = {
     ...GameProperty
 }
+
+global.Layer = {
+    ...Layer
+}
+
 /**
  * A wrapper around the main Game that can then be exposed to mods.
  */
