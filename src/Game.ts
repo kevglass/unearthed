@@ -237,7 +237,7 @@ export class Game implements ControllerListener {
         this.gameMap.resetDiscoveryAndLights();
 
         // create the local player and configure and skin settings
-        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
+        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, true, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
 
         const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {
@@ -395,7 +395,7 @@ export class Game implements ControllerListener {
     backToMainMenu(): void {
         document.getElementById("connect")!.style.display = "block";
     }
-    
+
     /**
      * Retrieve any mods that have been installed 
      */
@@ -1255,7 +1255,7 @@ export class Game implements ControllerListener {
                 mob.draw(this.g, SHOW_BOUNDS);
                 this.g.setGlobalAlpha(1)
 
-                if (Date.now() - mob.lastUpdate > 10000 && mob !== this.player) {
+                if (Date.now() - mob.lastUpdate > 10000 && !mob.local) {
                     this.mobs.splice(this.mobs.indexOf(mob), 1);
                 }
             }

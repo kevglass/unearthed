@@ -8,6 +8,7 @@ import { playSfx } from "./engine/Resources";
 import { BoneNames, getSkin } from "./Skins";
 import { BLOCKS } from "./Block";
 import { DEFAULT_INVENTORY, InventItem } from "./InventItem";
+import { MobThinkFunction } from "./mods/Mods";
 
 /**
  * The control state for the mob - this is passed across the network
@@ -39,6 +40,19 @@ export interface BodyParts {
     /** The sprite assigned to the arms part */
     arms: string;
 }
+
+/**
+ * A collection of exposed to mods to describe the state of the mod
+ */
+export interface MobState {
+    /** True if the mod was blocked from moving left last frame */
+    blockedLeft: boolean;
+    /** True if the mod was blocked from moving right last frame */
+    blockedRight: boolean;
+    /** True if the mod was blocked from moving below last frame */
+    blockedBelow: boolean;
+}
+
 /**
  * A mob or mobile in the world. Right now this is only players but could be extended
  * to add the monsters and anything else that moves around.
@@ -130,6 +144,18 @@ export class Mob {
         mouse: false,
         down: false,
     };
+    /** A collection of state exposed to mods */
+    state: MobState = {
+        blockedLeft: false,
+        blockedRight: false,
+        blockedBelow: false
+    };
+    /** The function to be called to let this mob think each frame */
+    thinkFunction?: MobThinkFunction;
+    /** Generic user data that can be used by mods */
+    data: Record<string, any> = {};
+    /** True if this is player controlled */
+    private isControlledByPlayer: boolean = false;
 
     /**
      * Create a new mob
@@ -142,7 +168,7 @@ export class Mob {
      * @param x The x coordinate of the mob's initial position
      * @param y The y coordinate of the mob's initial position
      */
-    constructor(network: Network, gameMap: GameMap, id: string, name: string, type: string, x: number, y: number, local: boolean = false) {
+    constructor(network: Network, gameMap: GameMap, id: string, name: string, playerControlled: boolean, type: string, x: number, y: number, local: boolean = false) {
         this.gameMap = gameMap;
         this.network = network;
         const skin = getSkin(type);
@@ -158,6 +184,8 @@ export class Mob {
         this.local = local;
 
         this.initInventory();
+
+        this.isControlledByPlayer = playerControlled;
     }
 
     /**
@@ -190,6 +218,10 @@ export class Mob {
                 this.quickSlots[i] = byToolId ?? byPlace ?? bySprite ?? null;
             }
         }
+    }
+
+    isPlayerControlled(): boolean {
+        return this.isControlledByPlayer;
     }
 
     /**
@@ -275,7 +307,8 @@ export class Mob {
             itemHeld: this.itemHeld,
             bodyParts: this.bodyParts,
             moving: this.moving,
-            type: this.type
+            type: this.type,
+            isPlayer: this.isPlayerControlled()
         };
     }
 
@@ -506,7 +539,9 @@ export class Mob {
             this.vy = -10;
         } else if (this.vy === 0 && this.standingOnSomething()) {
             this.vy = -20;
-            playSfx("jump", 0.1);
+            if (this.isPlayerControlled()) {
+                playSfx("jump", 0.1);
+            }
         }
     }
 
@@ -586,6 +621,11 @@ export class Mob {
         this.seq++;
         const py = Math.floor(this.y / TILE_SIZE);
         const dy = this.overY - py;
+
+        // reset the state for this frame
+        this.state.blockedBelow = false;
+        this.state.blockedLeft = false;
+        this.state.blockedRight = false;
 
         // apply any controls
         if (this.controls.right) {
@@ -693,23 +733,29 @@ export class Mob {
                 if (!this.blockedRight()) {
                     this.x += 7;
                     if (this.standingOnSomething() && this.seq % 15 === 0) {
-                        playSfx('footstep', 0.1, 5);
+                        if (this.isPlayerControlled()) {
+                            playSfx('footstep', 0.1, 5);
+                        }
                     }
                 } else {
                     // if we're blocked then move us out of the collision
                     this.x = (Math.floor((this.x + this.width) / TILE_SIZE) * TILE_SIZE) - this.width;
                     this.anim = findAnimation(this.type, "idle");
+                    this.state.blockedRight = true;
                 }
             } else {
                 if (!this.blockedLeft()) {
                     this.x -= 7;
                     if (this.standingOnSomething() && this.seq % 15 === 0) {
-                        playSfx('footstep', 0.1, 5);
+                        if (this.isPlayerControlled()) {
+                            playSfx('footstep', 0.1, 5);
+                        }
                     }
                 } else {
                     // if we're blocked then move us out of the collision
                     this.x = (Math.floor((this.x - this.width) / TILE_SIZE) * TILE_SIZE) + TILE_SIZE + this.width - 1;
                     this.anim = findAnimation(this.type, "idle");
+                    this.state.blockedLeft = true;
                 }
             }
         }
@@ -723,6 +769,7 @@ export class Mob {
                 if (this.fallThroughUntil === 0) {
                     // otherwise move us out of the collision with the floor and stop falling
                     this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
+                    this.state.blockedBelow = true;
                 }
             }
 
@@ -735,6 +782,11 @@ export class Mob {
         if (this.y > this.fallThroughUntil) {
             this.fallThroughUntil = 0;
         }
+
+        if (this.thinkFunction) {
+            this.thinkFunction(this.gameMap.game.mods.context, this);
+        }
+
         // update the state of the  bones for animation
         if (this.anim) {
             for (const bone of this.allBones) {

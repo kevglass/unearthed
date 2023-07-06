@@ -58,7 +58,7 @@ function createFoxSkeleton(): Bone {
 
 export const SKINS: Record<string, Skin> = {
     "fox": {
-        width: 90,
+        width: 55,
         height: 37,
         skeleton: createFoxSkeleton(),
     },

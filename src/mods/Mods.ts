@@ -1,5 +1,15 @@
 import { Block } from "src/Block";
 import { Layer } from "src/Map";
+import { MobState } from "src/Mob";
+
+/**
+ * The definition of a function that will be called to cause any 
+ * mob to think and act
+ * 
+ * @param game The game context to interact with the world
+ * @param mob The mob doing that there thinking
+ */
+export type MobThinkFunction = (game: GameContext, mob: MobContext) => void;
 
 /**
  * A representation of any mob in the game from the view of a Mod.
@@ -15,6 +25,10 @@ export interface MobContext {
     y: number;
     /** The vertical velocity of the mob */
     vy: number;
+    /** The state of this mod - this describes what happened last frame */
+    state: MobState;
+    /** Generic user data that the mod can store things per mod in */
+    data: Record<string, any>;
 
     /**
      * Set the control state of the mob. Changing these controls will cause the 
@@ -221,6 +235,16 @@ export interface GameContext {
      */
     getGameProperty(prop: GameProperty): string;
 
+    /**
+     * Create a mob in the world
+     * 
+     * @param name The name to give the mod (or "" to not display a name)
+     * @param skin The ID of the skin of the mob to create (@see SKINS)
+     * @param x The x coordinate in the world to create the mob
+     * @param y The y coordinate in the world to create the move
+     * @param thinkFunction The callback for the mob to think each frame
+     */
+    createMob(name: string, skin: string, x: number, y: number, thinkFunction?: MobThinkFunction): MobContext;
 }
 
 /**

@@ -107,10 +107,12 @@ export class Network {
         listDiv.innerHTML = "";
 
         for (const mob of mobs) {
-            const div = document.createElement("div");
-            div.innerHTML = mob.name.substring(0, 12);
-            div.classList.add("nametag");
-            listDiv.appendChild(div);
+            if (mob.isPlayerControlled()) {
+                const div = document.createElement("div");
+                div.innerHTML = mob.name.substring(0, 12);
+                div.classList.add("nametag");
+                listDiv.appendChild(div);
+            }
         }
     }
 
@@ -400,7 +402,7 @@ export class Network {
 
                             let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
                             if (!targetMob) {
-                                targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, mobData.type, mobData.x, mobData.y);
+                                targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, mobData.isPlayer, mobData.type, mobData.x, mobData.y);
                                 this.localMobs.push(targetMob);
                                 this.updatePlayerList(this.localMobs);
                             }

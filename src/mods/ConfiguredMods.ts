@@ -5,6 +5,7 @@ import { Block, BLOCKS } from "src/Block";
 import { DEFAULT_INVENTORY, InventItem } from "src/InventItem";
 import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
+import { v4 as uuidv4 } from 'uuid';
 
 // define constants for mods to access
 const global = window as any;
@@ -30,6 +31,16 @@ export class GameAsContext implements GameContext {
 
     constructor(game: Game) {
         this.game = game;
+    }
+
+    createMob(name: string, skin: string, x: number, y: number, thinkFunction?: ((game: GameContext, mob: MobContext) => void) | undefined): MobContext {
+        const mob = new Mob(this.game.network, this.game.gameMap, uuidv4(), name, false, skin, x, y, true);
+        if (this.game.isHostingTheServer) {
+            mob.thinkFunction = thinkFunction;
+            this.game.mobs.push(mob);
+        }
+
+        return mob;
     }
 
     setGameProperty(prop: GameProperty, value: string): void {

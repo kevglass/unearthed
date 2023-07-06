@@ -337,6 +337,7 @@ export class HtmlUi {
         this.renderChangeWorldButton();
 
         document.getElementById("addMod")!.addEventListener("click", () => {
+            this.modInput.value = "";
             this.modInput.click();
         });
 
