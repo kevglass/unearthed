@@ -106,10 +106,22 @@ export class GameMap {
             this.defaultGenerate();
         }
         this.generating = false;
-        this.setDiscovered(0, 0);
-        this.refreshFullLightMap();
+        this.resetDiscoveryAndLights();
 
         this.save();
+    }
+
+    resetDiscoveryAndLights(): void {
+        this.lightMap = [];
+        this.discovered = [];
+
+        for (let i = 0; i < DEFAULT_MAP.length; i++) {
+            this.lightMap.push(1);
+            this.discovered.push(false);
+        }
+
+        this.setDiscovered(0, 0);
+        this.refreshFullLightMap();
     }
 
     /**
@@ -497,8 +509,7 @@ export class GameMap {
         this.foreground = data.f;
         this.background = data.b;
 
-        this.setDiscovered(0, 0);
-        this.refreshFullLightMap();
+        this.resetDiscoveryAndLights();
     }
 
     /**
@@ -510,8 +521,7 @@ export class GameMap {
         this.clearOnSet();
         this.foreground = f;
 
-        this.setDiscovered(0, 0);
-        this.refreshFullLightMap();
+        this.resetDiscoveryAndLights();
     }
 
     /**
@@ -523,8 +533,7 @@ export class GameMap {
         this.clearOnSet();
         this.background = b;
         
-        this.setDiscovered(0, 0);
-        this.refreshFullLightMap();
+        this.resetDiscoveryAndLights();
     }
 
     /**
@@ -978,7 +987,7 @@ export class GameMap {
                         const light = this.getLightMap(x, y);
                         lightMapContext.setGlobalAlpha(1 - light);
                         if (!this.isDiscovered(x, y)) {
-                            lightMapContext.setGlobalAlpha(1);
+                            continue;
                         }
 
                         lightMapContext.fillRect((x - xp) * lightScale, (y - yp) * lightScale, lightScale, lightScale);

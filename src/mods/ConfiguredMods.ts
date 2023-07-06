@@ -6,6 +6,13 @@ import { DEFAULT_INVENTORY, InventItem } from "src/InventItem";
 import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
 
+// define constants for mods to access
+const global = window as any;
+
+global.GameProperty = {
+    [GameProperty.BACKGROUND_COLOR]: GameProperty.BACKGROUND_COLOR,
+    [GameProperty.SKY_COLOR]: GameProperty.SKY_COLOR,
+}
 /**
  * A wrapper around the main Game that can then be exposed to mods.
  */
@@ -116,6 +123,7 @@ export class GameAsContext implements GameContext {
         if (BLOCKS[value]) {
             this.log("Replacing block definition for block ID = " + value);
         }
+
         BLOCKS[value] = tileDef;
     }
 
@@ -328,6 +336,9 @@ export class ConfiguredMods {
                 }
             }
         }
+
+        // we may have added things that effect lights and discovery
+        this.game.gameMap.resetDiscoveryAndLights();
     }
 
     /**
@@ -346,6 +357,8 @@ export class ConfiguredMods {
                 }
             }
         }
+
+        this.game.gameMap.resetDiscoveryAndLights();
     }
 
     /**

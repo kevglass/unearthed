@@ -150,6 +150,7 @@ export class ServerSettings {
                     this.serverMods.worldStarted();
                 }
 
+                this.game.gameMap.resetDiscoveryAndLights();
                 this.save();
                 return true;
             } else {
@@ -208,6 +209,8 @@ export class ServerSettings {
                         this.serverMods.worldStarted();
                         this.serverMods.context.enableLogging(true);
                     }
+
+                    this.game.gameMap.resetDiscoveryAndLights();
                 } else {
                     console.error("Modification either didn't have a name or an ID!");
                 }
@@ -235,6 +238,8 @@ export class ServerSettings {
             this.serverMods.mods.splice(index, 1);
             this.save();
         }
+        
+        this.game.gameMap.resetDiscoveryAndLights();
     }
 
     /**
@@ -321,7 +326,6 @@ export class ServerSettings {
         if (!this.game.headless && existing) {
             if (!this.game.headless) {
                 Object.assign(this.config, JSON.parse(existing));
-                console.log(this.config);
                 const modsToLoad = this.config.modScripts;
                 this.config.modScripts = [];
 

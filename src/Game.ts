@@ -219,22 +219,22 @@ export class Game implements ControllerListener {
         if (!this.gameMap.loadFromStorage()) {
             this.gameMap.reset();
         } else {
-            this.gameMap.setDiscovered(0, 0);
-            this.gameMap.refreshFullLightMap();
+            this.gameMap.resetDiscoveryAndLights();
         }
 
         this.network = new Network(this, this.gameMap);
         this.ui = new HtmlUi(this, this.network, this.gameMap);
 
         // bootstrap the default mods if enabled
-        this.serverSettings.load();
         this.serverSettings.addDefaultMod(new PickaxeMod());
         this.serverSettings.addDefaultMod(new DefaultBlockMod());
+        this.serverSettings.load();
 
         // update UI state based on loaded config
         this.ui.renderChangeWorldButton();
         this.ui.renderDefaultModsButton();
 
+        this.gameMap.resetDiscoveryAndLights();
 
         // create the local player and configure and skin settings
         this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
