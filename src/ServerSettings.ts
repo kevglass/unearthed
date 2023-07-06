@@ -222,7 +222,6 @@ export class ServerSettings {
                         this.serverMods.init();
                         this.serverMods.worldStarted();
                         this.serverMods.context.enableLogging(true);
-                        modRecord.inited = true;
                     }
 
                     this.game.gameMap.resetDiscoveryAndLights();

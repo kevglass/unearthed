@@ -400,9 +400,9 @@ export class ConfiguredMods {
      */
     init(): void {
         for (const record of this.mods) {
-            record.inited = true;
             if (record.mod.onGameStart && !record.inited) {
                 try {
+                    record.inited = true;
                     this.context.startContext(record);
                     this.context.log("Init");
                     record.mod.onGameStart(this.context);
@@ -411,6 +411,8 @@ export class ConfiguredMods {
                     console.error("Error in Game Mod: " + record.mod.name);
                     console.error(e);
                 }
+            } else if (!record.mod.onGameStart) {
+                record.inited = true;
             }
         }
 
