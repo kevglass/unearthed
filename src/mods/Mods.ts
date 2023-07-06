@@ -245,6 +245,29 @@ export interface GameContext {
      * @param thinkFunction The callback for the mob to think each frame
      */
     createMob(name: string, skin: string, x: number, y: number, thinkFunction?: MobThinkFunction): MobContext;
+
+    /**
+     * Remove a previously created mob
+     * 
+     * @param mob The mob to be removed
+     */
+    removeMob(mob: MobContext): void;
+
+    /**
+     * Add a skin definition from a JSON file (@see getModResource)
+     * 
+     * @param name The name to use for this skin
+     * @param skinDef The definition of the skin in a resource file
+     */
+    addSkinFromFile(name: string, skinDef: string): void;
+
+    /**
+     * Add a skin definition 
+     * 
+     * @param name The name to use for this skin
+     * @param skinDef The definition of the skin as a structure
+     */
+    addSkin(name: string, skinDef: SkinDefinition): void;
 }
 
 /**
@@ -393,4 +416,66 @@ export interface ServerMod {
      * @param y The y coordinate in tiles of the location being hit
      */
     onHitHead?(game: GameContext, mob: MobContext, x: number, y: number): void;
+}
+
+/**
+ * Definition a complete skin that can be applied mods. This includes bounding box,
+ * the bones that build up the character and the animation of those bones
+ */
+export interface SkinDefinition {
+    /** The width of the bounding box */
+    width: number;
+    /** The height of the bounding box */
+    height: number;
+    /** The bones that build up the character */
+    skeleton: BoneDefinition;
+    /** The animation applied to those bones */
+    animation: AnimDefinition;
+}
+
+/**
+ * Animation of bones based on tweening between keyframes
+ */
+export interface AnimDefinition {
+    /** The key frames to apply (keyed on bone name) to apply when in idle state */
+    idle: Record<string, KeyFrame[]>;
+    /** The key frames to apply (keyed on bone name) to apply when in walking state */
+    walk: Record<string, KeyFrame[]>;
+    /** The key frames to apply (keyed on bone name) to apply when in working state (don't have to specify this one) */
+    work?: Record<string, KeyFrame[]>;
+}
+
+/**
+ * The key frame for an animation. Time ranges from 0->1, the angle is the only thing we 
+ * set at the moment.
+ */
+export interface KeyFrame {
+    /** The time that the bone should be at this position (0->1) */
+    time: number;
+    /** The angle to apply to the bone at this state */
+    angle: number;
+}
+
+/**
+ * The definition of a bone and its attached image for a mob skin
+ */
+export interface BoneDefinition {
+    /** The name of the bone to be used in key frame animation */
+    name: string;
+    /** The center point of the bone defined by an offset to put the image in the right place */
+    centerX: number;
+    /** The center point of the bone defined by an offset to put the image in the right place */
+    centerY: number;
+    /** The default angle to apply for this bone */
+    angle: number;
+    /** The offset of the sprite thats attached to this bone */
+    spriteOffsetX?: number;
+    /** The offset of the sprite thats attached to this bone */
+    spriteOffsetY?: number;
+    /** The relative layer of this bone - this lets you sprite stack. No definition, just a relative number */
+    layer: number;
+    /** The ID of the image from the cache to attach */
+    image?: string;
+    /** The children of this bone if any */
+    children?: BoneDefinition[];
 }

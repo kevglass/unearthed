@@ -1,4 +1,5 @@
 import { Bone } from "./engine/Bones";
+import { BoneDefinition, SkinDefinition } from "./mods/Mods";
 
 /**
  * The bones that build up the human skeleton
@@ -71,4 +72,30 @@ export const SKINS: Record<string, Skin> = {
 
 export function getSkin(name: string): Skin {
     return SKINS[name];
+}
+
+export function skinFromJson(data: SkinDefinition): Skin {
+    if (data.width && data.height && data.skeleton) {
+        return {
+            width: data.width,
+            height: data.height,
+            skeleton: boneFromJson(undefined, data.skeleton)
+        };
+    } else {
+        throw "Invalid Skin Json - missing width, height or skeleton";
+    }
+}
+
+export function boneFromJson(parent: Bone | undefined, data: BoneDefinition): Bone {
+    if (data.name) {
+        const bone = new Bone(data.name, data.centerX, data.centerY, data.angle, data.layer, data.image, data.spriteOffsetX, data.spriteOffsetY, parent);
+        if (data.children) {
+            for (const child of data.children) {
+                boneFromJson(bone, child)
+            }
+        }
+        return bone;
+    } else {
+        throw "Invalid bone definition: " + data.name;
+    }
 }

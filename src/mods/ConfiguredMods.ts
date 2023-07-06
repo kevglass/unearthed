@@ -1,11 +1,13 @@
 import { Game } from "src/Game";
-import { GameContext, GameProperty, MobContext, ServerMod } from "./Mods";
+import { GameContext, GameProperty, MobContext, ServerMod, SkinDefinition } from "./Mods";
 import { loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
 import { Block, BLOCKS } from "src/Block";
 import { DEFAULT_INVENTORY, InventItem } from "src/InventItem";
 import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
 import { v4 as uuidv4 } from 'uuid';
+import { SKINS, Skin, skinFromJson } from "src/Skins";
+import { ALL_ANIM, animsFromJson } from "src/Animations";
 
 // define constants for mods to access
 const global = window as any;
@@ -33,6 +35,9 @@ export class GameAsContext implements GameContext {
         this.game = game;
     }
 
+    /**
+     * @see GameContext.removeMob
+     */
     createMob(name: string, skin: string, x: number, y: number, thinkFunction?: ((game: GameContext, mob: MobContext) => void) | undefined): MobContext {
         const mob = new Mob(this.game.network, this.game.gameMap, uuidv4(), name, false, skin, x, y, true);
         if (this.game.isHostingTheServer) {
@@ -43,10 +48,25 @@ export class GameAsContext implements GameContext {
         return mob;
     }
 
+    /**
+     * @see GameContext.removeMob
+     */
+    removeMob(mob: MobContext) {
+        if (this.game.isHostingTheServer) {
+            this.game.mobs.splice(this.game.mobs.indexOf(mob as Mob), 1);
+        }
+    }
+
+    /**
+     * @see GameContext.setGameProperty
+     */
     setGameProperty(prop: GameProperty, value: string): void {
         this.game.globalProperties[prop] = value;
     }
 
+    /**
+     * @see GameContext.getGameProperty
+     */
     getGameProperty(prop: GameProperty): string {
         return this.game.globalProperties[prop];
     }
@@ -54,13 +74,19 @@ export class GameAsContext implements GameContext {
     enableLogging(l: boolean): void {
         this.logging = l;
     }
-    
+
+    /**
+     * @see GameContext.getMetaDataBlob
+     */
     getMetaDataBlob(): any {
         if (this.currentMod) {
             return this.game.gameMap.metaData.modData[this.currentMod.mod.id];
         }
     }
 
+    /**
+     * @see GameContext.log
+     */
     setMetaDataBlob(blob: any): void {
         if (this.currentMod) {
             this.game.gameMap.metaData.modData[this.currentMod.mod.id];
@@ -125,10 +151,44 @@ export class GameAsContext implements GameContext {
     }
 
     /**
+     * @see GameContext.addSkinFromFile
+     */
+    addSkinFromFile(name: string, skinDef: string): void {
+        try {
+            const data = JSON.parse(skinDef);
+            this.addSkin(name, data);
+        } catch (e) {
+            this.error("Invalid skin file specified - invalid JSON?");
+            this.error(e);
+        }
+    }
+
+    /**
+     * @see GameContext.addSkinFromData
+     */
+    addSkin(name: string, skinDef: SkinDefinition): void {
+        try {
+            const skin = skinFromJson(skinDef);
+            const anims = animsFromJson(skinDef);
+
+            // parsed everything so now we can assign
+            SKINS[name] = skin;
+            ALL_ANIM[name] = anims;
+
+            if (this.currentMod) {
+                this.currentMod.skinsAdded.push(SKINS[name]);
+            }
+        } catch (e) {
+            this.error("Invalid skin file specified - invalid JSON?");
+            this.error(e);
+        }
+    }
+
+    /**
      * @see GameContext.addBlock
      */
     addBlock(value: number, tileDef: Block): void {
-        if (value > 255*255) {
+        if (value > 255 * 255) {
             throw "Can't use block numbers greater than 64k";
         }
         if (this.currentMod) {
@@ -197,8 +257,8 @@ export class GameAsContext implements GameContext {
      */
     replaceAllBlocks(originalBlock: number, newBlock: number): void {
         if (this.isHost()) {
-            for (let x=0;x<MAP_WIDTH;x++) {
-                for (let y=0;y<MAP_DEPTH;y++) {
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                for (let y = 0; y < MAP_DEPTH; y++) {
                     if (this.game.gameMap.getTile(x, y, Layer.FOREGROUND) === originalBlock) {
                         this.setBlock(x, y, Layer.FOREGROUND, newBlock);
                     }
@@ -260,7 +320,7 @@ export class GameAsContext implements GameContext {
      * @see GameContext.addParticlesAtTile
      */
     addParticlesAtTile(image: string, x: number, y: number, count: number): void {
-        this.addParticlesAtPos(image, (x + 0.5) * TILE_SIZE, (y+0.5) * TILE_SIZE, count);
+        this.addParticlesAtPos(image, (x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE, count);
     }
 
     /**
@@ -304,6 +364,8 @@ export interface ModRecord {
     toolsAdded: InventItem[];
     /** Blocks that his mod added so they can be removed on uninstall */
     blocksAdded: Block[];
+    /** Skins that his mod added so they can be removed on uninstall */
+    skinsAdded: Skin[];
 }
 
 /**
@@ -338,8 +400,8 @@ export class ConfiguredMods {
      */
     init(): void {
         for (const record of this.mods) {
+            record.inited = true;
             if (record.mod.onGameStart && !record.inited) {
-                record.inited = true;
                 try {
                     this.context.startContext(record);
                     this.context.log("Init");

@@ -1,7 +1,9 @@
 
+import { ALL_ANIM } from "./Animations";
 import { BLOCKS } from "./Block";
 import { Game } from "./Game";
 import { DEFAULT_INVENTORY } from "./InventItem";
+import { SKINS } from "./Skins";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
 
@@ -45,7 +47,7 @@ export class ServerSettings {
     }
 
     addDefaultMod(mod: ServerMod) {
-        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [] };
+        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [], skinsAdded: []};
         this.defaultMods.push(modRecord);
 
         if (this.useDefaultMods()) {
@@ -91,6 +93,19 @@ export class ServerSettings {
             if (index >= 0) {
                 console.log("[" + mod.mod.name + "] Removing tool: " + tool.toolId + " on refresh");
                 DEFAULT_INVENTORY.splice(index, 1);
+            }
+        }
+
+        for (const skinName of Object.keys(SKINS)) {
+            const skin = SKINS[skinName];
+            if (mod.skinsAdded.includes(skin)) {
+                for (const removeMe of this.game.mobs.filter(m => m.type === skinName)) {
+                    this.game.mobs.splice(this.game.mobs.indexOf(removeMe), 1);
+                }
+
+                console.log("[" + mod.mod.name + "] Removing skin: " + skinName + " on refresh");
+                delete SKINS[skinName];
+                delete ALL_ANIM[skinName];
             }
         }
 
@@ -188,7 +203,7 @@ export class ServerSettings {
                         this.removeMod(existing);
                     }
 
-                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [] };
+                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [], skinsAdded: [] };
                     console.log("[" + potentialMod.name + "] Installing");
                     this.serverMods.mods.push(modRecord);
 
@@ -207,6 +222,7 @@ export class ServerSettings {
                         this.serverMods.init();
                         this.serverMods.worldStarted();
                         this.serverMods.context.enableLogging(true);
+                        modRecord.inited = true;
                     }
 
                     this.game.gameMap.resetDiscoveryAndLights();

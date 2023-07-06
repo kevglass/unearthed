@@ -149,8 +149,8 @@ export class Bone {
                         nextTime = 1;
                     }
 
-                    let baseAng = pt.ang;
-                    let nextAng = anim[next].ang;
+                    let baseAng = pt.angle;
+                    let nextAng = anim[next].angle;
                     let angDiff = nextAng - baseAng;
 
                     let td = nextTime - baseTime;
@@ -160,7 +160,7 @@ export class Bone {
                     this.ang = baseAng + (angDiff * step);
                 }
             }
-        }
+        } 
     }
 
     /**
