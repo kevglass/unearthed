@@ -1190,8 +1190,8 @@ export class Game implements ControllerListener {
             const bgColor = toColorComponents(this.globalProperties[GameProperty.BACKGROUND_COLOR]);
             if (bgColor) {
                 this.g.setFillColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a / 255);
+                this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
             }
-            //this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);
 
             // update the mouse over indicator
             if (!this.gamepadUsedToDig) {
