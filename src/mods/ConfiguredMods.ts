@@ -2,7 +2,7 @@ import { Game } from "src/Game";
 import { GameContext, GameProperty, MobContext, ServerMod, SkinDefinition } from "./Mods";
 import { loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
 import { Block, BLOCKS } from "src/Block";
-import { DEFAULT_INVENTORY, InventItem } from "src/InventItem";
+import { ALL_ITEMS, ItemDefinition } from "src/InventItem";
 import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
 import { v4 as uuidv4 } from 'uuid';
@@ -20,6 +20,8 @@ global.Layer = {
     ...Layer
 }
 
+global.BLOCK_SIZE = TILE_SIZE;
+
 /**
  * A wrapper around the main Game that can then be exposed to mods.
  */
@@ -33,6 +35,14 @@ export class GameAsContext implements GameContext {
 
     constructor(game: Game) {
         this.game = game;
+    }
+
+    giveItem(mob: MobContext, count: number, typeId: string): void {
+        (mob as Mob).addItem(typeId, count);
+    }
+
+    countItems(mob: MobContext, typeId: string): number {
+        return (mob as Mob).getItemCount(typeId);
     }
 
     /**
@@ -205,7 +215,7 @@ export class GameAsContext implements GameContext {
     /**
      * @see GameContext.addTool
      */
-    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number): void {
+    addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number, breakable?: boolean, amountUsed?: number): string {
         this.log("Adding tool: " + toolId + " (targetEmpty=" + targetEmpty + ", targetFull=" + targetFull + ")");
 
         // backwards compatible
@@ -217,7 +227,8 @@ export class GameAsContext implements GameContext {
             delayOnOperation = 0;
         }
 
-        const tool: InventItem = {
+        const tool: ItemDefinition = {
+            type: "itemId/"+(toolId ?? "") +"/" + (image ?? "") + "/" + (""+place),
             sprite: image,
             place: place,
             spriteOffsetX: -70,
@@ -226,16 +237,37 @@ export class GameAsContext implements GameContext {
             toolId: toolId,
             targetEmpty,
             targetFull,
-            delay: delayOnOperation
+            delay: delayOnOperation,
+            breakable,
+            amountUsed
         };
 
         if (this.currentMod) {
             this.currentMod.toolsAdded.push(tool);
         }
 
-        DEFAULT_INVENTORY.push(tool);
+        ALL_ITEMS.push(tool);
 
         this.game.mobs.forEach(m => m.initInventory());
+
+        return tool.type;
+    }
+
+    /**
+     * @see GameContext.inCreativeMode
+     */
+    inCreativeMode(): boolean {
+        return this.game.serverSettings.isCreativeMode();
+    }
+
+    /**
+     * @see GameContext.createItem
+     */
+    createItem(x: number, y: number, count: number, itemId: string): string {
+        const rx = (Math.random() * 0.4) - 0.2;
+        const ry = (Math.random() * 0.4) - 0.2;
+
+        return this.game.network.sendItemCreate((x + 0.5 + rx) * TILE_SIZE, (y + 0.5 + ry) * TILE_SIZE, count, itemId) ?? "";
     }
 
     /**
@@ -361,7 +393,7 @@ export interface ModRecord {
     /** True if this mod has been intialized */
     inited: boolean;
     /** Tools that this mod added so they can be removed on uninstall */
-    toolsAdded: InventItem[];
+    toolsAdded: ItemDefinition[];
     /** Blocks that his mod added so they can be removed on uninstall */
     blocksAdded: Block[];
     /** Skins that his mod added so they can be removed on uninstall */
@@ -636,6 +668,27 @@ export class ConfiguredMods {
                 try {
                     this.context.startContext(record);
                     record.mod.onStandOn(this.context, mob, x, y);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * Notify all interested mods that a mob was added to the world
+     * 
+     * @param mob The mob added to the world
+     */
+    mobAdded(mob: Mob): void {
+        for (const record of this.mods) {
+            if (record.mod.onMobAdded) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onMobAdded(this.context, mob);
                     this.context.endContext();
                 } catch (e) {
                     console.error("Error in Game Mod: " + record.mod.name);

@@ -1,8 +1,10 @@
-import { getSprite, playSfx } from "./engine/Resources";
+import { getSprite } from "./engine/Resources";
 import { Game } from "./Game";
-import { addParticle, createDirtParticle } from "./engine/Particles";
 import { Graphics, GraphicsImage, GraphicsType, HtmlGraphics } from "./engine/Graphics";
-import { Block, Portal, Timer, BLOCKS } from "./Block";
+import { Portal, Timer, BLOCKS } from "./Block";
+import { ALL_ITEMS, InGameItem } from "./InventItem";
+import { Mob } from "./Mob";
+import { v4 as uuidv4 } from 'uuid';
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
@@ -90,11 +92,68 @@ export class GameMap {
     lightMapDirty: boolean = true;
     /** True if we're currenting generating the map */
     generating: boolean = false;
+    /** A timer to cause the gentle float of items */
+    floatTimer: number = 0;
+
+    /** List of items floating in the world */
+    items: InGameItem[] = [];
 
     constructor(game: Game) {
         this.game = game;
     }
 
+    /**
+     * The items floating in the world
+     * 
+     * @returns The items floating in the world
+     */
+    allItems(): InGameItem[] {
+        return this.items;
+    }
+
+
+    /**
+     * Add an item to be collected into the world 
+     * 
+     * @param x The x coordinate in world coordinates where the item should be added
+     * @param y The y coordinate in world coordinates where the item should be added
+     * @param count The number of the item to be added
+     * @param itemType The type of the item to be added (one of ALL_ITEMS keys)
+     * @param itemId The ID to assign the item or if not specified, generated one
+     * @returns The ID of the item that was added
+     */
+    addItem(x: number, y: number, count: number, itemType: string, itemId?: string): string{
+        if (!itemId) {
+            itemId = uuidv4();
+        }
+
+        const def = ALL_ITEMS.find(m => m.type === itemType);
+        
+        if (def) {
+            const newItem: InGameItem = {
+                x, y, count, def, id: itemId 
+            }
+            this.items.push(newItem);
+        }
+        return itemId;
+    }
+
+    /**
+     * Remove an item from the world and add it to the mobs inventory if its local
+     * 
+     * @param itemId The ID of the item to be removed
+     * @param collector The mob collecting the item (if any)
+     */
+    removeItem(itemId: string, collector?: Mob) {
+        const item = this.items.find(m => m.id === itemId);
+        if (item) {
+            this.items.splice(this.items.indexOf(item), 1);
+
+            if (collector && collector.local) {
+                collector.addItem(item.def.type, item.count);
+            }
+        }
+    }
     /**
      * Reset the map to a newly generated one
      */
@@ -143,6 +202,9 @@ export class GameMap {
         this.discovered = [];
         this.lightMap = [];
         this.timers = [];
+        this.items = [];
+
+        console.error("Clearing items");
         this.metaData = {
             portals: [],
             modData: {}
@@ -872,6 +934,18 @@ export class GameMap {
                     }
                 }
             }
+        }
+
+        this.floatTimer += 0.1;
+        for (const item of this.items) {
+            const sprite = getSprite(item.def.sprite);
+            const float = Math.sin(this.floatTimer + item.x + item.y);
+            g.save();
+            g.translate(item.x, item.y);
+            g.scale(0.5, 0.5);
+            g.rotate(this.floatTimer / 3);
+            g.drawImage(sprite,  - (sprite.getWidth() / 2), - (sprite.getHeight() / 2));
+            g.restore();
         }
 
         // loop through all the tiles and cover up areas that haven't been discovered yet

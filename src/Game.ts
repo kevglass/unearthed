@@ -14,13 +14,14 @@ import { ControllerButtons, CONTROLLER_SETUP_STEPS, KeyControls, KEYS_SETUP_STEP
 import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
-import { InventItem, initInventory } from "./InventItem";
+import { ALL_ITEMS, Item, ItemDefinition, initInventory } from "./InventItem";
 import { hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 import { InventPanel } from "./InventPanel";
 import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
 import { DefaultBlockMod } from "./mods/defaultmods/DefaultBlocksMod";
 import { GameProperty } from "./mods/Mods";
+import { HandsMod } from "./mods/defaultmods/HandsMod";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -226,6 +227,7 @@ export class Game implements ControllerListener {
         this.ui = new HtmlUi(this, this.network, this.gameMap);
 
         // bootstrap the default mods if enabled
+        this.serverSettings.addDefaultMod(new HandsMod(), true);
         this.serverSettings.addDefaultMod(new PickaxeMod());
         this.serverSettings.addDefaultMod(new DefaultBlockMod());
         this.serverSettings.load();
@@ -233,6 +235,7 @@ export class Game implements ControllerListener {
         // update UI state based on loaded config
         this.ui.renderChangeWorldButton();
         this.ui.renderDefaultModsButton();
+        this.ui.renderChangeCreativeButton();
 
         this.gameMap.resetDiscoveryAndLights();
 
@@ -1280,7 +1283,7 @@ export class Game implements ControllerListener {
             this.g.translate(-(this.canvas.width / 2) + 370, 0);
         }
 
-        // draw the inventory tiles 
+        // draw the quick slot tiles 
         let index = 0;
         const rows = (isMobile()) ? 1 : 2;
         for (let y = 0; y < rows; y++) {
@@ -1289,15 +1292,8 @@ export class Game implements ControllerListener {
                 const yp = this.canvas.height - (rows * 130) + (y * 130) - 10;
 
                 const item = this.player.quickSlots[index];
-                if (index === this.quickSlotSelected) {
-                    this.g.drawScaledImage(getSprite("ui/sloton"), xp, yp, 125, 125);
-                } else {
-                    this.g.drawScaledImage(getSprite("ui/slotoff"), xp, yp, 125, 125);
-                }
 
-                if (item) {
-                    this.g.drawScaledImage(getSprite(item.sprite), xp + 20 + (item.place === 0 ? 7 : 0), yp + 15, 85, 85);
-                }
+                InventPanel.drawItem(this, this.g, item, xp, yp, index === this.quickSlotSelected);
                 index++;
             }
         }
@@ -1337,7 +1333,7 @@ export class Game implements ControllerListener {
      * @param x The x coordinate of the location of the drop
      * @param y The y coordinate of the location of the drop
      */
-    itemDropped(item: InventItem, x: number, y: number): void {
+    itemDropped(item: Item, x: number, y: number): void {
         if (this.limitedPortraitScreen) {
             y += 160;
         }
@@ -1365,7 +1361,7 @@ export class Game implements ControllerListener {
      * 
      * @param item The item currently held 
      */
-    replaceItem(item: InventItem): void {
+    replaceItem(item: Item): void {
         let index = this.player.quickSlots.findIndex(slot => slot === null);
         if (index < 0) {
             index = this.quickSlotSelected;

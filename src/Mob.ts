@@ -7,7 +7,7 @@ import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
 import { BoneNames, getSkin } from "./Skins";
 import { BLOCKS } from "./Block";
-import { DEFAULT_INVENTORY, InventItem } from "./InventItem";
+import { ALL_ITEMS as ALL_ITEMS, ITEM_HANDS, Item, ItemDefinition } from "./InventItem";
 import { MobThinkFunction } from "./mods/Mods";
 
 /**
@@ -103,7 +103,7 @@ export class Mob {
     /** The sequence of the last update we applied - prevents us applying out of date updates */
     lastUpdateSeq: number = 0;
     /** The item thats currently being held */
-    itemHeld: InventItem | null = null;
+    itemHeld: Item | null = null;
     /** Parts */
     bodyParts: BodyParts = {
         body: "a",
@@ -122,9 +122,14 @@ export class Mob {
     fallThroughUntil: number = 0;
 
     /** The item in the mob's inventory */
-    inventory: InventItem[] = [...DEFAULT_INVENTORY];
+    inventory: Item[] = ALL_ITEMS.map(d => {
+        return {
+            def: d,
+            count: 1
+        }
+    });
     /** The quick slot items selected */
-    quickSlots: (InventItem | null)[] = [null, null, null, null, null, null, null, null];
+    quickSlots: (Item | null)[] = [null, null, null, null, null, null, null, null];
 
     /** The type of the mob */
     type: string = "human";
@@ -192,14 +197,25 @@ export class Mob {
      * Reinitialize the inventory of this mob to the default one
      */
     initInventory(): void {
-        this.inventory = [...DEFAULT_INVENTORY];
+        if (this.gameMap.game.serverSettings.isCreativeMode()) {
+            this.inventory = ALL_ITEMS.map(d => {
+                return {
+                    def: d,
+                    count: 1
+                }
+            });
 
-        // load the quickslots
-        this.loadQuickSlots();
-
-        if (this.quickSlots[0] === null) {
-            this.quickSlots[0] = this.inventory.find(i => i.toolId === "iron-pick") ?? null;
+            // load the quickslots
+            this.loadQuickSlots();
+    
+            if (this.quickSlots[0] === null) {
+                this.quickSlots[0] = this.inventory.find(i => i.def.toolId === "iron-pick") ?? null;
+            }
+        } else {
+            // load the quickslots
+            this.loadItems();
         }
+
     }
 
     /**
@@ -211,13 +227,14 @@ export class Mob {
             const quickSlotsData = JSON.parse(toLoad);
             for (let i=0;i<8;i++) {
                 const slot = quickSlotsData[i];
-                const byToolId = (slot.toolId ? this.inventory.find(item => item.toolId === slot.toolId) : null);
-                const byPlace = (slot.place === 0 ? null : this.inventory.find(item => item.place === slot.place));
-                const bySprite = this.inventory.find(item => item.sprite === slot.sprite);
 
-                this.quickSlots[i] = byToolId ?? byPlace ?? bySprite ?? null;
+                this.quickSlots[i] = this.inventory.find(item => item.def.type === slot.id) ?? null;
             }
         }
+    }
+
+    isPlayer(): boolean {
+        return this.isPlayerControlled();
     }
 
     isPlayerControlled(): boolean {
@@ -230,9 +247,7 @@ export class Mob {
     saveQuickSlots(): void {
         const toSave = this.quickSlots.map(m => {
             return {
-                toolId: m?.toolId,
-                place: m?.place,
-                sprite: m?.sprite
+                id: m?.def.type
             }
         });
         localStorage.setItem("quickslots", JSON.stringify(toSave));
@@ -568,6 +583,110 @@ export class Mob {
         this.flip = false;
     }
 
+    loadItems(): void {
+        if (!this.gameMap.game.serverSettings.isCreativeMode()) {
+            this.inventory = [];
+            const inventString = localStorage.getItem("inventory");
+            if (inventString) {
+                const toLoad = JSON.parse(inventString);
+                for (const record of toLoad) {
+                    const def = ALL_ITEMS.find(m => m.type === record.id);
+                    if (def) {
+                        this.inventory.push({
+                            def: def,
+                            count: record.count
+                        });
+                    }
+                }
+            }
+        }
+
+        this.loadQuickSlots();
+    }
+
+    saveItems(): void {
+        if (!this.gameMap.game.serverSettings.isCreativeMode()) {
+            // save the contents of the inventory out
+            const toSave = this.inventory.map(m => {
+                return {
+                    id: m.def.type,
+                    count: m.count
+                }
+            });
+            localStorage.setItem("inventory", JSON.stringify(toSave));
+        }
+
+        this.saveQuickSlots();
+    }
+
+    /**
+     * Remove an item from this mobs inventory including clearing out items
+     * when count goes to zero
+     * 
+     * @param itemType The type of the item to remove
+     * @param count The number of hte item to remove
+     */
+    removeItem(itemType: string, count: number): void {
+        if (this.gameMap.game.serverSettings.isCreativeMode()) {
+            return;
+        }
+
+        const existing = this.inventory.find(item => item.def.type === itemType);
+        if (existing) {
+            existing.count -= count;
+            if (existing.count <= 0) {
+                this.inventory.splice(this.inventory.indexOf(existing), 1);
+                for (let i=0;i<this.quickSlots.length;i++) {
+                    if (this.quickSlots[i] === existing) {
+                        this.quickSlots[i] = null;
+                    }
+                }
+
+                this.saveItems();
+            }
+        } else {
+            console.log("Couldn't find item to remove");
+        }
+    }
+
+    /**
+     * Count the number of an item a mob has
+     * 
+     * @param itemType The type of the item to count
+     * @return The number of the item the mob has in their inventory
+     */
+    getItemCount(itemType: string): number {
+        const existing = this.inventory.find(item => item.def.type === itemType);
+        
+        return existing?.count ?? 0;
+    }
+    /**
+     * Add an item to this mob's inventory. Combine it with matching
+     * ones if present
+     * 
+     * @param itemType The type of the item to add
+     * @param count The number of the item to add
+     */
+    addItem(itemType: string, count: number): void {
+        if (this.gameMap.game.serverSettings.isCreativeMode()) {
+            return;
+        }
+
+        const existing = this.inventory.find(item => item.def.type === itemType);
+        if (existing) {
+            existing.count += count;
+            this.saveItems();
+        } else {
+            const def = ALL_ITEMS.find(m => m.type === itemType);
+            if (def) {
+                this.inventory.push({ def, count });
+            } else {
+                console.error("Attempt to add item with unknown item ID");
+            }
+            this.saveItems();
+        }
+    }
+
     /**
      * Mark that the mob is being updated by local controls
      */
@@ -597,10 +716,10 @@ export class Mob {
         if (this.type === "human") {
             for (const bone of this.allBones) {
                 if (bone.name === BoneNames.HELD) {
-                    bone.sprite = this.itemHeld?.sprite;
-                    bone.spriteOffsetX = this.itemHeld?.spriteOffsetX;
-                    bone.spriteOffsetY = this.itemHeld?.spriteOffsetY;
-                    bone.scale = this.itemHeld?.spriteScale ?? 1;
+                    bone.sprite = this.itemHeld?.def.sprite;
+                    bone.spriteOffsetX = this.itemHeld?.def.spriteOffsetX;
+                    bone.spriteOffsetY = this.itemHeld?.def.spriteOffsetY;
+                    bone.scale = this.itemHeld?.def.spriteScale ?? 1;
                 }
                 if (bone.name === BoneNames.HEAD) {
                     bone.sprite = "skins/" + this.bodyParts.head + "/head";
@@ -644,21 +763,28 @@ export class Mob {
         }
 
         // apply use of an item if we're holding one and the mouse button (or equivalent is being pressed)
-        if (this.itemHeld) {
+        const usingItem = this.itemHeld ?? ITEM_HANDS;
+        if (usingItem) {
             const layer = placingOnBackgroundLayer ? Layer.BACKGROUND : Layer.FOREGROUND;
 
             let changedLocation = (this.lastToolActionX !== this.overX || this.lastToolActionY !== this.overY || this.lastToolActionLayer !== layer);
-            let targetEmpty = (this.itemHeld?.place !== 0 || this.itemHeld?.targetEmpty) && changedLocation;
-            let targetFull =  this.itemHeld?.targetFull && changedLocation;
+            let targetEmpty = (usingItem?.def.place !== 0 || usingItem?.def.targetEmpty) && changedLocation;
+            let targetFull =  usingItem?.def.targetFull && changedLocation;
 
-            if (this.controls.mouse && targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== this.itemHeld.place) {
+            if (this.controls.mouse && targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== usingItem.def.place) {
                 this.work();
                 this.blockDamage++;
 
-                const delay = this.itemHeld.delay ?? 60;
+                const delay = usingItem.def.delay ?? 60;
                 if (this.blockDamage >= delay) {
                     if (this.local) {
-                        this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
+                        // if we're not in creative mode then we need to apply 
+                        // anything related to items
+                        if (!this.gameMap.game.serverSettings.isCreativeMode()) {
+                            this.removeItem(usingItem.def.type, usingItem.def.amountUsed ?? 0);
+                        }
+
+                        this.network.sendNetworkTile(this, this.overX, this.overY, usingItem.def.place, layer, usingItem.def.toolId);
                     }
                     this.lastToolActionX = this.overX;
                     this.lastToolActionY = this.overY;
@@ -667,7 +793,7 @@ export class Mob {
                     this.gameMap.game.gamepad.vibrate();
                 } else {
                     if (this.blockDamage % 20 === 0) {
-                        this.gameMap.game.mods.toolProgress(this, this.overX, this.overY, layer, this.itemHeld.toolId ?? "");
+                        this.gameMap.game.mods.toolProgress(this, this.overX, this.overY, layer, usingItem.def.toolId ?? "");
                     }
                     if (Date.now() - this.lastParticleCreated > 100) {
                         this.lastParticleCreated = Date.now();
@@ -682,12 +808,18 @@ export class Mob {
                     this.headTilt = -0.2;
                 }
             } else if (this.controls.mouse && targetEmpty && this.gameMap.getTile(this.overX, this.overY, layer) === 0) {
-                if (this.itemHeld.place !== 0) {
-                    const block = BLOCKS[this.itemHeld.place];
+                if (usingItem.def.place !== 0) {
+                    const block = BLOCKS[usingItem.def.place];
                     if (layer !== Layer.BACKGROUND || (block && !block.backgroundDisabled)) {
                         if (this.local) {
-                            this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer);
-                            if (this.gameMap.getTile(this.overX, this.overY, layer) === this.itemHeld.place) {
+                            // if we're not in creative mode then we need to apply 
+                            // anything related to items
+                            if (!this.gameMap.game.serverSettings.isCreativeMode()) {
+                                this.removeItem(usingItem.def.type, usingItem.def.amountUsed ?? 0);
+                            }
+
+                            this.network.sendNetworkTile(this, this.overX, this.overY, usingItem.def.place, layer);
+                            if (this.gameMap.getTile(this.overX, this.overY, layer) === usingItem.def.place) {
                                 playSfx('place', 0.2);
                             }
                         }
@@ -698,7 +830,7 @@ export class Mob {
                     }
                 } else {
                     if (this.local) {
-                        this.network.sendNetworkTile(this, this.overX, this.overY, this.itemHeld.place, layer, this.itemHeld.toolId);
+                        this.network.sendNetworkTile(this, this.overX, this.overY, usingItem.def.place, layer, usingItem.def.toolId);
                         this.lastToolActionX = this.overX;
                         this.lastToolActionY = this.overY;
                         this.lastToolActionLayer = layer;
@@ -817,6 +949,28 @@ export class Mob {
         const head = this.rootBone.findNamedBone(BoneNames.HEAD);
         if (head) {
             head.ang = -this.headTilt;
+        }
+
+        // if we're the host then we need to consider whether we pick up
+        // items
+        if (this.gameMap.game.isHostingTheServer) {
+            // only players pick up items
+            if (this.isPlayerControlled()) {
+                for (let item of this.gameMap.items) {
+                    const dx = Math.abs(this.x - item.x);
+                    const dy = Math.abs(this.y - item.y);
+
+                    // only collect one item per frame
+                    if ((dx < TILE_SIZE / 3) && (dy < TILE_SIZE / 2)) {
+                        this.network.sendItemCollection(item.id, this.id);
+
+                        if (this.local) {
+                            playSfx("pickup", 0.35);
+                        }
+                        break;
+                    }
+                }
+            }
         }
     }
 

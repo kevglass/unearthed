@@ -6,6 +6,7 @@ import { ServerConfig } from './ServerSettings';
 import { Particle, addParticle } from './engine/Particles';
 import { getSprite } from './engine/Resources';
 import { v4 as uuidv4 } from 'uuid';
+import { InGameItem } from './InventItem';
 
 //
 // Network is handled by using WebRTC through https://livekit.io/ 
@@ -38,6 +39,14 @@ interface MultipartMessage {
     parts: MessagePart[];
     id: string;
     count: number;
+}
+
+interface NetworkItem {
+    x: number;
+    y: number;
+    count: number;
+    itemType: string;
+    itemId: string;
 }
 
 /**
@@ -85,6 +94,10 @@ export class Network {
     connectionFailed: boolean = false;
     /** Reason for the connection failure */
     connectionFailedReason: string = "";
+    /** True if we're received the server settings and loaded the mods */
+    hasServerSettings: boolean = false;
+    /** The items to add once we've loaded mods */
+    itemsToAdd: NetworkItem[] = [];
 
     /**
      * Create a new network session
@@ -228,7 +241,7 @@ export class Network {
                         const buffer = new Uint8Array(payload.length);
                         buffer.set(Array.from(payload), 0);
                         const array = new Uint16Array(buffer.buffer, 0, buffer.length / 2);
-            
+
                         // parse the blob and update the game map
                         const fullArray: number[] = Array.from(array);
                         this.gameMap.setForegroundMapData(fullArray);
@@ -245,7 +258,7 @@ export class Network {
                         const buffer = new Uint8Array(payload.length);
                         buffer.set(Array.from(payload), 0);
                         const array = new Uint16Array(buffer.buffer, 0, buffer.length / 2);
-            
+
                         // parse the blob and update the game map
                         const fullArray: number[] = Array.from(array);
                         this.gameMap.setBackgroundMapData(fullArray);
@@ -267,153 +280,214 @@ export class Network {
 
         if (hosting) {
             this.game.mods.worldStarted();
+            this.game.mods.mobAdded(this.game.player);
         }
+
     }
 
     private processMessage(message: any, participant: RemoteParticipant | undefined, hosting: boolean, messageIsFromHost: boolean): void {
-        if (message.type === "part") {
-            let existing = this.pendingMultipart[message.id];
-            if (!existing) {
-                existing = this.pendingMultipart[message.id] = {
-                    parts: [],
-                    id: message.id,
-                    count: message.count
-                };
-            }
-            existing.parts.push({
-                content: message.content,
-                index: message.index
-            });
+        switch (message.type) {
+            case "part": {
 
-            if (existing.count === existing.parts.length) {
-                existing.parts.sort((a, b) => {
-                    return a.index - b.index;
+                let existing = this.pendingMultipart[message.id];
+                if (!existing) {
+                    existing = this.pendingMultipart[message.id] = {
+                        parts: [],
+                        id: message.id,
+                        count: message.count
+                    };
+                }
+                existing.parts.push({
+                    content: message.content,
+                    index: message.index
                 });
 
-                let result = "";
-                for (const part of existing.parts) {
-                    result += part.content;
+                if (existing.count === existing.parts.length) {
+                    existing.parts.sort((a, b) => {
+                        return a.index - b.index;
+                    });
+
+                    let result = "";
+                    for (const part of existing.parts) {
+                        result += part.content;
+                    }
+
+                    this.processMessage(JSON.parse(result), participant, hosting, messageIsFromHost);
                 }
-
-                this.processMessage(JSON.parse(result), participant, hosting, messageIsFromHost);
+                break;
             }
-        }
-        // a remote client is requesting the game map - this happens when clients
-        // connect to the room before the host got in
-        if (message.type === "requestMap" && hosting) {
-            if (participant) {
-                this.sendMapUpdate(participant.sid);
-            }
-        }
-
-        if (message.type === "particles" && !hosting) {
-            this.applyParticles(message.image, message.x, message.y, message.count);
-        }
-
-        // The server has given us updated meta data for the map
-        if (message.type === "mapMeta" && !hosting) {
-            Object.assign(this.gameMap.metaData, message.data);
-        }
-        // The server has given us its configuration
-        if (message.type === "serverConfig" && !hosting) {
-            if (message.data.editable && !this.serverConfig?.editable) {
-                this.addChat("", "Editing Enabled");
-
-            }
-            this.serverConfig = message.data;
-            if (this.serverConfig) {
-                this.game.serverSettings.loadModsFrom(this.serverConfig);
-            }
-
-            if (!this.serverConfig?.editable) {
-                this.addChat("", "Editing Disabled");
-            }
-        }
-
-        // simple chat message, just display it
-        if (message.type === "chatMessage") {
-            this.addChat(message.who, message.message);
-        }
-
-        if (message.type === "trigger") {
-            if (this.thisIsTheHostServer && participant) {
-                const sourceMob = this.localMobs.find(m => m.id === message.source);
-                if (sourceMob) {
-                    this.game.playerTriggeredLocation(sourceMob, message.x, message.y, false);
-                }
-            }
-        }
-        // notification that a client who is hosting is around
-        // we do a quick version check to prevent different
-        // versions of the game connecting since that gets
-        // very confusing
-        if (message.type === "iAmHost" && !hosting) {
-            // only accept host messages from authenticated hosts
-            if (messageIsFromHost) {
-                this.hostParticipantId = participant!;
-                if (message.version !== "_VERSION_") {
-                    alert("Game Version Mismatch");
-                    location.reload();
-                }
-            }
-        }
-
-        // notification of a tile being updates. This can be sent from server
-        // or client but only the server controls which tiles are actually applied
-        if (message.type === "tileChange") {
-            // only accept host messages from authenticated hosts or if we're the server
-            if (messageIsFromHost || this.thisIsTheHostServer) {
-                if (this.serverConfig?.editable) {
+            case "requestMap": {
+                if (hosting) {
                     if (participant) {
-                        const sourceMob = this.localMobs.find(m => m.id === message.source);
-                        if (this.thisIsTheHostServer) {
-                            this.sendNetworkTile(sourceMob, message.x, message.y, message.tile, message.layer, message.toolId);
-                        } else {
-                            this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
+                        this.sendMapUpdate(participant.sid);
+                    }
+                }
+                break;
+            }
+            case "item": {
+                if (!hosting) {
+                    if (!this.hasServerSettings) {
+                        this.itemsToAdd.push(message);
+                    } else {
+                        this.gameMap.addItem(message.x, message.y, message.count, message.itemType, message.itemId);
+                    }
+                }
+                break;
+            }
+            case "items": {
+                if (!hosting) {
+                    // record the list of items, we'll have to wait for any mods to be
+                    // loaded before apply them
+                    if (!this.hasServerSettings) {
+                        this.itemsToAdd.push(...message.items);
+                    } else {
+                        for (const item of message.items) {
+                            this.gameMap.addItem(item.x, item.y, item.count, item.itemType, item.itemId);
                         }
                     }
                 }
+                break;
             }
-        }
-
-        // remove a mob from the world
-        if (message.type === "remove") {
-            const mob = this.localMobs.find(mob => mob.id === message.mobId);
-            if (mob) {
-                this.removed.push(mob.id);
-                this.localMobs.splice(this.localMobs.indexOf(mob), 1);
-                this.updatePlayerList(this.localMobs);
+            case "collect": {
+                if (!hosting) {
+                    let targetMob = this.localMobs.find(mob => mob.id === message.mobId);
+                    this.gameMap.removeItem(message.itemId, targetMob)
+                }
+                break;
             }
-        }
+            case "particles": {
+                if (!hosting) {
+                    this.applyParticles(message.image, message.x, message.y, message.count);
+                }
+                break;
+            }
+            case "mapMeta": {
+                if (!hosting) {
+                    Object.assign(this.gameMap.metaData, message.data);
+                }
+                break;
+            }
+            case "serverConfig": {
+                if (!hosting) {
+                    if (message.data.editable && !this.serverConfig?.editable) {
+                        this.addChat("", "Editing Enabled");
 
-        // the mains state update - all the mobs encoded with their network
-        // state. If any mob didn't get an update for a while then 
-        // remove it as a timeout. If we don't have a mob for a state update
-        // then create it as a new player.
-        if (message.type === "mobs") {
-            if (this.localMobs && this.localPlayer) {
-                // clients should only be sending 1 mob update - 
-                if (message.data.length === 1 || messageIsFromHost) {
-                    for (const mobData of message.data) {
-                        if (mobData.id !== this.localPlayer.id) {
-                            if (this.removed.includes(mobData.id)) {
-                                continue;
-                            }
+                    }
 
-                            let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
-                            if (!targetMob) {
-                                targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, mobData.isPlayer, mobData.type, mobData.x, mobData.y);
-                                this.localMobs.push(targetMob);
-                                this.updatePlayerList(this.localMobs);
-                            }
+                    this.game.serverSettings.fromNetwork = true;
+                    this.serverConfig = message.data;
 
-                            if (participant) {
-                                targetMob.participantId = participant.sid;
-                            }
-                            targetMob.updateFromNetworkState(mobData);
+                    if (this.serverConfig) {
+                        // remote configuration and mods applied to the client side
+                        this.game.serverSettings.setEditable(this.serverConfig.editable);
+                        this.game.serverSettings.setCreativeMode(this.serverConfig.creativeMode);
+                        this.game.serverSettings.setUseDefaultMods(this.serverConfig.useDefaultMods);
+
+                        this.game.serverSettings.loadModsFrom(this.serverConfig);
+
+                        this.game.mods.init();
+                        this.game.mods.worldStarted();
+                        this.game.mods.mobAdded(this.game.player);
+                    }
+
+                    this.hasServerSettings = true;
+
+                    if (!this.serverConfig?.editable) {
+                        this.addChat("", "Editing Disabled");
+                    }
+
+                    for (const item of this.itemsToAdd) {
+                        this.gameMap.addItem(item.x, item.y, item.count, item.itemType, item.itemId);
+                    }
+                    this.itemsToAdd = [];
+                }
+                break;
+            }
+            case "chatMessage": {
+                this.addChat(message.who, message.message);
+                break;
+            }
+            case "trigger": {
+                if (this.thisIsTheHostServer && participant) {
+                    const sourceMob = this.localMobs.find(m => m.id === message.source);
+                    if (sourceMob) {
+                        this.game.playerTriggeredLocation(sourceMob, message.x, message.y, false);
+                    }
+                }
+                break;
+            }
+            case "iAmHost": {
+                if (!hosting) {
+                    if (messageIsFromHost) {
+                        this.hostParticipantId = participant!;
+                        if (message.version !== "_VERSION_") {
+                            alert("Game Version Mismatch");
+                            location.reload();
                         }
                     }
                 }
+                break;
+            }
+            case "tileChange": {
+                // only accept host messages from authenticated hosts or if we're the server
+                if (messageIsFromHost || this.thisIsTheHostServer) {
+                    if (this.serverConfig?.editable) {
+                        if (participant) {
+                            const sourceMob = this.localMobs.find(m => m.id === message.source);
+                            if (this.thisIsTheHostServer) {
+                                this.sendNetworkTile(sourceMob, message.x, message.y, message.tile, message.layer, message.toolId);
+                            } else {
+                                this.gameMap.setTile(message.x, message.y, message.tile, message.layer);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case "remove": {
+                const mob = this.localMobs.find(mob => mob.id === message.mobId);
+                if (mob) {
+                    this.removed.push(mob.id);
+                    this.localMobs.splice(this.localMobs.indexOf(mob), 1);
+                    this.updatePlayerList(this.localMobs);
+                }
+                break;
+            }
+            case "mobs": {
+                // the mains state update - all the mobs encoded with their network
+                // state. If any mob didn't get an update for a while then 
+                // remove it as a timeout. If we don't have a mob for a state update
+                // then create it as a new player.
+                if (this.localMobs && this.localPlayer) {
+                    // clients should only be sending 1 mob update - 
+                    if (message.data.length === 1 || messageIsFromHost) {
+                        for (const mobData of message.data) {
+                            if (mobData.id !== this.localPlayer.id) {
+                                if (this.removed.includes(mobData.id)) {
+                                    continue;
+                                }
+
+                                let targetMob = this.localMobs.find(mob => mob.id === mobData.id);
+                                if (!targetMob) {
+                                    targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, mobData.isPlayer, mobData.type, mobData.x, mobData.y);
+                                    this.localMobs.push(targetMob);
+                                    this.updatePlayerList(this.localMobs);
+
+                                    this.game.mods.mobAdded(this.game.player);
+                                }
+
+                                if (participant) {
+                                    targetMob.participantId = participant.sid;
+                                }
+                                targetMob.updateFromNetworkState(mobData);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            default: {
+                console.log("Unknown message type: " + message.type);
             }
         }
     }
@@ -466,13 +540,23 @@ export class Network {
         }
     }
 
-    private sendMultipartMessage(content: string): void {
+    /**
+     * Break up a potentially large message into chunks to not break UDP packet sizes
+     * 
+     * @param content The content to break up
+     * @param target The target to send the message to
+     */
+    private sendMultipartMessage(content: string, target?: string): void {
         const blockSize = 60000;
         const total = Math.ceil(content.length / blockSize);
         const id = uuidv4();
-        for (let i=0;i<total;i++) {
-            const message = { id: id, type: "part", index: i, count: total, content: content.substring(i * blockSize, (i +1 ) *blockSize) };
-            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+        for (let i = 0; i < total; i++) {
+            const message = { id: id, type: "part", index: i, count: total, content: content.substring(i * blockSize, (i + 1) * blockSize) };
+            if (target) {
+                this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE, [target]);
+            } else {
+                this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+            }
         }
     }
 
@@ -483,7 +567,7 @@ export class Network {
      * 
      * @param serverSettings The server settings that should be sent over.
      */
-    sendServerSettings(serverSettings: ServerConfig): void {
+    sendServerSettings(serverSettings: ServerConfig, target?: string): void {
         if (this.isConnected) {
             const toSend = JSON.parse(JSON.stringify(serverSettings));
             // don't send binary lumps across, we'll blow the message stack
@@ -495,7 +579,7 @@ export class Network {
                 }
             }
             const message = { type: "serverConfig", data: toSend };
-            this.sendMultipartMessage(JSON.stringify(message));
+            this.sendMultipartMessage(JSON.stringify(message), target);
         }
     }
 
@@ -505,10 +589,14 @@ export class Network {
      * 
      * @param metaData The metadata to be sent
      */
-    sendMetaData(metaData: GameMapMetaData): void {
+    sendMetaData(metaData: GameMapMetaData, target?: string): void {
         if (this.isConnected) {
             const message = { type: "mapMeta", data: metaData };
-            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+            if (target) {
+                this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE, [target]);
+            } else {
+                this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(message)), DataPacket_Kind.RELIABLE);
+            }
         }
     }
 
@@ -535,17 +623,67 @@ export class Network {
         const foreground = new Uint8Array(fgDataBlocks.buffer, 0, fgDataBlocks.byteLength);
         const background = new Uint8Array(bgDataBlocks.buffer, 0, fgDataBlocks.byteLength);
 
+        const existingItems = this.gameMap.allItems().map(i => {
+            return {
+                x: i.x,
+                y: i.y,
+                count: i.count,
+                itemType: i.def.type,
+                itemId: i.id
+            }
+        });
+
+        const itemsMessage = { type: "items", items: existingItems };
+
         if (target) {
             this.room.localParticipant.publishData(foreground, DataPacket_Kind.RELIABLE, { topic: "fgmap", destination: [target] });
             this.room.localParticipant.publishData(background, DataPacket_Kind.RELIABLE, { topic: "bgmap", destination: [target] });
+
+            this.sendMetaData(this.gameMap.metaData, target);
+            if (this.serverConfig) {
+                this.sendServerSettings(this.serverConfig, target);
+            }
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(itemsMessage)), DataPacket_Kind.RELIABLE, [target]);
         } else {
             this.room.localParticipant.publishData(foreground, DataPacket_Kind.RELIABLE, { topic: "fgmap" });
             this.room.localParticipant.publishData(background, DataPacket_Kind.RELIABLE, { topic: "bgmap" });
+
+            this.sendMetaData(this.gameMap.metaData);
+            if (this.serverConfig) {
+                this.sendServerSettings(this.serverConfig);
+            }
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(itemsMessage)), DataPacket_Kind.RELIABLE);
+        }
+    }
+
+    sendItemCreate(x: number, y: number, count: number, itemType: string): string | undefined {
+        if (this.thisIsTheHostServer) {
+            const itemId = this.gameMap.addItem(x, y, count, itemType);
+            const data = {
+                type: "item",
+                x,
+                y,
+                count,
+                itemType,
+                itemId
+            }
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(data)), DataPacket_Kind.RELIABLE);
+
+            return itemId;
         }
 
-        this.sendMetaData(this.gameMap.metaData);
-        if (this.serverConfig) {
-            this.sendServerSettings(this.serverConfig);
+        return undefined;
+    }
+
+    sendItemCollection(itemId: string, mobId: string): void {
+        if (this.thisIsTheHostServer) {
+            this.gameMap.removeItem(itemId, this.localMobs.find(m => m.id === mobId));
+            const data = {
+                type: "collect",
+                mobId,
+                itemId
+            }
+            this.room.localParticipant.publishData(this.encoder.encode(JSON.stringify(data)), DataPacket_Kind.RELIABLE);
         }
     }
 
@@ -560,7 +698,7 @@ export class Network {
      * @param toolId The ID of the tool being used if any
      */
     sendNetworkTile(player: Mob | undefined, x: number, y: number, tile: number, layer: number, toolId: string = "") {
-        const oldBlock = this.gameMap.getTile(x,y, layer);
+        const oldBlock = this.gameMap.getTile(x, y, layer);
         if (oldBlock === tile && !toolId) {
             return;
         }
@@ -574,7 +712,7 @@ export class Network {
 
                 // if a mod has replaced the tile that was put down then don't continue 
                 // setting the tile since we'll override the mod
-                if (oldBlock !== this.gameMap.getTile(x,y, layer)) {
+                if (oldBlock !== this.gameMap.getTile(x, y, layer)) {
                     return;
                 }
             }
@@ -585,12 +723,12 @@ export class Network {
             if (tile !== 0 || this.game.mods.inModContext()) {
                 // note if the mod changed the background tile then we don't want to apply the default leaveBackground
                 // flag
-                this.gameMap.setTile(x, y, tile, layer, oldBackground === this.gameMap.getTile(x,y, Layer.BACKGROUND));
+                this.gameMap.setTile(x, y, tile, layer, oldBackground === this.gameMap.getTile(x, y, Layer.BACKGROUND));
             }
         }
         if (this.thisIsTheHostServer) {
             // if we're the server we're authoritative so the mods can run based on the change
-            this.game.mods.tile(player, x,y, layer, tile, oldBlock);
+            this.game.mods.tile(player, x, y, layer, tile, oldBlock);
         }
 
         if (!NETWORKING_ENABLED) {
@@ -601,7 +739,7 @@ export class Network {
             if (!this.isConnected) {
                 return;
             }
-    
+
             const data = JSON.stringify({ type: "tileChange", x, y, tile, layer, toolId, source: player?.id });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);
         } else if (this.hostParticipantId) {
@@ -622,14 +760,14 @@ export class Network {
      * @param count The number of particles to be spawned
      */
     private applyParticles(image: string, x: number, y: number, count: number) {
-        for (let i=0;i<count;i++) {
+        for (let i = 0; i < count; i++) {
             const ox = (Math.random() - 0.5) * TILE_SIZE;
             const oy = (Math.random() - 0.5) * TILE_SIZE;
             const vx = (Math.random() - 0.5) * 10;
             const vy = (-Math.random()) * 10;
             const life = 0.5 + (Math.random() * 0.5);
 
-            addParticle(new Particle(getSprite(image), life, x+ox, y+oy, vx, vy));
+            addParticle(new Particle(getSprite(image), life, x + ox, y + oy, vx, vy));
         }
     }
 

@@ -2,7 +2,7 @@
 import { ALL_ANIM } from "./Animations";
 import { BLOCKS } from "./Block";
 import { Game } from "./Game";
-import { DEFAULT_INVENTORY } from "./InventItem";
+import { ALL_ITEMS } from "./InventItem";
 import { SKINS } from "./Skins";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
 import { ServerMod } from "./mods/Mods";
@@ -17,6 +17,8 @@ export interface ServerConfig {
     editable: boolean;
     /** True if we should use the default mods */
     useDefaultMods: boolean;
+    /** True if we're in creative mode */
+    creativeMode: boolean;
     /** The collection of resources made available through mods */
     modScripts: (Record<string, string>)[];
 }
@@ -31,7 +33,8 @@ export class ServerSettings {
     private config: ServerConfig = {
         editable: true,
         modScripts: [],
-        useDefaultMods: true
+        useDefaultMods: true,
+        creativeMode: true,
     }
 
     /** The game these settings will apply to */
@@ -40,17 +43,19 @@ export class ServerSettings {
     serverMods: ConfiguredMods;
     /** The list of default mods */
     defaultMods: ModRecord[] = [];
+    /** True if the server settings are from the network */
+    fromNetwork: boolean = false;
 
     constructor(game: Game) {
         this.game = game;
         this.serverMods = new ConfiguredMods(game);
     }
 
-    addDefaultMod(mod: ServerMod) {
+    addDefaultMod(mod: ServerMod, force: boolean = false) {
         const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [], skinsAdded: []};
         this.defaultMods.push(modRecord);
 
-        if (this.useDefaultMods()) {
+        if (this.useDefaultMods() || force) {
             this.addModRecord(modRecord);
         }
     }
@@ -88,11 +93,11 @@ export class ServerSettings {
     cleanUpMod(mod: ModRecord): void {
         console.log("[" + mod.mod.name + "] Uninstalling");
         for (const tool of mod.toolsAdded) {
-            const index = DEFAULT_INVENTORY.indexOf(tool);
+            const index = ALL_ITEMS.indexOf(tool);
 
             if (index >= 0) {
                 console.log("[" + mod.mod.name + "] Removing tool: " + tool.toolId + " on refresh");
-                DEFAULT_INVENTORY.splice(index, 1);
+                ALL_ITEMS.splice(index, 1);
             }
         }
 
@@ -284,37 +289,79 @@ export class ServerSettings {
         this.save();
     }
 
+    /**
+     * Check if we're in creative mode
+     * 
+     * @returns True if we're in creative mode 
+     */
+    isCreativeMode(): boolean {
+        return this.config.creativeMode;
+    }
+
+    /**
+     * Set whether we're in creative mode
+     * 
+     * @param c True to be in creative mode
+     */
+    setCreativeMode(c: boolean): void {
+        this.config.creativeMode = c;
+        this.save();
+        this.game.mobs.forEach(m => m.initInventory());
+    }
+
+    /**
+     * Check if we're using default mods
+     * 
+     * @returns True if we're using default mods
+     */
     useDefaultMods(): boolean {
         return this.config.useDefaultMods;
     }
 
+    /**
+     * Indicator if we should use default mods for pick axe etc
+     * 
+     * @param m True if we should use the default mods
+     */
     setUseDefaultMods(m: boolean): void {
-        this.config.useDefaultMods = m;
-    
-        if (m) {
-            for (const mod of this.defaultMods) {
-                if (!this.serverMods.mods.includes(mod)) {
-                    this.addModRecord(mod);
-                }
+        if (this.config.useDefaultMods !== m) {
+            this.config.useDefaultMods = m;
+        
+            if (m) {
+                this.addDefaultMods();
+            } else {
+                this.clearDefaultMods();
             }
-        } else {
-            for (const mod of this.defaultMods) {
-                if (this.serverMods.mods.includes(mod)) {
-                    this.removeMod(mod);
-                }
+            this.save();
+        }
+    }
+
+    private clearDefaultMods(): void {
+        for (const mod of this.defaultMods) {
+            if (this.serverMods.mods.includes(mod)) {
+                this.removeMod(mod);
             }
         }
-        this.save();
+    }
+
+    private addDefaultMods(): void {
+        for (const mod of this.defaultMods) {
+            if (!this.serverMods.mods.includes(mod)) {
+                this.addModRecord(mod);
+            }
+        }
     }
 
     /**
      * Persist the settings to local storage
      */
     save(): void {
-        localStorage.setItem("serverSettings", JSON.stringify(this.config));
+        if (!this.fromNetwork) {
+            localStorage.setItem("serverSettings", JSON.stringify(this.config));
 
-        if (this.game.network) {
-            this.game.network.sendServerSettings(this.config);
+            if (this.game.network) {
+                this.game.network.sendServerSettings(this.config);
+            }
         }
     }
 

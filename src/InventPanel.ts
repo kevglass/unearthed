@@ -1,5 +1,5 @@
 import { Game } from "./Game";
-import { InventItem } from "./InventItem";
+import { Item, ItemDefinition } from "./InventItem";
 import { Graphics } from "./engine/Graphics";
 import { getSprite } from "./engine/Resources";
 
@@ -36,7 +36,7 @@ export class InventPanel {
     /** True if the player is currently holding down the thumb of the scroll bar */
     holdingThumb: boolean = false;
     /** True if the player has dragged an item out of the inventory */
-    holdingItem: InventItem | undefined = undefined;
+    holdingItem: Item | undefined = undefined;
     /** The offset of the inventory scroller */
     inventOffsetY: number = 0;
     /** The index of the selected item - for key controls */
@@ -102,14 +102,14 @@ export class InventPanel {
         // render the panel
         g.save();
         g.translate(this.panelX, this.panelY);
-        g.setFillColor(255,255,255,0.8);
+        g.setFillColor(255, 255, 255, 0.8);
         g.fillRect(0, 0, this.panelWidth, this.panelHeight);
 
         // draw track
-        g.setFillColor(0,0,0,0.5);
+        g.setFillColor(0, 0, 0, 0.5);
         g.fillRect(20, 20, 40, this.panelHeight - 40);
         // draw thumb
-        g.setFillColor(0,0,0,0.5);
+        g.setFillColor(0, 0, 0, 0.5);
         g.fillRect(20, 20 + this.thumbPosition, 40, this.thumbHeight);
 
         let thumbOffset = this.thumbPosition / ((this.panelHeight - 40));
@@ -123,12 +123,8 @@ export class InventPanel {
         let xp = 0;
         let yp = 0;
         for (const item of items) {
-            if (items.indexOf(item) === this.selectedItem) {
-                g.drawScaledImage(getSprite("ui/sloton"), 100 + (xp * 130), 20 + (yp * 130), 125, 125);
-            } else {
-                g.drawScaledImage(getSprite("ui/slotoff"), 100 + (xp * 130), 20 + (yp * 130), 125, 125);
-            }
-            g.drawScaledImage(getSprite(item.sprite), 120 + (xp * 130) + (item.place === 0 ? 7 : 0), 35 + (yp * 130), 85, 85);
+            InventPanel.drawItem(this.game, g, item, 100 + (xp * 130), 20 + (yp * 130), items.indexOf(item) === this.selectedItem);
+
             xp += 1;
             if (xp >= across) {
                 xp = 0;
@@ -141,7 +137,7 @@ export class InventPanel {
 
         // draw the dragged item if any
         if (this.holdingItem) {
-            g.drawScaledImage(getSprite(this.holdingItem.sprite), this.mouseX - 45, this.mouseY - 45, 85, 85);
+            g.drawScaledImage(getSprite(this.holdingItem.def.sprite), this.mouseX - 45, this.mouseY - 45, 85, 85);
         }
     }
 
@@ -159,7 +155,7 @@ export class InventPanel {
         y -= this.panelY;
 
         // if we've clicked outside of the panel then close it down
-        if (x < 0 || y < 0|| x > this.panelWidth || y > this.panelHeight) {
+        if (x < 0 || y < 0 || x > this.panelWidth || y > this.panelHeight) {
             this.hide();
             this.mousePressed = true;
             return;
@@ -211,6 +207,37 @@ export class InventPanel {
         this.holdingItem = undefined;
     }
 
+    static drawItem(game: Game, g: Graphics, item: Item | null, x: number, y: number, selected: boolean): void {
+        if (selected) {
+            g.drawScaledImage(getSprite("ui/sloton"), x, y, 125, 125);
+        } else {
+            g.drawScaledImage(getSprite("ui/slotoff"), x, y, 125, 125);
+        }
+
+        if (item) {
+            g.drawScaledImage(getSprite(item.def.sprite), 20 + x + (item.def.place === 0 ? 7 : 0), 15 + y, 85, 85);
+
+            if (!game.serverSettings.isCreativeMode()) {
+                if (Math.ceil(item.count) > 1) {
+                    g.drawScaledImage(getSprite("ui/counter"), x, y, 125, 125);
+                    g.setFillColor(255, 255, 255, 1);
+                    g.setFont("45px KenneyFont");
+                    g.setTextAlign("center");
+                    g.fillText(Math.ceil(item.count) + "", x + 92, y + 105);
+                }
+
+                if (item.def.breakable) {
+                    const remaining = item.count - Math.floor(item.count);
+                    if (remaining !== 0) {
+                        g.setFillColor(0,0,0,0.5);
+                        g.fillRect(x+17, y+16, 90, 10);
+                        g.setFillColor(0,255,0,0.3);
+                        g.fillRect(x+17, y+16, (90 * remaining), 10);
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Notification that mouse has been moved while this panel is on the screen

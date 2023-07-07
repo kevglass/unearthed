@@ -1,35 +1,28 @@
 import { Layer } from "src/Map";
 import { GameContext, GameProperty, MobContext, ServerMod, SkinDefinition } from "../Mods";
 
-export class PickaxeMod implements ServerMod {
-    id: string = "default-pickaxe";
-    name: string = "PickAxe-Default";
-    chatName: string = "pickaxe";
+export class HandsMod implements ServerMod {
+    id: string = "default-hands";
+    name: string = "Hands-Default";
+    chatName: string = "hands";
     version: number = 1;
     apiVersion: number = 1;
-    pickAxeType: string = "";
+    pickId: string = "";
 
     onGameStart(game: GameContext): void {
-        this.pickAxeType = game.addTool("holding/pick_iron", 0, "iron-pick", false, true, 60, true, 0.01);
+        this.pickId = game.addTool("holding/pick_iron", 0, "iron-pick", false, true, 60, true, 0.01);
     }
-    
-    onMobAdded(game: GameContext, mob: MobContext): void {
-        if (mob.isPlayer()) {
-            if (game.countItems(mob, this.pickAxeType) === 0) {
-                game.giveItem(mob, 1, this.pickAxeType);
-            }
-        }
-    }
-    
+
     onUseTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
-        if (toolId === "iron-pick") {
+        if (toolId === "hands") {
             game.setBlock(x, y, layer, 0);
+
             game.playSfx('mining_break', 0.6, 5);
         }
     }
 
     onProgressTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
-        if (toolId === "iron-pick") {
+        if (toolId === "hands") {
             game.playSfx('mining', 0.5, 5);
         }
     }

@@ -323,7 +323,12 @@ export class HtmlUi {
                 link.innerHTML = this.game.serverId;
             }, 2000)
         });
-
+        
+        document.getElementById("changeCreativeMode")!.addEventListener('click', () => {
+            this.game.serverSettings.setCreativeMode(!this.game.serverSettings.isCreativeMode());
+            this.renderChangeCreativeButton();
+        });
+        this.renderChangeCreativeButton();
         document.getElementById("changeDefaultMods")!.addEventListener('click', () => {
             this.game.serverSettings.setUseDefaultMods(!this.game.serverSettings.useDefaultMods());
             this.renderDefaultModsButton();
@@ -428,6 +433,10 @@ export class HtmlUi {
 
     renderChangeWorldButton() {
         document.getElementById("changeWorldButton")!.innerHTML = this.game.serverSettings.isEditable() ? "Yes" : "No";
+    }
+
+    renderChangeCreativeButton() {
+        document.getElementById("changeCreativeMode")!.innerHTML = this.game.serverSettings.isCreativeMode() ? "Yes" : "No";
     }
 
     renderDefaultModsButton() {

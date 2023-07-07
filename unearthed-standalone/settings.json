@@ -1,4 +1,5 @@
 {
 	"editable": true,
-	"useDefaultMods": true
+	"useDefaultMods": true,
+	"creativeMode": true
 }

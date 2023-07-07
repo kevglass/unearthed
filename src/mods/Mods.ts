@@ -29,6 +29,9 @@ export interface MobContext {
     state: MobState;
     /** Generic user data that the mod can store things per mod in */
     data: Record<string, any>;
+    
+    /** True if this mob is a player */
+    isPlayer(): boolean;
 
     /**
      * Set the control state of the mob. Changing these controls will cause the 
@@ -61,6 +64,11 @@ export interface GameContext {
      * @param e The error to be logged
      */
     error(e: any): void;
+
+    /**
+     * Check if the game is in creative mode
+     */
+    inCreativeMode(): boolean;
 
     /**
      * Display a chat message in game
@@ -114,8 +122,11 @@ export interface GameContext {
      * @param targetEmpty True if this tool can target empty spaces 
      * @param targetFull True if this tool can target spaces with a block in
      * @param delayOnOperation Time before operation takes place on a full block
+     * @param breakable True if this tool has a condition - i.e. some of it used but not a whole item
+     * @param amountUsed The number of items to use up for each use of the tool (note this can be partial for items that wear out over time)
+     * @return An identifier that can be used to make the tool into a found item
      */
-    addTool(image: string, place: number, toolId: string | undefined, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number): void;
+    addTool(image: string, place: number, toolId: string | undefined, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number, breakable?: boolean, amountUsed?: number): string;
 
     /**
      * Set a block in the game world. 
@@ -236,12 +247,41 @@ export interface GameContext {
     getGameProperty(prop: GameProperty): string;
 
     /**
+     * Create new item floating in the world for a play to pick up
+     * 
+     * @param x The x coordinate in blocks to place the item at
+     * @param y The y coordinate in blocks to place the item at
+     * @param count The number of the item in the stack
+     * @param typeId The type of the item to create as returned from @see addTool
+     * @return The type of the uniquely created item
+     */
+    createItem(x: number, y: number, count: number, typeId: string): string;
+
+    /**
+     * Give a mob an item 
+     * 
+     * @param mob The mob to give the item
+     * @param count The number of the item to give
+     * @param typeId The type of item to give as returned from @see addTool
+     */
+    giveItem(mob: MobContext, count: number, typeId: string): void;
+
+    /**
+     * Get the number of an item a mob has
+     * 
+     * @param mob The mob to check
+     * @param typeId The type of item to count as returned from @see addTool
+     * @return The number of the item the mob has
+     */
+    countItems(mob: MobContext, typeId: string): number;
+
+    /**
      * Create a mob in the world
      * 
      * @param name The name to give the mod (or "" to not display a name)
      * @param skin The ID of the skin of the mob to create (@see SKINS)
-     * @param x The x coordinate in the world to create the mob
-     * @param y The y coordinate in the world to create the move
+     * @param x The x coordinate in the world to create the mob in world coordinates (* BLOCK_SIZE)
+     * @param y The y coordinate in the world to create the mob in world coordinates (* BLOCK_SIZE)
      * @param thinkFunction The callback for the mob to think each frame
      */
     createMob(name: string, skin: string, x: number, y: number, thinkFunction?: MobThinkFunction): MobContext;
@@ -416,6 +456,15 @@ export interface ServerMod {
      * @param y The y coordinate in tiles of the location being hit
      */
     onHitHead?(game: GameContext, mob: MobContext, x: number, y: number): void;
+
+    /**
+     * Notification that a mob joined the world
+     * 
+     * @param game The game being joined
+     * @param mob The mob that joined the game
+     */
+    onMobAdded?(game: GameContext, mob: MobContext): void;
+
 }
 
 /**
