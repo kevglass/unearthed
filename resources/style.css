@@ -62,23 +62,27 @@ input {
     display: flex;
     margin-top: 20px;
     width: 400px;
+    max-width: 100%;
 }
 
 #settingsPanel {
     width: 400px;
     height: 250px;
+    max-width: 95%;
     display: none;
 }
 
 #serverSettingsPanel {
     width: 400px;
     height: 370px;
+    max-width: 95%;
     display: none;
 }
 
 #modsPanel {
     width: 400px;
     height: 370px;
+    max-width: 95%;
     display: none;
 }
 
@@ -506,6 +510,7 @@ input {
 #modsList {    
     width: 280px;
     height: 300px;
+    max-width: calc(100% - 160px);
     background: white;
     padding: 5px;
     border-radius: 5px;
