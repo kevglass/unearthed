@@ -20,7 +20,7 @@ export class PickaxeMod implements ServerMod {
             }
         }
     }
-    
+
     onUseTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
         if (toolId === "iron-pick") {
             game.setBlock(x, y, layer, 0);

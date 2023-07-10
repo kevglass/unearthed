@@ -1019,7 +1019,7 @@ export class Game implements ControllerListener {
 
         localStorage.setItem("controller", JSON.stringify(setup));
 
-        localStorage.setItem("keysetup", JSON.stringify(this.keyControls));
+        localStorage.setItem("keysetup-v2", JSON.stringify(this.keyControls));
     }
 
     /**
