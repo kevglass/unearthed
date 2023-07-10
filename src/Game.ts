@@ -164,7 +164,7 @@ export class Game implements ControllerListener {
         layer: "KeyX",
         trigger: "KeyR",
         invent: "KeyI",
-    }
+    };
 
     constructor() {
         const params = new URLSearchParams(location.search);
@@ -997,13 +997,26 @@ export class Game implements ControllerListener {
             }
         }
 
-        const keysetup = localStorage.getItem("keysetup");
+        const keysetup = localStorage.getItem("keysetup-v2");
         if (keysetup) {
             try {
                 const setup = JSON.parse(keysetup);
                 Object.assign(this.keyControls, setup);
             } catch (e) {
                 // do nothing, invalid JSON
+            }
+        } else {
+            console.log("Using default keys so map through keyboard");
+            // we're using the default configuration so lets map that through 
+            // the keyboard layout setup if we have one
+            const keyboard = (navigator as any).keyboard;
+            if (keyboard && keyboard.getLayoutMap) {
+                keyboard.getLayoutMap().then((keyboardLayoutMap: { get(key: string): string }) => {
+                    for (const key of Object.keys(this.keyControls)) {
+                        const kc = (this.keyControls as any);
+                        kc[key] = "Key" + keyboardLayoutMap.get(kc[key]).toUpperCase();
+                    }
+                });
             }
         }
     }
