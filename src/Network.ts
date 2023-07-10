@@ -288,6 +288,8 @@ export class Network {
     private postNetworkSetup(): void {
         if (this.thisIsTheHostServer) {
             this.game.mods.worldStarted();
+            // TODO - think about combining the 3 versions of this and persisting
+            // a players position when they were in this world last against their unique player ID
             this.game.player.x = (this.game.globalProperties.SPAWN_X as number) * TILE_SIZE;
             this.game.player.y = (this.game.globalProperties.SPAWN_Y as number) * TILE_SIZE;
             this.game.mods.mobAdded(this.game.player);
@@ -400,6 +402,8 @@ export class Network {
                         this.game.mods.init();
                         this.game.mods.worldStarted();
 
+                        // TODO - think about combining the 3 versions of this and persisting
+                        // a players position when they were in this world last against their unique player ID
                         this.game.player.x = (this.game.globalProperties.SPAWN_X as number) * TILE_SIZE;
                         this.game.player.y = (this.game.globalProperties.SPAWN_Y as number) * TILE_SIZE;
                         this.game.mods.mobAdded(this.game.player);
@@ -491,6 +495,8 @@ export class Network {
                                     this.updatePlayerList(this.localMobs);
 
                                     if (targetMob.isPlayer()) {
+                                        // TODO - think about combining the 3 versions of this and persisting
+                                        // a players position when they were in this world last against their unique player ID
                                         targetMob.x = (this.game.globalProperties.SPAWN_X as number) * TILE_SIZE;
                                         targetMob.y = (this.game.globalProperties.SPAWN_Y as number) * TILE_SIZE;
                                     }
