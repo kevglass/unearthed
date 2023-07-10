@@ -155,15 +155,15 @@ export class Game implements ControllerListener {
      * The configuration of the key controls buttons to actions
      */
     keyControls: KeyControls = {
-        up: "w",
-        down: "s",
-        left: "a",
-        right: "d",
-        next: "e",
-        prev: "q",
-        layer: "x",
-        trigger: "r",
-        invent: "i",
+        up: "KeyW",
+        down: "KeyS",
+        left: "KeyA",
+        right: "KeyD",
+        next: "KeyE",
+        prev: "KeyQ",
+        layer: "KeyX",
+        trigger: "KeyR",
+        invent: "KeyI",
     }
 
     constructor() {
@@ -464,18 +464,18 @@ export class Game implements ControllerListener {
                 return;
             }
 
-            if (this.controllerSetupStep >= 0 && event.key === "Escape") {
+            if (this.controllerSetupStep >= 0 && event.code === "Escape") {
                 this.controllerSetupStep = -1;
                 document.getElementById("settingsPanel")!.style.display = "block";
                 return;
             }
 
-            if (event.key === "Escape") {
+            if (event.code === "Escape") {
                 hideCodeEditor();
                 this.inventPanel.hide();
             }
 
-            if (event.key === this.keyControls.invent) {
+            if (event.code === this.keyControls.invent) {
                 this.inventPanel.showing() ? this.inventPanel.hide() : this.inventPanel.show();
                 event.preventDefault();
                 event.stopPropagation();
@@ -492,25 +492,25 @@ export class Game implements ControllerListener {
             }
 
             // record the keyboard state
-            this.keyDown[event.key] = true;
+            this.keyDown[event.code] = true;
 
             // if the user hits enter and we're connected to the game
             // then show the chat box
             if (this.network.connected()) {
-                if (event.key === "Enter" && this.ui.portalInput!.style.display !== 'block') {
+                if (event.code === "Enter" && this.ui.portalInput!.style.display !== 'block') {
                     this.ui.showChat();
                 }
             }
 
             // Pressing Q/E cycles through cycles through the inventory
-            if (event.key === this.keyControls.prev) {
+            if (event.code === this.keyControls.prev) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.prevItem();
                 } else {
                     this.prevQuickSlot();
                 }
             }
-            if (event.key === this.keyControls.next) {
+            if (event.code === this.keyControls.next) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.nextItem();
                 } else {
@@ -519,7 +519,7 @@ export class Game implements ControllerListener {
             }
 
             // Pressing X changes the layer we're targeting
-            if (event.key === this.keyControls.layer) {
+            if (event.code === this.keyControls.layer) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.layer();
                 } else {
@@ -527,7 +527,7 @@ export class Game implements ControllerListener {
                 }
             }
 
-            if (event.key === this.keyControls.trigger) {
+            if (event.code === this.keyControls.trigger) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.trigger();
                 } else {
@@ -540,7 +540,7 @@ export class Game implements ControllerListener {
 
         // mouse up, just maintain state
         document.addEventListener("keyup", (event: KeyboardEvent) => {
-            this.keyDown[event.key] = false;
+            this.keyDown[event.code] = false;
         });
 
         // get rid of the right click menu in the browser
