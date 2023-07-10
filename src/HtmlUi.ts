@@ -273,12 +273,12 @@ export class HtmlUi {
         // special cases for when chatting. Enter will send the message and escape
         // will hide the chat box.
         this.chatInput!.addEventListener("keydown", (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
+            if (event.code === "Escape") {
                 this.chatInput.value = "";
                 document.getElementById("settingsPanel")!.style.display = "none";
                 this.hideChat();
             }
-            if (event.key === "Enter") {
+            if (event.code === "Enter") {
                 this.sendChat(this.chatInput.value);
                 this.chatInput.value = "";
                 this.hideChat();
@@ -286,10 +286,10 @@ export class HtmlUi {
         });
         
         this.portalInput!.addEventListener("keydown", (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
+            if (event.code === "Escape") {
                 this.hidePortal();
             }
-            if (event.key === "Enter") {
+            if (event.code === "Enter") {
                 const tileIndex = Math.floor(this.game.player.x / TILE_SIZE) + (Math.floor(this.game.player.y / TILE_SIZE) * MAP_WIDTH);
                 const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
                 if (portal) {
