@@ -1,5 +1,6 @@
 import { Layer } from "src/Map";
 import { GameContext, GameProperty, MobContext, ServerMod, SkinDefinition } from "../Mods";
+import { Game } from "src/Game";
 
 export class PickaxeMod implements ServerMod {
     id: string = "default-pickaxe";
@@ -10,6 +11,9 @@ export class PickaxeMod implements ServerMod {
     pickAxeType: string = "";
 
     onGameStart(game: GameContext): void {
+        game.setGameProperty(GameProperty.SPAWN_X, 50);
+        game.setGameProperty(GameProperty.SPAWN_Y, 2);
+
         this.pickAxeType = game.addTool("holding/pick_iron", 0, "iron-pick", false, true, 60, true, 0.01);
     }
     

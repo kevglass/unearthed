@@ -132,11 +132,15 @@ export class Game implements ControllerListener {
 
     /** If we're running headless mode */
     headless: boolean = false;
+    /** The unique player ID other servers can use to determine the same user */
+    uniquePlayerId: string = "";
 
     /** The collection of global properties configurable from mods */
-    globalProperties: Record<GameProperty, string> = {
+    globalProperties: Record<GameProperty, string | number> = {
         [GameProperty.BACKGROUND_COLOR]: "#445253FF",
         [GameProperty.SKY_COLOR]: "#CFEFFCFF",
+        [GameProperty.SPAWN_X]: 2,
+        [GameProperty.SPAWN_Y]: (SKY_HEIGHT - 6),
     };
 
     /**
@@ -203,6 +207,11 @@ export class Game implements ControllerListener {
             this.serverPassword = uuidv4();
             localStorage.setItem("serverPassword", this.serverPassword);
         }
+        this.uniquePlayerId = localStorage.getItem("playerId") ?? "";
+        if (this.uniquePlayerId === "") {
+            this.uniquePlayerId = uuidv4();
+            localStorage.setItem("playerId", this.uniquePlayerId);
+        }
 
         this.loadControllerSetup();
 
@@ -240,7 +249,7 @@ export class Game implements ControllerListener {
         this.gameMap.resetDiscoveryAndLights();
 
         // create the local player and configure and skin settings
-        this.player = new Mob(this.network, this.gameMap, uuidv4(), this.username, true, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
+        this.player = new Mob(this.network, this.gameMap, this.uniquePlayerId, this.username, true, "human", 200, (SKY_HEIGHT - 6) * TILE_SIZE, true);
 
         const skinsForValidation = ["a", "b", "c", "d"];
         if (localStorage.getItem("head")) {
@@ -1082,7 +1091,7 @@ export class Game implements ControllerListener {
         const oy = this.player.y - (this.canvas.height / 2);
         ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
-        const skyColor = toColorComponents(this.globalProperties[GameProperty.SKY_COLOR]);
+        const skyColor = toColorComponents(this.globalProperties[GameProperty.SKY_COLOR] as string);
         if (skyColor) {
             this.g.clearScreen(skyColor.r, skyColor.g, skyColor.b);
         }
@@ -1144,7 +1153,7 @@ export class Game implements ControllerListener {
         }
 
         // if the network hasn't been started we're at the main menu
-        if (!this.network.connected() || !this.network.hadMap) {
+        if (!this.network.connected() || !this.network.hadMap || !this.network.readyToRender) {
             // update the sample player
             this.network.update(this.player, this.mobs);
             requestAnimationFrame(() => { this.loop() });
@@ -1232,7 +1241,7 @@ export class Game implements ControllerListener {
             this.g.translate(-Math.floor(ox), -Math.floor(oy));
 
             // draw the underground background
-            const bgColor = toColorComponents(this.globalProperties[GameProperty.BACKGROUND_COLOR]);
+            const bgColor = toColorComponents(this.globalProperties[GameProperty.BACKGROUND_COLOR] as string);
             if (bgColor) {
                 this.g.setFillColor(bgColor.r, bgColor.g, bgColor.b, bgColor.a / 255);
                 this.g.fillRect(0, SKY_HEIGHT * 128, MAP_WIDTH * 128, MAP_DEPTH * 128);

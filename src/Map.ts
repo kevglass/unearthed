@@ -204,7 +204,6 @@ export class GameMap {
         this.timers = [];
         this.items = [];
 
-        console.error("Clearing items");
         this.metaData = {
             portals: [],
             modData: {}

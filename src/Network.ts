@@ -98,6 +98,8 @@ export class Network {
     hasServerSettings: boolean = false;
     /** The items to add once we've loaded mods */
     itemsToAdd: NetworkItem[] = [];
+    /** True if we have enough information to render */
+    readyToRender: boolean = false;
 
     /**
      * Create a new network session
@@ -157,13 +159,14 @@ export class Network {
             this.hadMap = true;
         }
 
-        if (!NETWORKING_ENABLED) {
-            this.thisIsTheHostServer = true;
-            return;
-        }
-
         if (hosting) {
             this.serverConfig = this.game.serverSettings.getConfig();
+        }
+
+        if (!NETWORKING_ENABLED) {
+            this.thisIsTheHostServer = true;
+            this.postNetworkSetup();
+            return;
         }
 
         console.log("Connecting to room server");
@@ -278,11 +281,19 @@ export class Network {
         console.log("Network started");
         this.isConnected = true;
 
-        if (hosting) {
-            this.game.mods.worldStarted();
-            this.game.mods.mobAdded(this.game.player);
-        }
+        this.postNetworkSetup();
 
+    }
+
+    private postNetworkSetup(): void {
+        if (this.thisIsTheHostServer) {
+            this.game.mods.worldStarted();
+            this.game.player.x = (this.game.globalProperties.SPAWN_X as number) * TILE_SIZE;
+            this.game.player.y = (this.game.globalProperties.SPAWN_Y as number) * TILE_SIZE;
+            this.game.mods.mobAdded(this.game.player);
+
+            this.readyToRender = true;
+        }
     }
 
     private processMessage(message: any, participant: RemoteParticipant | undefined, hosting: boolean, messageIsFromHost: boolean): void {
@@ -317,6 +328,7 @@ export class Network {
                 break;
             }
             case "requestMap": {
+                console.log("Got request for map");
                 if (hosting) {
                     if (participant) {
                         this.sendMapUpdate(participant.sid);
@@ -387,6 +399,9 @@ export class Network {
 
                         this.game.mods.init();
                         this.game.mods.worldStarted();
+
+                        this.game.player.x = (this.game.globalProperties.SPAWN_X as number) * TILE_SIZE;
+                        this.game.player.y = (this.game.globalProperties.SPAWN_Y as number) * TILE_SIZE;
                         this.game.mods.mobAdded(this.game.player);
                     }
 
@@ -400,6 +415,8 @@ export class Network {
                         this.gameMap.addItem(item.x, item.y, item.count, item.itemType, item.itemId);
                     }
                     this.itemsToAdd = [];
+
+                    this.readyToRender = true;
                 }
                 break;
             }
@@ -472,6 +489,11 @@ export class Network {
                                     targetMob = new Mob(this, this.gameMap, mobData.id, mobData.name, mobData.isPlayer, mobData.type, mobData.x, mobData.y);
                                     this.localMobs.push(targetMob);
                                     this.updatePlayerList(this.localMobs);
+
+                                    if (targetMob.isPlayer()) {
+                                        targetMob.x = (this.game.globalProperties.SPAWN_X as number) * TILE_SIZE;
+                                        targetMob.y = (this.game.globalProperties.SPAWN_Y as number) * TILE_SIZE;
+                                    }
 
                                     this.game.mods.mobAdded(this.game.player);
                                 }
@@ -568,6 +590,7 @@ export class Network {
      * @param serverSettings The server settings that should be sent over.
      */
     sendServerSettings(serverSettings: ServerConfig, target?: string): void {
+        console.log("Sending server settings");
         if (this.isConnected) {
             const toSend = JSON.parse(JSON.stringify(serverSettings));
             // don't send binary lumps across, we'll blow the message stack
@@ -848,7 +871,7 @@ export class Network {
         }
 
         // need to send out an "I am the host message"
-        if (Date.now() - this.lastHostUpdate > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
+        if (Date.now() - this.lastHostUpdate > MAP_REQUEST_INTERVAL && this.thisIsTheHostServer) {
             this.lastHostUpdate = Date.now();
             const data = JSON.stringify({ type: "iAmHost", version: "_VERSION_" });
             this.room.localParticipant.publishData(this.encoder.encode(data), DataPacket_Kind.RELIABLE);

@@ -3,7 +3,7 @@ import { GameContext, GameProperty, MobContext, ServerMod, SkinDefinition } from
 import { loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
 import { Block, BLOCKS } from "src/Block";
 import { ALL_ITEMS, ItemDefinition } from "src/InventItem";
-import { Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
+import { Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
 import { v4 as uuidv4 } from 'uuid';
 import { SKINS, Skin, skinFromJson } from "src/Skins";
@@ -21,6 +21,9 @@ global.Layer = {
 }
 
 global.BLOCK_SIZE = TILE_SIZE;
+global.MAP_WIDTH = MAP_WIDTH;
+global.MAP_HEIGHT = MAP_DEPTH;
+global.SKY_HEIGHT = SKY_HEIGHT;
 
 /**
  * A wrapper around the main Game that can then be exposed to mods.
@@ -70,14 +73,14 @@ export class GameAsContext implements GameContext {
     /**
      * @see GameContext.setGameProperty
      */
-    setGameProperty(prop: GameProperty, value: string): void {
+    setGameProperty(prop: GameProperty, value: string | number): void {
         this.game.globalProperties[prop] = value;
     }
 
     /**
      * @see GameContext.getGameProperty
      */
-    getGameProperty(prop: GameProperty): string {
+    getGameProperty(prop: GameProperty): string | number {
         return this.game.globalProperties[prop];
     }
 
