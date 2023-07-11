@@ -211,7 +211,7 @@ export class DefaultBlockMod implements ServerMod {
             // only grows in dirt on the top
             if (game.getBlock(x, y, Layer.FOREGROUND) === 2) {
                 if (game.getBlock(x, y - 1, Layer.FOREGROUND) === 0) {
-                    game.setBlock(x, y - 1, Layer.FOREGROUND, 20);
+                    game.setBlock(x, y - 1, Layer.FOREGROUND, 29);
                     game.takeItem(mob, 1, this.seedItemId);
 
                     game.setTimeout(() => {
