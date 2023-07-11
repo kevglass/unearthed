@@ -115,7 +115,7 @@ export class InventPanel {
             g.fillText("Inventory", this.panelWidth / 4, -15);
             g.setFillColor(0, 0, 0, 0.3);
             g.fillRect(this.panelWidth / 2, -60, this.panelWidth / 2, 60);
-            g.setFillColor(0, 0, 0, 255);
+            g.setFillColor(255 ,255, 255, 255);
             g.fillText("Recipes", (this.panelWidth / 4) * 3, -15);
         }
 

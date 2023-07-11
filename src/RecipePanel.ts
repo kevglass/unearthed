@@ -1,5 +1,7 @@
 import { Game } from "./Game";
-import { Item, ItemDefinition } from "./InventItem";
+import { ALL_ITEMS, Item, ItemDefinition } from "./InventItem";
+import { InventPanel } from "./InventPanel";
+import { Recipe } from "./Recipe";
 import { Graphics } from "./engine/Graphics";
 import { getSprite, playSfx } from "./engine/Resources";
 
@@ -38,9 +40,17 @@ export class RecipePanel {
     /** True if the player has dragged an item out of the inventory */
     holdingItem: Item | undefined = undefined;
     /** The offset of the inventory scroller */
-    inventOffsetY: number = 0;
+    recipeOffsetY: number = 0;
     /** The index of the selected item - for key controls */
     selectedItem: number = -1;
+    /** Recipes displayed */
+    recipes: Recipe[] = [];
+    /** The y position of the make button */
+    makeButtonY: number = 0;
+    /** The start of the time to show the made message */
+    showMadeMessageStart: number = 0;
+    /** The name of the last made item */
+    lastMadeItemName: string = "";
 
     constructor(game: Game) {
         this.game = game;
@@ -88,16 +98,15 @@ export class RecipePanel {
         const space = 300;
         this.panelWidth = Math.min(g.getWidth() - space, 900);
         this.panelHeight = Math.min(g.getHeight() - space, 800);
-        const items = this.game.player.inventory;
-        const across = Math.floor((this.panelWidth - 120) / 130);
-        const down = Math.ceil(items.length / across);
+        const items = this.game.recipes;
+        const down = items.length;
 
         this.panelX = (g.getWidth() - this.panelWidth) / 2;
         this.panelY = (g.getHeight() - this.panelHeight) / 2;
 
         // work out the proportion of the thumb scroll that we have
-        const totalHeight = (down * 130) - 260;
-        let pages = Math.ceil(totalHeight / this.panelHeight);
+        const totalHeight = ((down * 130) - this.panelHeight) - 40;
+        let pages = Math.max(1, Math.ceil(totalHeight / (this.panelHeight - 40)) - 0.5);
         this.thumbHeight = ((this.panelHeight - 40) / pages);
 
         // render the panel
@@ -111,11 +120,11 @@ export class RecipePanel {
             g.setTextAlign("center");
             g.setFillColor(0, 0, 0, 0.3);
             g.fillRect(0, -60, this.panelWidth / 2, 60);
-            g.setFillColor(0, 0, 0, 255);
+            g.setFillColor(255, 255, 255, 1);
             g.fillText("Inventory", this.panelWidth / 4, -15);
             g.setFillColor(255, 255, 255, 0.8);
             g.fillRect(this.panelWidth / 2, -60, this.panelWidth / 2, 60);
-            g.setFillColor(0, 0, 0, 255);
+            g.setFillColor(0, 0, 0, 1);
             g.fillText("Recipes", (this.panelWidth / 4) * 3, -15);
         }
 
@@ -126,16 +135,66 @@ export class RecipePanel {
         g.setFillColor(0, 0, 0, 0.5);
         g.fillRect(20, 20 + this.thumbPosition, 40, this.thumbHeight);
 
-        let thumbOffset = this.thumbPosition / ((this.panelHeight - 40));
+        let thumbOffset = this.thumbPosition / ((this.panelHeight - 40 + this.thumbHeight));
         thumbOffset = thumbOffset === Number.NaN ? 0 : thumbOffset;
 
         // render the items scrolled based on the scroll bar
         g.save();
         g.clip(0, 0, this.panelWidth, this.panelHeight);
-        this.inventOffsetY = -(thumbOffset * totalHeight * pages);
-        g.translate(0, this.inventOffsetY);
+        this.recipeOffsetY = -(thumbOffset * totalHeight * pages);
+        g.translate(0, this.recipeOffsetY);
+        let y = 0;
+        this.recipes = [];
+        for (const recipe of this.game.recipes) {
+            const def = ALL_ITEMS.find(i => i.type === recipe.output.type);
+            if (def) {
+                InventPanel.drawItem(this.game, g, { def, count: 1 }, 100, 20 + (y * 130), this.selectedItem == y);
+                this.recipes.push(recipe);
+                y += 1;
+            }
+        }
+
+        const recipe = this.getSelectedRecipe();
+        if (recipe) {
+            g.setFont("70px KenneyFont");
+            g.setTextAlign("center");
+            g.setFillColor(0,0,0,1);
+            g.fillText(recipe.name + (recipe.output.count === 1 ? "" : " (" + recipe.output.count + ")"), 230 + ((this.panelWidth - 230) / 2), 100);
+
+            let y = 150;
+            for (const input of recipe.inputs) {
+                const def = ALL_ITEMS.find(i => i.type === input.type);
+                if (def) {
+                    g.drawScaledImage(getSprite(def.sprite), 500, y, 85, 85);
+                }
+
+                g.setFont("70px KenneyFont");
+                g.fillText(Math.min(input.count, Math.floor(this.game.player.getItemCount(input.type))) + "/" + input.count, 310 + ((this.panelWidth - 230) / 2), y + 70);
+                y += 130;
+            }
+
+            g.setFillColor(0, 0, 0, 0.3);
+            if (this.hasIngredients()) {
+                g.setFillColor(255, 255, 255, 0.8);
+            }
+
+            this.makeButtonY = this.panelHeight - 200;
+            g.fillRect(230 + ((this.panelWidth - 230) / 2) - 100, this.makeButtonY, 200, 80);
+            g.setFillColor(0, 0, 0, 1);
+            g.setFont("65px KenneyFont");
+            g.setTextAlign("center");
+            g.fillText("Make", 230 + ((this.panelWidth - 230) / 2), this.makeButtonY + 60);
+        }
         g.restore();
 
+        if (this.showMadeMessage()) {
+            g.setFillColor(0, 200, 0, 0.5);
+            g.fillRect(0, this.panelHeight - 70, this.panelWidth, 70);
+            g.setFont("70px KenneyFont");
+            g.setTextAlign("center");
+            g.setFillColor(255, 255, 255, 1);
+            g.fillText("Made " + this.lastMadeItemName, this.panelWidth / 2, this.panelHeight - 15);
+        }
         g.restore();
     }
 
@@ -176,12 +235,63 @@ export class RecipePanel {
                 this.thumbPosition = y;
                 this.validateThumb();
             }
-        } else {
+        } else if (x > 100 && x < 230) {
+            const iy = Math.floor((y - 20 - this.recipeOffsetY) / 130);
+            if ((iy >= 0) && (iy < this.recipes.length)) {
+                this.selectedItem = iy;
+            }
+        } else if ((x > 230) && (y > this.makeButtonY) && (y < this.makeButtonY + 80)) {
+            // clicked the make button
+            if (this.hasIngredients()) {
+                this.makeItem();
+            } else {
+                playSfx("footstep", 0.4);
+            }
         }
 
         this.lastMx = x;
         this.lastMy = y;
         this.mousePressed = true;
+    }
+
+    makeItem(): void {
+        const recipe = this.getSelectedRecipe();
+        if (recipe) {
+            playSfx("click", 0.4);
+            setTimeout(() => { 
+                playSfx("pickup", 0.4);
+            }, 250);
+
+            for (const input of recipe.inputs) {
+                this.game.player.removeItem(input.type, input.count);
+            }
+            this.game.player.addItem(recipe.output.type, recipe.output.count);
+            this.showMadeMessageStart = Date.now();
+            this.lastMadeItemName = recipe.name;
+        }
+    }
+
+    hasIngredients(): boolean {
+        const recipe = this.getSelectedRecipe();
+        if (recipe) {
+            for (const input of recipe.inputs) {
+                if (this.game.player.getItemCount(input.type) < input.count) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    getSelectedRecipe(): Recipe {
+        return this.recipes[this.selectedItem];
+    }
+
+    showMadeMessage(): boolean {
+        return Date.now() < this.showMadeMessageStart + 20000;
     }
 
     /**

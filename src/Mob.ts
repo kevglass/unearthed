@@ -645,7 +645,7 @@ export class Mob {
                 this.saveItems();
             }
         } else {
-            console.log("Couldn't find item to remove");
+            console.error("Couldn't find item to remove: " + itemType);
         }
     }
 
@@ -903,7 +903,7 @@ export class Mob {
         }
 
         // apply vertical velocity (if there is any)
-        this.y += this.vy
+        this.y += this.vy;
 
         if (this.standingOnSomething()) {
             if (this.standingOnSomething(false) || !this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {

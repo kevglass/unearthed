@@ -1,6 +1,7 @@
 import { Block } from "src/Block";
 import { Layer } from "src/Map";
 import { MobState } from "src/Mob";
+import { Recipe } from "src/Recipe";
 
 /**
  * The definition of a function that will be called to cause any 
@@ -120,6 +121,14 @@ export interface GameContext {
      * @param blockId The ID of the block to remove
      */
     removeBlock(blockId: number): void;
+
+    /**
+     * Equivalent to Javascript setTimeout but fired in the context of the mod
+     * 
+     * @param callback The callback function to call
+     * @param timeout The timeout in milliseconds
+     */
+    setTimeout(callback: () => void, timeout: number): void;
 
     /**
      * Remove a tool from the game configuration based on its tool ID. This is useful for
@@ -299,6 +308,15 @@ export interface GameContext {
     giveItem(mob: MobContext, count: number, typeId: string): void;
 
     /**
+     * Take an item from a mob
+     * 
+     * @param mob The mob to take the item from
+     * @param count The number of the item to take
+     * @param typeId The type of item to take as returned from @see addTool
+     */
+    takeItem(mob: MobContext, count: number, typeId: string): void;
+
+    /**
      * Get the number of an item a mob has
      * 
      * @param mob The mob to check
@@ -340,6 +358,21 @@ export interface GameContext {
      * @param skinDef The definition of the skin as a structure
      */
     addSkin(name: string, skinDef: SkinDefinition): void;
+
+    /**
+     * Add a recipe to the game
+     * 
+     * @param name The name of the recipe
+     * @param recipeDef The recipe to be added
+     */
+    addRecipe(name: string, recipeDef: Recipe): void;
+
+    /**
+     * Remove a recipe from the game 
+     * 
+     * @param name The name of the recipe to be removed
+     */
+    removeRecipe(name: string): void;
 }
 
 /**

@@ -739,11 +739,7 @@ export class Network {
                 // using a tool
                 this.game.mods.tool(player, x, y, layer, toolId);
 
-                // if a mod has replaced the tile that was put down then don't continue 
-                // setting the tile since we'll override the mod
-                if (oldBlock !== this.gameMap.getTile(x, y, layer)) {
-                    return;
-                }
+                return;
             }
         }
         if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {

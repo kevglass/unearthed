@@ -121,8 +121,8 @@ export class HtmlUi {
             if (confirm("Reset Map?") && this.game.isHostingTheServer) {
                 this.gameMap.reset();
                 this.network.sendMapUpdate(undefined);
-                this.game.player.x = 200;
-                this.game.player.y = (SKY_HEIGHT - 6) * TILE_SIZE;
+                this.game.player.x = this.game.globalProperties.SPAWN_X as number * TILE_SIZE;
+                this.game.player.y = this.game.globalProperties.SPAWN_Y as number * TILE_SIZE;
                 document.getElementById("serverSettingsPanel")!.style.display = "none";
             }
         });

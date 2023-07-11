@@ -34,6 +34,8 @@ export class GameAsContext implements GameContext {
     game: Game;
     /** The mod currently being processed */
     currentMod: ModRecord | undefined;
+    /** The number of entries to this context */
+    currentCount: number = 0;
     /** True if logging is enabled */
     logging: boolean = false;
 
@@ -41,10 +43,23 @@ export class GameAsContext implements GameContext {
         this.game = game;
     }
 
+    /**
+     * @see GameContext.takeItem
+     */
+    takeItem(mob: MobContext, count: number, typeId: string): void {
+        (mob as Mob).removeItem(typeId, count);
+    }
+
+    /**
+     * @see GameContext.giveItem
+     */
     giveItem(mob: MobContext, count: number, typeId: string): void {
         (mob as Mob).addItem(typeId, count);
     }
 
+    /**
+     * @see GameContext.countItems
+     */
     countItems(mob: MobContext, typeId: string): number {
         return (mob as Mob).getItemCount(typeId);
     }
@@ -195,6 +210,30 @@ export class GameAsContext implements GameContext {
         } catch (e) {
             this.error("Invalid skin file specified - invalid JSON?");
             this.error(e);
+        }
+    }
+
+    /**
+     * @see GameContext.addRecipe
+     */
+    addRecipe(id: string, recipeDef: Recipe): void {
+        if (this.currentMod) {
+            this.currentMod.recipesAdded.push(recipeDef);
+        }
+        // remove any existing recipe by this name
+        this.removeRecipe(id);
+
+        recipeDef.id = id;
+        this.game.recipes.push(recipeDef);
+    }
+
+    /**
+     * @see GameContext.removeRecipe
+     */
+    removeRecipe(id: string): void {
+        const existing = this.game.recipes.find(r => r.id === id);
+        if (existing) {
+            this.game.recipes.splice(this.game.recipes.indexOf(existing), 1);
         }
     }
 
@@ -368,19 +407,44 @@ export class GameAsContext implements GameContext {
     }
 
     /**
+     * @see GameContext.setTimeout
+     */
+    setTimeout(callback: () => void, timeout: number): void {
+        // wrap any calls to setTimeout in a context aware
+        // callback
+        const mod = this.currentMod;
+
+        if (mod) {
+            setTimeout(() => {
+                this.startContext(mod);
+                callback();
+                this.endContext();
+            }, timeout);
+        }
+    }
+
+    /**
      * Start using this context for the mod specified. 
      * 
      * @param mod The mod we're taking actions for
      */
     startContext(mod: ModRecord) {
-        this.currentMod = mod;
+        if (mod === this.currentMod) {
+            this.currentCount++;
+        } else {
+            this.currentCount = 1;
+            this.currentMod = mod;
+        }
     }
 
     /**
      * End the use of this context with the current mod
      */
     endContext() {
-        this.currentMod = undefined;
+        this.currentCount--;
+        if (this.currentCount === 0) {
+            this.currentMod = undefined;
+        }
     }
 
     /**

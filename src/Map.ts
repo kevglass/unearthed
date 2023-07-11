@@ -131,7 +131,7 @@ export class GameMap {
         
         if (def) {
             const newItem: InGameItem = {
-                x, y, count, def, id: itemId 
+                x, y, count, def, id: itemId, vy: 0
             }
             this.items.push(newItem);
         }
@@ -154,6 +154,7 @@ export class GameMap {
             }
         }
     }
+    
     /**
      * Reset the map to a newly generated one
      */
@@ -692,6 +693,29 @@ export class GameMap {
         }
 
         return this.foreground[x + (y * MAP_WIDTH)];
+    }
+
+    update(): void {
+        this.updateTimers();
+
+        // some very clunky item falling code
+        for (const item of this.items) {
+            if (item.vy < TILE_SIZE / 2) {
+                item.vy += 1;
+                let oldy = item.y;
+                item.y += item.vy;
+                if (this.isBlocked(Math.floor(item.x / TILE_SIZE), Math.floor((item.y / TILE_SIZE) + 0.5))) {
+                    item.y = oldy;
+                    item.vy = 0;
+                } else if (this.isBlocked(Math.floor((item.x / TILE_SIZE) - 0.25),  Math.floor((item.y / TILE_SIZE) + 0.5))) {
+                    item.y = oldy;
+                    item.vy = 0;
+                } else if (this.isBlocked(Math.floor((item.x / TILE_SIZE) + 0.25),  Math.floor((item.y / TILE_SIZE) + 0.5))) {
+                    item.y = oldy;
+                    item.vy = 0;
+                }
+            }
+        }
     }
 
     updateTimers(): void {

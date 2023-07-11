@@ -511,6 +511,20 @@ export class Game implements ControllerListener {
             // record the keyboard state
             this.keyDown[event.code] = true;
 
+            for (let i = 1; i < 10; i++) {
+                if (this.keyDown["Digit" + i]) {
+                    if (this.player.itemHeld !== this.player.quickSlots[i - 1]) {
+                        this.player.itemHeld = this.player.quickSlots[i - 1];
+                        this.quickSlotSelected = i - 1;
+                        playSfx('click', 1);
+                    } else {
+                        this.player.itemHeld = null;
+                        this.quickSlotSelected = -1;
+                        playSfx('click', 1);
+                    }
+                }
+            }
+            
             // if the user hits enter and we're connected to the game
             // then show the chat box
             if (this.network.connected()) {
@@ -635,7 +649,7 @@ export class Game implements ControllerListener {
     prevQuickSlot() {
         const rows = (isMobile()) ? 1 : 2;
         this.quickSlotSelected--;
-        if (this.quickSlotSelected < 0) {
+        if (this.quickSlotSelected < -1) {
             this.quickSlotSelected = (rows * 4) - 1;
         }
         this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
@@ -702,10 +716,16 @@ export class Game implements ControllerListener {
         if (yp >= 0 && yp < rows) {
             if (xp < 4 && xp >= 0) {
                 if (index >= 0 && index < this.player.quickSlots.length) {
-                    this.quickSlotSelected = index;
                     foundInventButton = true;
-                    this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
-                    playSfx('click', 1);
+                    if (this.player.itemHeld !== this.player.quickSlots[index]) {
+                        this.quickSlotSelected = index;
+                        this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
+                        playSfx('click', 1);
+                    } else {
+                        this.player.itemHeld = null;
+                        this.quickSlotSelected = -1;
+                        playSfx('click', 1);
+                    }
                 }
             }
         }
@@ -1009,7 +1029,7 @@ export class Game implements ControllerListener {
                     this.player.controls.up = true;
                 }
 
-                this.gameMap.updateTimers();
+                this.gameMap.update();
 
                 // finally draw update and draw the mobs
                 for (const mob of [...this.mobs]) {
@@ -1294,16 +1314,6 @@ export class Game implements ControllerListener {
 
             // render the whole game map
             this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
-
-            for (let i = 1; i < 9; i++) {
-                if (this.keyDown["Digit" + i]) {
-                    if (this.player.itemHeld !== this.player.quickSlots[i - 1]) {
-                        this.player.itemHeld = this.player.quickSlots[i - 1];
-                        this.quickSlotSelected = i - 1;
-                        playSfx('click', 1);
-                    }
-                }
-            }
 
             // finally draw update and draw the mobs
             for (const mob of [...this.mobs]) {

@@ -8,6 +8,8 @@ export interface RecipeItem {
  * a new output item
  */
 export interface Recipe {
+    id?: string;
+    name: string;
     inputs: RecipeItem[];
     worldBlock?: number;
     output: RecipeItem;

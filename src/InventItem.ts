@@ -41,7 +41,9 @@ export const ITEM_HANDS: Item =
         toolId: "hands",
         targetEmpty: false,
         targetFull: true,
-        delay: 150
+        delay: 150,
+        breakable: false,
+        amountUsed: 0
     },
     count: 1
 };
@@ -69,4 +71,6 @@ export interface InGameItem extends Item {
     x: number;
     /** The y coordinate of the item in game */
     y: number;
+    /** The item's y axis velocity */
+    vy: number;
 }
