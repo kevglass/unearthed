@@ -217,6 +217,46 @@ export class GameAsContext implements GameContext {
     }
 
     /**
+     * @see GameContext.removeBlock
+     */
+    removeBlock(blockId: number): void {
+        delete BLOCKS[blockId];
+    }
+
+    /**
+     * @see GameContext.removeToolByToolId
+     */
+    removeToolByToolId(toolId: string): void {
+        const existing = ALL_ITEMS.find(t => t.toolId == toolId);
+        if (existing) {
+            ALL_ITEMS.splice(ALL_ITEMS.indexOf(existing), 1);
+            this.game.mobs.forEach(m => m.initInventory());
+        }
+    }
+
+    /**
+     * @see GameContext.removeToolByBlock
+     */
+    removeToolByBlock(blockId: number): void {
+        const existing = ALL_ITEMS.find(t => t.place == blockId);
+        if (existing) {
+            ALL_ITEMS.splice(ALL_ITEMS.indexOf(existing), 1);
+            this.game.mobs.forEach(m => m.initInventory());
+        }
+    }
+
+    /**
+     * @see GameContext.removeToolByImage
+     */
+    removeToolByImage(image: string): void {
+        const existing = ALL_ITEMS.find(t => t.sprite == image);
+        if (existing) {
+            ALL_ITEMS.splice(ALL_ITEMS.indexOf(existing), 1);
+            this.game.mobs.forEach(m => m.initInventory());
+        }
+    }
+
+    /**
      * @see GameContext.addTool
      */
     addTool(image: string, place: number, toolId: string, targetEmpty: boolean, targetFull: boolean, delayOnOperation?: number, breakable?: boolean, amountUsed?: number): string {

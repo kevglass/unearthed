@@ -114,6 +114,38 @@ export interface GameContext {
     addBlock(blockId: number, tileDef: Block): void;
 
     /**
+     * Remove a block from the game configuration based on its block ID. This is useful for
+     * mods to change the default mod rather than turning it off altogether.
+     * 
+     * @param blockId The ID of the block to remove
+     */
+    removeBlock(blockId: number): void;
+
+    /**
+     * Remove a tool from the game configuration based on its tool ID. This is useful for
+     * mods to change the default mod rather than turning it off altogether.
+     * 
+     * @param toolId The ID of the tool to remove
+     */
+    removeToolByToolId(toolId: string): void;
+
+    /**
+     * Remove a tool from the game configuration based on its block it places. This is useful for
+     * mods to change the default mod rather than turning it off altogether.
+     * 
+     * @param blockId The placement block ID of the tool to remove
+     */
+    removeToolByBlock(blockId: number): void;
+
+    /**
+     * Remove a tool from the game configuration based on the image it uses. This is useful for
+     * mods to change the default mod rather than turning it off altogether.
+     * 
+     * @param image The name of the image used by the tool to be removed
+     */
+    removeToolByImage(image: string): void;
+
+    /**
      * Add a tool into the default inventory of all players.
      * 
      * @param image The ID of the image in the cache to show for this tool.
