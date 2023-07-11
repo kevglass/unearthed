@@ -325,7 +325,7 @@ export class Game implements ControllerListener {
 
         if (params.get("server") && params.get("server") !== this.serverId) {
             this.isHostingTheServer = false;
-            (document.getElementById("serverId") as HTMLInputElement).value = params.get("server")!;
+            this.ui.serverIdInput.value = params.get("server")!;
         }
 
         const installLocation = params.get("install");
@@ -492,16 +492,16 @@ export class Game implements ControllerListener {
                 this.recipePanel.hide();
             }
 
+            // if we're focused on the chat input that takes precedence
+            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput ||
+                document.activeElement === this.ui.portalInput || document.activeElement === this.ui.serverIdInput) {
+                return;
+            }
+
             if (event.code === this.keyControls.invent) {
                 this.inventPanel.showing() ? this.inventPanel.hide() : this.inventPanel.show();
                 event.preventDefault();
                 event.stopPropagation();
-            }
-
-            // if we're focused on the chat input that takes precedence
-            if (document.activeElement === this.ui.chatInput || document.activeElement === this.ui.playernameInput ||
-                document.activeElement === this.ui.portalInput) {
-                return;
             }
 
             if (this.ui.codeEditorShowing()) {
