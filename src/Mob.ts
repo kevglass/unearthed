@@ -207,7 +207,7 @@ export class Mob {
 
             // load the quickslots
             this.loadQuickSlots();
-    
+
             if (this.quickSlots[0] === null) {
                 this.quickSlots[0] = this.inventory.find(i => i.def.toolId === "iron-pick") ?? null;
             }
@@ -225,7 +225,7 @@ export class Mob {
         const toLoad = localStorage.getItem("quickslots");
         if (toLoad) {
             const quickSlotsData = JSON.parse(toLoad);
-            for (let i=0;i<8;i++) {
+            for (let i = 0; i < 8; i++) {
                 const slot = quickSlotsData[i];
 
                 this.quickSlots[i] = this.inventory.find(item => item.def.type === slot.id) ?? null;
@@ -636,7 +636,7 @@ export class Mob {
             existing.count -= count;
             if (existing.count <= 0) {
                 this.inventory.splice(this.inventory.indexOf(existing), 1);
-                for (let i=0;i<this.quickSlots.length;i++) {
+                for (let i = 0; i < this.quickSlots.length; i++) {
                     if (this.quickSlots[i] === existing) {
                         this.quickSlots[i] = null;
                     }
@@ -657,7 +657,7 @@ export class Mob {
      */
     getItemCount(itemType: string): number {
         const existing = this.inventory.find(item => item.def.type === itemType);
-        
+
         return existing?.count ?? 0;
     }
     /**
@@ -672,6 +672,7 @@ export class Mob {
             return;
         }
 
+        let newItem: Item | undefined = undefined;
         const existing = this.inventory.find(item => item.def.type === itemType);
         if (existing) {
             existing.count += count;
@@ -679,11 +680,20 @@ export class Mob {
         } else {
             const def = ALL_ITEMS.find(m => m.type === itemType);
             if (def) {
-                this.inventory.push({ def, count });
+                this.inventory.push(newItem = { def, count });
             } else {
                 console.error("Attempt to add item with unknown item ID");
             }
             this.saveItems();
+        }
+
+        // add the new item the quick slots if theres space
+        if (newItem) {
+            let index = this.quickSlots.findIndex(slot => slot === null || slot.def.type === newItem!.def.type);
+            if (index >= 0) {
+                this.quickSlots[index] = newItem;
+                this.saveQuickSlots();
+            }
         }
     }
 
@@ -769,7 +779,7 @@ export class Mob {
 
             let changedLocation = (this.lastToolActionX !== this.overX || this.lastToolActionY !== this.overY || this.lastToolActionLayer !== layer);
             let targetEmpty = (usingItem?.def.place !== 0 || usingItem?.def.targetEmpty) && changedLocation;
-            let targetFull =  usingItem?.def.targetFull && changedLocation;
+            let targetFull = usingItem?.def.targetFull && changedLocation;
 
             if (this.controls.mouse && targetFull && this.gameMap.getTile(this.overX, this.overY, layer) !== usingItem.def.place) {
                 this.work();

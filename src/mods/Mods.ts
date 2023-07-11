@@ -236,7 +236,7 @@ export interface GameContext {
      * @param prop The name of the property to set @see GameProperty
      * @param value The value to apply to the property
      */
-    setGameProperty(prop: GameProperty, value: string | number): void;
+    setGameProperty(prop: GameProperty, value: string | number | boolean): void;
 
     /**
      * Get the value of a property
@@ -244,7 +244,7 @@ export interface GameContext {
      * @param prop The name of the property whose value is retrieved
      * @return The value of the property 
      */
-    getGameProperty(prop: GameProperty): string | number;
+    getGameProperty(prop: GameProperty): string | number | boolean;
 
     /**
      * Create new item floating in the world for a play to pick up
@@ -322,6 +322,8 @@ export enum GameProperty {
     SPAWN_X = "SPAWN_X",
     /** The y coordinate in tiles that players should spawn at */
     SPAWN_Y = "SPAWN_Y",
+    /** Indicates whether the recipes panel is enabled */
+    RECIPES_ENABLED = "RECIPES_ENABLED",
 }
 
 /**

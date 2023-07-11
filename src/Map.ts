@@ -426,6 +426,9 @@ export class GameMap {
             } else if (Math.random() < 0.23) {
                 const flower = Math.floor(Math.random() * 3) + 13;
                 this.setTile(x, SKY_HEIGHT - h - 1, flower, Layer.FOREGROUND);
+            } else if (Math.random() < 0.23) {
+                const rock = 28;
+                this.setTile(x, SKY_HEIGHT - h - 1, rock, Layer.FOREGROUND);
             }
 
             // build a tree now and again

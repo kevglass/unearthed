@@ -73,14 +73,14 @@ export class GameAsContext implements GameContext {
     /**
      * @see GameContext.setGameProperty
      */
-    setGameProperty(prop: GameProperty, value: string | number): void {
+    setGameProperty(prop: GameProperty, value: string | number | boolean): void {
         this.game.globalProperties[prop] = value;
     }
 
     /**
      * @see GameContext.getGameProperty
      */
-    getGameProperty(prop: GameProperty): string | number {
+    getGameProperty(prop: GameProperty): string | number | boolean {
         return this.game.globalProperties[prop];
     }
 

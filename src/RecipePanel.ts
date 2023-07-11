@@ -6,7 +6,7 @@ import { getSprite } from "./engine/Resources";
 /**
  * A panel to display the player's inventory.
  */
-export class InventPanel {
+export class RecipePanel {
     /** The position of the thumb hold on the scroll bar */
     thumbPosition: number = 0;
     /** The height of the scroll bar thumb */
@@ -108,11 +108,11 @@ export class InventPanel {
         if (this.game.globalProperties.RECIPES_ENABLED) {
             g.setFont("50px KenneyFont");
             g.setTextAlign("center");
-            g.setFillColor(255, 255, 255, 0.8);
+            g.setFillColor(0, 0, 0, 0.3);
             g.fillRect(0, -60, this.panelWidth / 2, 60);
             g.setFillColor(0, 0, 0, 255);
             g.fillText("Inventory", this.panelWidth / 4, -15);
-            g.setFillColor(0, 0, 0, 0.3);
+            g.setFillColor(255, 255, 255, 0.8);
             g.fillRect(this.panelWidth / 2, -60, this.panelWidth / 2, 60);
             g.setFillColor(0, 0, 0, 255);
             g.fillText("Recipes", (this.panelWidth / 4) * 3, -15);
@@ -133,25 +133,9 @@ export class InventPanel {
         g.clip(0, 0, this.panelWidth, this.panelHeight);
         this.inventOffsetY = -(thumbOffset * totalHeight * pages);
         g.translate(0, this.inventOffsetY);
-        let xp = 0;
-        let yp = 0;
-        for (const item of items) {
-            InventPanel.drawItem(this.game, g, item, 100 + (xp * 130), 20 + (yp * 130), items.indexOf(item) === this.selectedItem);
-
-            xp += 1;
-            if (xp >= across) {
-                xp = 0;
-                yp++;
-            }
-        }
         g.restore();
 
         g.restore();
-
-        // draw the dragged item if any
-        if (this.holdingItem) {
-            g.drawScaledImage(getSprite(this.holdingItem.def.sprite), this.mouseX - 45, this.mouseY - 45, 85, 85);
-        }
     }
 
     /**
@@ -168,9 +152,9 @@ export class InventPanel {
         y -= this.panelY;
 
         if (this.game.globalProperties.RECIPES_ENABLED) {
-            if ((y < 0) && (y > -60) && (x > this.panelWidth / 2) && (x < this.panelWidth)) {
+            if ((y < 0) && (y > -60) && (x > 0) && (x < this.panelWidth / 2)) {
                 // recipes tab
-                this.game.showRecipePanel();
+                this.game.showInventPanel();
             }
         }
 
@@ -192,18 +176,6 @@ export class InventPanel {
                 this.validateThumb();
             }
         } else {
-            // are we on the items?
-            const items = this.game.player.inventory;
-            const across = Math.floor((this.panelWidth - 120) / 130);
-            const down = Math.ceil(items.length / across);
-            if ((x > 100) && (y > 20) && (x < 100 + (across * 130)) && (y < this.panelHeight - 40)) {
-                const ix = Math.floor((x - 100) / 130);
-                const iy = Math.floor((y - 20 - this.inventOffsetY) / 130);
-                const index = (iy * across) + ix;
-                if ((index >= 0) && (index < this.game.player.inventory.length)) {
-                    this.holdingItem = this.game.player.inventory[index];
-                }
-            }
         }
 
         this.lastMx = x;
@@ -218,45 +190,9 @@ export class InventPanel {
      * @param y The y coordinate of the mouse in screen space
      */
     mouseUp(x: number, y: number): void {
-        // if we're holding an item then let the game know its been dropped
-        if (this.holdingItem) {
-            this.game.itemDropped(this.holdingItem, x, y);
-        }
         this.mousePressed = false;
         this.holdingThumb = false;
         this.holdingItem = undefined;
-    }
-
-    static drawItem(game: Game, g: Graphics, item: Item | null, x: number, y: number, selected: boolean): void {
-        if (selected) {
-            g.drawScaledImage(getSprite("ui/sloton"), x, y, 125, 125);
-        } else {
-            g.drawScaledImage(getSprite("ui/slotoff"), x, y, 125, 125);
-        }
-
-        if (item) {
-            g.drawScaledImage(getSprite(item.def.sprite), 20 + x + (item.def.place === 0 ? 7 : 0), 15 + y, 85, 85);
-
-            if (!game.serverSettings.isCreativeMode()) {
-                if (Math.ceil(item.count) > 1) {
-                    g.drawScaledImage(getSprite("ui/counter"), x, y, 125, 125);
-                    g.setFillColor(255, 255, 255, 1);
-                    g.setFont("45px KenneyFont");
-                    g.setTextAlign("center");
-                    g.fillText(Math.ceil(item.count) + "", x + 92, y + 105);
-                }
-
-                if (item.def.breakable) {
-                    const remaining = item.count - Math.floor(item.count);
-                    if (remaining !== 0) {
-                        g.setFillColor(0, 0, 0, 0.5);
-                        g.fillRect(x + 17, y + 16, 90, 10);
-                        g.setFillColor(0, 255, 0, 0.3);
-                        g.fillRect(x + 17, y + 16, (90 * remaining), 10);
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -343,19 +279,12 @@ export class InventPanel {
      * Notification that the switch layer button has been pressed while this panel is visible
      */
     layer(): void {
-        // TOOD - might want to do something else with this button
-        // but for now just do trigger
-        this.trigger();
     }
 
     /**
      * Notification that the switch trigger button has been pressed while this panel is visible
      */
     trigger(): void {
-        const item = this.game.player.inventory[this.selectedItem];
-        if (item) {
-            this.game.replaceItem(item);
-        }
     }
 
     /**

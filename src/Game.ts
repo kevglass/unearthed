@@ -14,7 +14,7 @@ import { ControllerButtons, CONTROLLER_SETUP_STEPS, KeyControls, KEYS_SETUP_STEP
 import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
 import { initTiles, BLOCKS } from "./Block";
-import { ALL_ITEMS, Item, ItemDefinition, initInventory } from "./InventItem";
+import { Item, initInventory } from "./InventItem";
 import { hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 import { InventPanel } from "./InventPanel";
@@ -22,6 +22,7 @@ import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
 import { DefaultBlockMod } from "./mods/defaultmods/DefaultBlocksMod";
 import { GameProperty } from "./mods/Mods";
 import { HandsMod } from "./mods/defaultmods/HandsMod";
+import { RecipePanel } from "./RecipePanel";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -127,6 +128,8 @@ export class Game implements ControllerListener {
     serverSettings: ServerSettings;
     /** The inventory panel */
     inventPanel: InventPanel;
+    /** The recipe panel */
+    recipePanel: RecipePanel;
     /** The quick slot that currently selected */
     quickSlotSelected: number = 0;
 
@@ -136,11 +139,12 @@ export class Game implements ControllerListener {
     uniquePlayerId: string = "";
 
     /** The collection of global properties configurable from mods */
-    globalProperties: Record<GameProperty, string | number> = {
+    globalProperties: Record<GameProperty, string | number | boolean> = {
         [GameProperty.BACKGROUND_COLOR]: "#445253FF",
         [GameProperty.SKY_COLOR]: "#CFEFFCFF",
         [GameProperty.SPAWN_X]: 2,
         [GameProperty.SPAWN_Y]: (SKY_HEIGHT - 6),
+        [GameProperty.RECIPES_ENABLED]: true,
     };
 
     /**
@@ -179,6 +183,7 @@ export class Game implements ControllerListener {
         initInventory();
 
         this.inventPanel = new InventPanel(this);
+        this.recipePanel = new RecipePanel(this);
         this.serverSettings = new ServerSettings(this);
 
         this.gamepad = new Controller();
@@ -482,6 +487,7 @@ export class Game implements ControllerListener {
             if (event.code === "Escape") {
                 hideCodeEditor();
                 this.inventPanel.hide();
+                this.recipePanel.hide();
             }
 
             if (event.code === this.keyControls.invent) {
@@ -515,6 +521,8 @@ export class Game implements ControllerListener {
             if (event.code === this.keyControls.prev) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.prevItem();
+                } else if (this.recipePanel.showing()) {
+                    this.recipePanel.prevItem();
                 } else {
                     this.prevQuickSlot();
                 }
@@ -522,6 +530,8 @@ export class Game implements ControllerListener {
             if (event.code === this.keyControls.next) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.nextItem();
+                } else if (this.recipePanel.showing()) {
+                    this.recipePanel.nextItem();
                 } else {
                     this.nextQuickSlot();
                 }
@@ -531,6 +541,8 @@ export class Game implements ControllerListener {
             if (event.code === this.keyControls.layer) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.layer();
+                } else if (this.recipePanel.showing()) {
+                    this.recipePanel.layer();
                 } else {
                     this.togglePlacementLayer();
                 }
@@ -539,6 +551,8 @@ export class Game implements ControllerListener {
             if (event.code === this.keyControls.trigger) {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.trigger();
+                } else if (this.recipePanel.showing()) {
+                    this.recipePanel.trigger();
                 } else {
                     this.trigger();
                     event.preventDefault();
@@ -601,6 +615,8 @@ export class Game implements ControllerListener {
             this.canvas.addEventListener("wheel", (event: WheelEvent) => {
                 if (this.inventPanel.showing()) {
                     this.inventPanel.wheel(event.deltaY);
+                } else if (this.recipePanel.showing()) {
+                    this.recipePanel.wheel(event.deltaY);
                 }
             });
 
@@ -656,6 +672,10 @@ export class Game implements ControllerListener {
 
         if (this.inventPanel.showing()) {
             this.inventPanel.mouseDown(x, y);
+            return;
+        }
+        if (this.recipePanel.showing()) {
+            this.recipePanel.mouseDown(x, y);
             return;
         }
 
@@ -805,6 +825,11 @@ export class Game implements ControllerListener {
             this.inventPanel.mouseUp(x, y);
             return;
         }
+        if (this.recipePanel.showing()) {
+            this.recipePanel.mouseUp(x, y);
+            return;
+        }
+
         if (touchId === this.mainAreaTouchId) {
             this.mainAreaTouchId = 0;
             this.mouseButtonDown[0] = false;
@@ -833,6 +858,10 @@ export class Game implements ControllerListener {
     private mouseMove(x: number, y: number, touchId: number) {
         if (this.inventPanel.showing()) {
             this.inventPanel.mouseMove(x, y);
+            return;
+        }
+        if (this.recipePanel.showing()) {
+            this.recipePanel.mouseMove(x, y);
             return;
         }
 
@@ -1265,7 +1294,7 @@ export class Game implements ControllerListener {
             this.gameMap.render(this.g, this.player.overX, this.player.overY, canAct, ox, oy, this.canvas.width, this.canvas.height);
 
             for (let i = 1; i < 9; i++) {
-                if (this.keyDown["" + i]) {
+                if (this.keyDown["Digit" + i]) {
                     if (this.player.itemHeld !== this.player.quickSlots[i - 1]) {
                         this.player.itemHeld = this.player.quickSlots[i - 1];
                         this.quickSlotSelected = i - 1;
@@ -1340,11 +1369,24 @@ export class Game implements ControllerListener {
         if (this.inventPanel.showing()) {
             this.inventPanel.draw(this.g);
         }
+        if (this.recipePanel.showing()) {
+            this.recipePanel.draw(this.g);
+        }
 
         this.g.render();
 
         // schedule our next frame
         requestAnimationFrame(() => { this.loop() });
+    }
+
+    showRecipePanel(): void {
+        this.inventPanel.hide();
+        this.recipePanel.show();
+    }
+
+    showInventPanel(): void {
+        this.inventPanel.show();
+        this.recipePanel.hide();
     }
 
     /**
@@ -1384,7 +1426,7 @@ export class Game implements ControllerListener {
      * @param item The item currently held 
      */
     replaceItem(item: Item): void {
-        let index = this.player.quickSlots.findIndex(slot => slot === null);
+        let index = this.player.quickSlots.findIndex(slot => slot === null || slot.def.type === item.def.type);
         if (index < 0) {
             index = this.quickSlotSelected;
         }
