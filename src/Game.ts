@@ -18,11 +18,10 @@ import { Item, initInventory } from "./InventItem";
 import { hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 import { InventPanel } from "./InventPanel";
-import { PickaxeMod } from "./mods/defaultmods/PickaxeMod";
-import { DefaultBlockMod } from "./mods/defaultmods/DefaultBlocksMod";
+import { DefaultBlockMod } from "./mods/defaultmods/DefaultGameMod";
 import { GameProperty } from "./mods/Mods";
-import { HandsMod } from "./mods/defaultmods/HandsMod";
 import { RecipePanel } from "./RecipePanel";
+import { Recipe } from "./Recipe";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -174,6 +173,11 @@ export class Game implements ControllerListener {
         invent: "KeyI",
     };
 
+    /**
+     * The list of recipes configured by mods
+     */
+    recipes: Recipe[] = [];
+    
     constructor() {
         const params = new URLSearchParams(location.search);
         this.headless = params.get("headless") === "true";
@@ -241,8 +245,6 @@ export class Game implements ControllerListener {
         this.ui = new HtmlUi(this, this.network, this.gameMap);
 
         // bootstrap the default mods if enabled
-        this.serverSettings.addDefaultMod(new HandsMod(), true);
-        this.serverSettings.addDefaultMod(new PickaxeMod());
         this.serverSettings.addDefaultMod(new DefaultBlockMod());
         this.serverSettings.load();
 

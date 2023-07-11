@@ -52,7 +52,7 @@ export class ServerSettings {
     }
 
     addDefaultMod(mod: ServerMod, force: boolean = false) {
-        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [], skinsAdded: []};
+        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [], skinsAdded: [], recipesAdded: []};
         this.defaultMods.push(modRecord);
 
         if (this.useDefaultMods() || force) {
@@ -208,7 +208,7 @@ export class ServerSettings {
                         this.removeMod(existing);
                     }
 
-                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [], skinsAdded: [] };
+                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [], skinsAdded: [], recipesAdded: [] };
                     console.log("[" + potentialMod.name + "] Installing");
                     this.serverMods.mods.push(modRecord);
 

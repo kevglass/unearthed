@@ -1,7 +1,7 @@
 import { Game } from "./Game";
 import { Item, ItemDefinition } from "./InventItem";
 import { Graphics } from "./engine/Graphics";
-import { getSprite } from "./engine/Resources";
+import { getSprite, playSfx } from "./engine/Resources";
 
 /**
  * A panel to display the player's inventory.
@@ -60,6 +60,7 @@ export class RecipePanel {
      * Show this panel, it will be rendered and take over events.
      */
     show(): void {
+        playSfx('click', 1);
         this.visible = true;
     }
 

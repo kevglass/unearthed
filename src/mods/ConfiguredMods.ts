@@ -8,6 +8,7 @@ import { Mob } from "src/Mob";
 import { v4 as uuidv4 } from 'uuid';
 import { SKINS, Skin, skinFromJson } from "src/Skins";
 import { ALL_ANIM, animsFromJson } from "src/Animations";
+import { Recipe } from "src/Recipe";
 
 // define constants for mods to access
 const global = window as any;
@@ -401,6 +402,8 @@ export interface ModRecord {
     blocksAdded: Block[];
     /** Skins that his mod added so they can be removed on uninstall */
     skinsAdded: Skin[];
+    /** Recipes that were added by this mod so they can be removed on uninstall */
+    recipesAdded: Recipe[];
 }
 
 /**

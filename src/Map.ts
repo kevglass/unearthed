@@ -161,9 +161,8 @@ export class GameMap {
         console.log("Reset map");
         this.clear();
         this.generating = true;
-        if (!this.game.mods.generate()) {
-            this.defaultGenerate();
-        }
+        this.foreground = [...DEFAULT_MAP];
+        this.game.mods.generate();
         this.generating = false;
         this.resetDiscoveryAndLights();
 
@@ -380,108 +379,6 @@ export class GameMap {
         return false;
     }
 
-    /**
-     * Generate a new map 
-     */
-    defaultGenerate() {
-        console.log("Generating map");
-
-        this.foreground = [...DEFAULT_MAP];
-        // map generation
-        let h = 0;
-        let offset = 0;
-        let sinceLastTree = 0;
-
-        // first lets generate some hills, plants and trees. Could have used perlin 
-        // noise here but found a simple height adjusting flow was easier. Make it more likely
-        // to raise the height of the ground until we reach max hill height (10,then switch
-        // to making it more likely to move down until we reach the ground. Get nice flowing
-        // hills this way.
-        for (let x = 5; x < MAP_WIDTH; x++) {
-            sinceLastTree++;
-            if (h > 10) {
-                offset = 0.3;
-            }
-            if (h < 2) {
-                offset = 0;
-            }
-            if (Math.random() < 0.2 + offset) {
-                h--;
-            } else if (Math.random() > 0.5 + offset) {
-                h++;
-            }
-
-            if (h < 0) {
-                h = 0;
-            }
-            for (let i = 0; i < h; i++) {
-                this.setTile(x, SKY_HEIGHT - i, 1, Layer.FOREGROUND);
-            }
-            this.setTile(x, SKY_HEIGHT - h, 2, Layer.FOREGROUND);
-
-            // consider adding a plant or grass on top
-            if (Math.random() < 0.2) {
-                const grass = Math.floor(Math.random() * 4) + 9;
-                this.setTile(x, SKY_HEIGHT - h - 1, grass, Layer.FOREGROUND);
-            } else if (Math.random() < 0.23) {
-                const flower = Math.floor(Math.random() * 3) + 13;
-                this.setTile(x, SKY_HEIGHT - h - 1, flower, Layer.FOREGROUND);
-            } else if (Math.random() < 0.23) {
-                const rock = 28;
-                this.setTile(x, SKY_HEIGHT - h - 1, rock, Layer.FOREGROUND);
-            }
-
-            // build a tree now and again
-            if (Math.random() > 0.85) {
-                if (sinceLastTree > 5) {
-                    sinceLastTree = 0;
-                    const heightOfTree = Math.floor(Math.random() * 3) + 2;
-                    this.setTile(x, SKY_HEIGHT - h - 1, 16, Layer.FOREGROUND);
-                    for (let i = 1; i < heightOfTree; i++) {
-                        this.setTile(x, SKY_HEIGHT - h - 1 - i, 17, Layer.FOREGROUND);
-                    }
-
-                    for (let tx = -1; tx < 2; tx++) {
-                        for (let ty = -3; ty < 0; ty++) {
-                            this.setTile(x + tx, SKY_HEIGHT - h - heightOfTree + ty, 5, Layer.FOREGROUND);
-                        }
-                    }
-                }
-            }
-        }
-
-        // cut some caverns into the ground
-        for (let i = 0; i < 100; i++) {
-            this.placeSeam(0, 4, SKY_HEIGHT + 5, MAP_DEPTH - 15, 5);
-        }
-
-        // now add some stone - quite a lot and across the whole depth
-        for (let i = 0; i < 80; i++) {
-            this.placeSeam(18, 3, SKY_HEIGHT + 5, MAP_DEPTH - 15, 3);
-        }
-        // now add some coal - quite a lot and across the whole depth
-        for (let i = 0; i < 60; i++) {
-            this.placeSeam(19, 3, SKY_HEIGHT + 5, MAP_DEPTH - 15, 3);
-        }
-        // now add some iron - less and only at 40 depth or deeper
-        for (let i = 0; i < 40; i++) {
-            this.placeSeam(20, 3, SKY_HEIGHT + 40, MAP_DEPTH - 15, 3);
-        }
-        // now add some silver - less and only at 60 depth or deeper
-        for (let i = 0; i < 30; i++) {
-            this.placeSeam(21, 3, SKY_HEIGHT + 60, MAP_DEPTH - 15, 2);
-        }
-        // now add some gold - less and only at 100 depth or deeper
-        for (let i = 0; i < 30; i++) {
-            this.placeSeam(22, 3, SKY_HEIGHT + 100, MAP_DEPTH - 15, 2);
-        }
-        // now add some iron - even less and only at 150 depth or deeper
-        for (let i = 0; i < 20; i++) {
-            this.placeSeam(23, 3, SKY_HEIGHT + 150, MAP_DEPTH - 15, 2);
-        }
-
-        this.save();
-    }
 
     /**
      * Save the map to local storage in the browser
@@ -491,67 +388,6 @@ export class GameMap {
         localStorage.setItem("map", JSON.stringify(this.foreground));
         localStorage.setItem("mapbg", JSON.stringify(this.background));
         this.saveMetaData();
-    }
-
-    /**
-     * Utility to splat areas with tile to either cut out areas or place
-     * minerals in organic shapes.
-     * 
-     * @param tile The tile to place
-     * @param size The base size of the brush to use (this is randomized from this point)
-     * @param upper The upper height limit
-     * @param lower The lower height limit
-     * @param cutBase The base number of cuts to make (this is randomized from this point)
-     */
-    private placeSeam(tile: number, size: number, upper: number, lower: number, cutBase: number): void {
-        let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
-        let y = upper + Math.floor(Math.random() * (MAP_DEPTH - upper));
-        const cutCount = cutBase + Math.floor(Math.random() * 5);
-
-        // for each cut use the brush to apply the tile specified
-        for (let cut = 0; cut < cutCount; cut++) {
-            const brushWidth = size + Math.floor(Math.random() * 2);
-            const brushHeight = size + Math.floor(Math.random() * 2);
-
-            let edges = [];
-
-            // place the brush size tiles
-            for (let bx = 0; bx < brushWidth; bx++) {
-                for (let by = 0; by < brushHeight; by++) {
-                    // round the corners - i.e. don't draw them
-                    if (bx === 0 && (by === 0 || by === brushHeight - 1)) {
-                        continue;
-                    }
-                    if (bx === brushWidth - 1 && (by === 0 || by === brushHeight - 1)) {
-                        continue;
-                    }
-
-                    let tx = x + bx - Math.floor(brushWidth / 2);
-                    let ty = y + by - Math.floor(brushHeight / 2);
-
-                    // remember the edges of the brush
-                    if ((bx === 0 || by === 0 || bx === brushHeight - 1 || by === brushWidth - 1)) {
-                        if ((ty > SKY_HEIGHT + 5) && (ty < MAP_DEPTH - 15)) {
-                            edges.push([tx, ty]);
-                        }
-                    }
-
-                    // place the tiles
-                    this.foreground[tx + (ty * MAP_WIDTH)] = tile;
-                    this.background[tx + (ty * MAP_WIDTH)] = 1;
-                }
-            }
-
-            if (edges.length === 0) {
-                return;
-            }
-
-            // select an edge from the last cut and use it as a start point for
-            // the next cut
-            let nextCenter = edges[Math.floor(Math.random() * edges.length)];
-            x = nextCenter[0];
-            y = nextCenter[1];
-        }
     }
 
     /**

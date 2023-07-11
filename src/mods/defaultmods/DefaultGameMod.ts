@@ -1,4 +1,4 @@
-import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, TILE_SIZE } from "src/Map";
+import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "src/Map";
 import { GameContext, MobContext, ServerMod } from "../Mods";
 import { Portal, Timer } from "src/Block";
 import { addParticle, createDirtParticle } from "src/engine/Particles";
@@ -25,10 +25,10 @@ export class DefaultBlockMod implements ServerMod {
                 if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
                     continue;
                 }
-                if (map.getTile(x,y, timer.layer) !== 0) {
+                if (map.getTile(x, y, timer.layer) !== 0) {
                     map.setTile(x, y, 0, timer.layer);
-                    for (let i=0;i<5;i++) {
-                        addParticle(createDirtParticle((x+ 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
+                    for (let i = 0; i < 5; i++) {
+                        addParticle(createDirtParticle((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
                     }
                 }
             }
@@ -37,6 +37,8 @@ export class DefaultBlockMod implements ServerMod {
     }
 
     onGameStart(game: GameContext): void {
+        game.addTool("holding/pick_iron", 0, "iron-pick", false, true, 60, true, 0.01);
+        game.addTool("holding/pick_stone", 0, "stone-pick", false, true, 75, true, 0.01);
 
         game.addBlock(1, { sprite: "tiles/dirt", blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true });
         game.addBlock(2, { sprite: "tiles/dirt_grass", blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true });
@@ -67,14 +69,14 @@ export class DefaultBlockMod implements ServerMod {
         game.addBlock(26, { sprite: "tiles/torchtile", blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true });
         game.addBlock(27, {
             sprite: "tiles/portal", blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => {
-                const url = new URL(location.href); 
-                url.searchParams.set('portal', '1'); 
-                url.searchParams.set('server', portal?.code ?? ''); 
+                const url = new URL(location.href);
+                url.searchParams.set('portal', '1');
+                url.searchParams.set('server', portal?.code ?? '');
                 window.open(url.href)
             }
         });
         game.addBlock(28, { sprite: "tiles/rock", blocks: false, blocksDown: false, ladder: false, needsGround: true, blocksDiscovery: false, leaveBackground: false, blocksLight: false });
-        
+
         this.blockIds["dirt"] = game.addTool("tiles/dirt", 1, undefined, true, false, 0, false, 1);
         this.blockIds["stone"] = game.addTool("tiles/stone", 18, undefined, true, false, 0, false, 1);
         this.blockIds["wood"] = game.addTool("tiles/wood", 7, undefined, true, false, 0, false, 1);
@@ -105,6 +107,167 @@ export class DefaultBlockMod implements ServerMod {
                     game.createItem(x, y, 1, this.blockIds["wood"]);
                 }
             }
+        }
+    }
+
+    onUseTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
+        if (toolId === "iron-pick" || toolId === "stone-pick" || toolId === "hands") {
+            game.setBlock(x, y, layer, 0);
+            game.playSfx('mining_break', 0.6, 5);
+        }
+    }
+
+    onProgressTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
+        if (toolId === "iron-pick" || toolId === "stone-pick" || toolId === "hands") {
+            game.playSfx('mining', 0.5, 5);
+        }
+    }
+
+    generateWorld(game: GameContext, width: number, height: number): void {
+        console.log("Generating map");
+
+        // map generation
+        let h = 0;
+        let offset = 0;
+        let sinceLastTree = 0;
+
+        // first lets generate some hills, plants and trees. Could have used perlin 
+        // noise here but found a simple height adjusting flow was easier. Make it more likely
+        // to raise the height of the ground until we reach max hill height (10,then switch
+        // to making it more likely to move down until we reach the ground. Get nice flowing
+        // hills this way.
+        for (let x = 5; x < MAP_WIDTH; x++) {
+            sinceLastTree++;
+            if (h > 10) {
+                offset = 0.3;
+            }
+            if (h < 2) {
+                offset = 0;
+            }
+            if (Math.random() < 0.2 + offset) {
+                h--;
+            } else if (Math.random() > 0.5 + offset) {
+                h++;
+            }
+
+            if (h < 0) {
+                h = 0;
+            }
+            for (let i = 0; i < h; i++) {
+                game.setBlock(x, SKY_HEIGHT - i, Layer.FOREGROUND, 1);
+            }
+            game.setBlock(x, SKY_HEIGHT - h, Layer.FOREGROUND, 2);
+
+            // consider adding a plant or grass on top
+            if (Math.random() < 0.2) {
+                const grass = Math.floor(Math.random() * 4) + 9;
+                game.setBlock(x, SKY_HEIGHT - h - 1, Layer.FOREGROUND, grass);
+            } else if (Math.random() < 0.23) {
+                const flower = Math.floor(Math.random() * 3) + 13;
+                game.setBlock(x, SKY_HEIGHT - h - 1, Layer.FOREGROUND, flower);
+            } else if (Math.random() < 0.23) {
+                const rock = 28;
+                game.setBlock(x, SKY_HEIGHT - h - 1, Layer.FOREGROUND, rock);
+            }
+
+            // build a tree now and again
+            if (Math.random() > 0.85) {
+                if (sinceLastTree > 5) {
+                    sinceLastTree = 0;
+                    const heightOfTree = Math.floor(Math.random() * 3) + 2;
+                    game.setBlock(x, SKY_HEIGHT - h - 1, Layer.FOREGROUND, 16);
+                    for (let i = 1; i < heightOfTree; i++) {
+                        game.setBlock(x, SKY_HEIGHT - h - 1 - i, Layer.FOREGROUND, 17);
+                    }
+
+                    for (let tx = -1; tx < 2; tx++) {
+                        for (let ty = -3; ty < 0; ty++) {
+                            game.setBlock(x + tx, SKY_HEIGHT - h - heightOfTree + ty, Layer.FOREGROUND, 5);
+                        }
+                    }
+                }
+            }
+        }
+
+        // cut some caverns into the ground
+        for (let i = 0; i < 100; i++) {
+            this.placeSeam(game, 0, 4, SKY_HEIGHT + 5, MAP_DEPTH - 15, 5);
+        }
+
+        // now add some stone - quite a lot and across the whole depth
+        for (let i = 0; i < 80; i++) {
+            this.placeSeam(game, 18, 3, SKY_HEIGHT + 5, MAP_DEPTH - 15, 3);
+        }
+        // now add some coal - quite a lot and across the whole depth
+        for (let i = 0; i < 60; i++) {
+            this.placeSeam(game, 19, 3, SKY_HEIGHT + 5, MAP_DEPTH - 15, 3);
+        }
+        // now add some iron - less and only at 40 depth or deeper
+        for (let i = 0; i < 40; i++) {
+            this.placeSeam(game, 20, 3, SKY_HEIGHT + 40, MAP_DEPTH - 15, 3);
+        }
+        // now add some silver - less and only at 60 depth or deeper
+        for (let i = 0; i < 30; i++) {
+            this.placeSeam(game, 21, 3, SKY_HEIGHT + 60, MAP_DEPTH - 15, 2);
+        }
+        // now add some gold - less and only at 100 depth or deeper
+        for (let i = 0; i < 30; i++) {
+            this.placeSeam(game, 22, 3, SKY_HEIGHT + 100, MAP_DEPTH - 15, 2);
+        }
+        // now add some iron - even less and only at 150 depth or deeper
+        for (let i = 0; i < 20; i++) {
+            this.placeSeam(game, 23, 3, SKY_HEIGHT + 150, MAP_DEPTH - 15, 2);
+        }
+    }
+
+    private placeSeam(game: GameContext, tile: number, size: number, upper: number, lower: number, cutBase: number): void {
+        let x = 10 + Math.floor(Math.random() * (MAP_WIDTH - 20));
+        let y = upper + Math.floor(Math.random() * (MAP_DEPTH - upper));
+        const cutCount = cutBase + Math.floor(Math.random() * 5);
+
+        // for each cut use the brush to apply the tile specified
+        for (let cut = 0; cut < cutCount; cut++) {
+            const brushWidth = size + Math.floor(Math.random() * 2);
+            const brushHeight = size + Math.floor(Math.random() * 2);
+
+            let edges = [];
+
+            // place the brush size tiles
+            for (let bx = 0; bx < brushWidth; bx++) {
+                for (let by = 0; by < brushHeight; by++) {
+                    // round the corners - i.e. don't draw them
+                    if (bx === 0 && (by === 0 || by === brushHeight - 1)) {
+                        continue;
+                    }
+                    if (bx === brushWidth - 1 && (by === 0 || by === brushHeight - 1)) {
+                        continue;
+                    }
+
+                    let tx = x + bx - Math.floor(brushWidth / 2);
+                    let ty = y + by - Math.floor(brushHeight / 2);
+
+                    // remember the edges of the brush
+                    if ((bx === 0 || by === 0 || bx === brushHeight - 1 || by === brushWidth - 1)) {
+                        if ((ty > SKY_HEIGHT + 5) && (ty < MAP_DEPTH - 15)) {
+                            edges.push([tx, ty]);
+                        }
+                    }
+
+                    // place the tiles
+                    game.setBlock(tx, ty, Layer.FOREGROUND, tile);
+                    game.setBlock(tx, ty, Layer.BACKGROUND, 1);
+                }
+            }
+
+            if (edges.length === 0) {
+                return;
+            }
+
+            // select an edge from the last cut and use it as a start point for
+            // the next cut
+            let nextCenter = edges[Math.floor(Math.random() * edges.length)];
+            x = nextCenter[0];
+            y = nextCenter[1];
         }
     }
 }
