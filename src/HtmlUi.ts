@@ -18,6 +18,8 @@ export class HtmlUi {
     portalInput: HTMLInputElement;
     /** The input element holding the players name */
     playernameInput: HTMLInputElement;
+    /** The input element used to set the server ID to join */
+    serverIdInput: HTMLInputElement;
     /** The button in the setting dialog for resetting the map */
     resetMapButton: HTMLDivElement;
     /** The button in the setting dialog for loading the map */
@@ -56,6 +58,7 @@ export class HtmlUi {
         this.chatInput = document.getElementById("chatinput") as HTMLInputElement;
         this.portalInput = document.getElementById("portalinput") as HTMLInputElement;
         this.playernameInput = document.getElementById("playerName") as HTMLInputElement;
+        this.serverIdInput = document.getElementById("serverId") as HTMLInputElement;
 
         //
         // The file input is used to show the file selector in the browser. We programmatically
@@ -445,8 +448,8 @@ export class HtmlUi {
 
     joinAsClient() {
         this.game.isHostingTheServer = false;
-        this.game.serverId = (document.getElementById("serverId") as HTMLInputElement).value;
-        this.game.username = (document.getElementById("playerName") as HTMLInputElement).value;
+        this.game.serverId = this.serverIdInput.value;
+        this.game.username = this.playernameInput.value;
         this.game.player.name = this.game.username;
         this.network.updatePlayerList(this.game.mobs);
 
