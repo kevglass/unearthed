@@ -4,7 +4,7 @@ import { Network } from "./Network";
 import { confirmAudioContext, isSoundMuted, setSoundMuted } from "./engine/Resources";
 import { ModRecord } from "./mods/ConfiguredMods";
 import { getCodeEditorContent, hideCodeEditor, showCodeEditor } from "./mods/Editor";
-import { ServerMod } from "./mods/Mods";
+import { ServerMod } from "./mods/ModApi";
 import JSZip from "jszip";
 
 /**

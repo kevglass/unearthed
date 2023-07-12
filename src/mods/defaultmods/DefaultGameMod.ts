@@ -1,6 +1,5 @@
-import { Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT } from "src/Map";
-import { GameContext, MobContext, ServerMod } from "../Mods";
-import { Portal } from "src/Block";
+import { MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT } from "src/Map";
+import { GameContext, Layer, MobContext, Portal, ServerMod } from "../ModApi";
 
 export class DefaultBlockMod implements ServerMod {
     id: string = "default-blockTools";

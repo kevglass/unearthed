@@ -1,14 +1,14 @@
 import { Anim, findAnimation } from "./Animations";
 import { Bone } from "./engine/Bones";
 import { Graphics } from "./engine/Graphics";
-import { GameMap, Layer, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { GameMap, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Network } from "./Network";
 import { addParticle, createDirtParticle } from "./engine/Particles";
 import { playSfx } from "./engine/Resources";
 import { BoneNames, getSkin } from "./Skins";
-import { BLOCKS } from "./Block";
+import { BLOCKS } from "./Blocks";
 import { ALL_ITEMS as ALL_ITEMS, ITEM_HANDS, Item, ItemDefinition } from "./InventItem";
-import { MobThinkFunction } from "./mods/Mods";
+import { Layer, MobState, MobThinkFunction } from "./mods/ModApi";
 
 /**
  * The control state for the mob - this is passed across the network
@@ -39,18 +39,6 @@ export interface BodyParts {
     head: string;
     /** The sprite assigned to the arms part */
     arms: string;
-}
-
-/**
- * A collection of exposed to mods to describe the state of the mod
- */
-export interface MobState {
-    /** True if the mod was blocked from moving left last frame */
-    blockedLeft: boolean;
-    /** True if the mod was blocked from moving right last frame */
-    blockedRight: boolean;
-    /** True if the mod was blocked from moving below last frame */
-    blockedBelow: boolean;
 }
 
 /**

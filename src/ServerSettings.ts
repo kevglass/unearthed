@@ -1,11 +1,11 @@
 
 import { ALL_ANIM } from "./Animations";
-import { BLOCKS } from "./Block";
+import { BLOCKS } from "./Blocks";
 import { Game } from "./Game";
 import { ALL_ITEMS } from "./InventItem";
 import { SKINS } from "./Skins";
 import { ConfiguredMods, ModRecord } from "./mods/ConfiguredMods";
-import { ServerMod } from "./mods/Mods";
+import { ServerMod } from "./mods/ModApi";
 
 const MINIMUM_MOD_VERSION_ALLOWED: number = 0;
 

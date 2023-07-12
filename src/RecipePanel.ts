@@ -1,9 +1,9 @@
 import { Game } from "./Game";
-import { ALL_ITEMS, Item, ItemDefinition } from "./InventItem";
+import { ALL_ITEMS, Item } from "./InventItem";
 import { InventPanel } from "./InventPanel";
-import { Recipe } from "./Recipe";
 import { Graphics } from "./engine/Graphics";
 import { getSprite, playSfx } from "./engine/Resources";
+import { Recipe } from "./mods/ModApi";
 
 /**
  * A panel to display the player's inventory.

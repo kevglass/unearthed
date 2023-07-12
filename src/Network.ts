@@ -1,12 +1,12 @@
-import { DataPacket_Kind, DataPublishOptions, Participant, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
+import { DataPacket_Kind, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
 import { Mob } from './Mob';
-import { GameMap, GameMapMetaData, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from './Map';
+import { GameMap, GameMapMetaData, TILE_SIZE } from './Map';
 import { Game } from './Game';
 import { ServerConfig } from './ServerSettings';
 import { Particle, addParticle } from './engine/Particles';
 import { getSprite } from './engine/Resources';
 import { v4 as uuidv4 } from 'uuid';
-import { InGameItem } from './InventItem';
+import { Layer } from './mods/ModApi';
 
 //
 // Network is handled by using WebRTC through https://livekit.io/ 

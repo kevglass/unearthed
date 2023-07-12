@@ -1,7 +1,7 @@
 
 import { Graphics, HtmlGraphics, WebglGraphics } from "./engine/Graphics";
 import { HtmlUi } from "./HtmlUi";
-import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
+import { GameMap, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "./Map";
 import { Mob } from "./Mob";
 import { isMobile, isTablet } from "./util/MobileDetect";
 import { Network } from "./Network";
@@ -13,15 +13,14 @@ import { Controller, ControllerListener } from "./engine/Controller";
 import { ControllerButtons, CONTROLLER_SETUP_STEPS, KeyControls, KEYS_SETUP_STEPS, ControllerSetupStep } from "./ControllerSetup";
 import { ServerSettings } from "./ServerSettings";
 import { ConfiguredMods } from "./mods/ConfiguredMods";
-import { initTiles, BLOCKS } from "./Block";
+import { initTiles, BLOCKS } from "./Blocks";
 import { Item, initInventory } from "./InventItem";
 import { hideCodeEditor } from "./mods/Editor";
 import JSZip from "jszip";
 import { InventPanel } from "./InventPanel";
 import { DefaultBlockMod } from "./mods/defaultmods/DefaultGameMod";
-import { GameProperty } from "./mods/Mods";
+import { GameProperty, Layer, Recipe } from "./mods/ModApi";
 import { RecipePanel } from "./RecipePanel";
-import { Recipe } from "./Recipe";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't

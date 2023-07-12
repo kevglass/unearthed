@@ -1,10 +1,11 @@
 import { getSprite } from "./engine/Resources";
 import { Game } from "./Game";
 import { Graphics, GraphicsImage, GraphicsType, HtmlGraphics } from "./engine/Graphics";
-import { Portal, Timer, BLOCKS } from "./Block";
+import { Timer, BLOCKS } from "./Blocks";
 import { ALL_ITEMS, InGameItem } from "./InventItem";
 import { Mob } from "./Mob";
 import { v4 as uuidv4 } from 'uuid';
+import { Layer, Portal } from "./mods/ModApi";
 
 /** The total width of the map in tiles */
 export const MAP_WIDTH: number = 140;
@@ -17,11 +18,6 @@ export const MAP_DEPTH: number = 230;
 
 // NOTE: The MAP_WIDTH * MAP_DEPTH * 2 can not be greater than 64k since it won't
 // fit in a network packet at the moment
-
-export enum Layer {
-    FOREGROUND = 0,
-    BACKGROUND = 1
-}
 
 // 
 // The default map just defined an empty flat world of the

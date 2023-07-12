@@ -1,15 +1,13 @@
 import { Game } from "src/Game";
-import { GameContext, GameProperty, MobContext, ServerMod, SkinDefinition } from "./Mods";
+import { Block, GameContext, GameProperty, Layer, MobContext, Recipe, ServerMod, SkinDefinition } from "./ModApi";
 import { loadImageFromUrl, loadSfxFromUrl, playSfx } from "src/engine/Resources";
-import { Block, BLOCKS } from "src/Block";
+import { BLOCKS } from "src/Blocks";
 import { ALL_ITEMS, ItemDefinition } from "src/InventItem";
-import { Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "src/Map";
+import { MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "src/Map";
 import { Mob } from "src/Mob";
 import { v4 as uuidv4 } from 'uuid';
 import { SKINS, Skin, skinFromJson } from "src/Skins";
 import { ALL_ANIM, animsFromJson } from "src/Animations";
-import { Recipe } from "src/Recipe";
-
 // define constants for mods to access
 const global = window as any;
 

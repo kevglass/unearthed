@@ -6,7 +6,7 @@
 //
 
 import { BoneNames } from "./Skins";
-import { SkinDefinition } from "./mods/Mods";
+import { SkinDefinition } from "./mods/ModApi";
 
 // A point in time in a skeletal animation. At the time given (range 0->1) the 
 // bone should be rotated to the given angle

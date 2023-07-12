@@ -1,5 +1,5 @@
 import { Bone } from "./engine/Bones";
-import { BoneDefinition, SkinDefinition } from "./mods/Mods";
+import { BoneDefinition, SkinDefinition } from "./mods/ModApi";
 
 /**
  * The bones that build up the human skeleton

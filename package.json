@@ -8,6 +8,7 @@
     "watch": "webpack --watch",
     "zipstandalone": "./zipstandalone.sh",
     "build": "webpack",
+    "docs": "typedoc --name 'Unearthed Mod API' src/mods/ModApi.ts",
     "debugrelease": "webpack --devtool=inline-source-map",
     "release": "webpack --mode=production --devtool=source-map"
   },
@@ -38,6 +39,7 @@
     "webpack-dev-server": "^4.15.1"
   },
   "devDependencies": {
-    "@types/webpack-env": "^1.18.1"
+    "@types/webpack-env": "^1.18.1",
+    "typedoc": "^0.24.8"
   }
 }
