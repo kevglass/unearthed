@@ -382,6 +382,19 @@ export class GameMap {
         return false;
     }
 
+    collideMobs(source: Mob): Mob | undefined {
+        const mobs = this.game.mobs.filter(m => m.blocksMovement && m !== source);
+        for (const other of mobs) {
+            const collideX = Math.abs(source.x - other.x) < source.width + other.width;
+            const collideY = Math.abs(source.y - other.y) < source.height + other.height;
+
+            if (collideX && collideY) {
+                return other;
+            }
+        }
+
+        return undefined;
+    }
 
     /**
      * Save the map to local storage in the browser

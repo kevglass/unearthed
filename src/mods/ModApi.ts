@@ -21,6 +21,12 @@ export interface MobContext {
     y: number;
     /** The vertical velocity of the mob */
     vy: number;
+    /** The horizontal velocity of the mob */
+    vx: number;
+    /** The gravity to apply to this mob */
+    gravity: number;
+    /** True if this mob should block movement */
+    blocksMovement: boolean;
     /** The state of this mod - this describes what happened last frame */
     state: MobState;
     /** Generic user data that the mod can store things per mod in */
@@ -618,6 +624,8 @@ export interface MobState {
     blockedRight: boolean;
     /** True if the mod was blocked from moving below last frame */
     blockedBelow: boolean;
+    /** True if the mod was blocked from moving above last frame */
+    blockedAbove: boolean;
 }
 
 

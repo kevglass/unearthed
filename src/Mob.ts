@@ -58,8 +58,14 @@ export class Mob {
     width: number = 40;
     /** The height of the bounding box for collision around this mob */
     height: number = 90;
+    /** The x component of velocity of this mob - used for things moving with force */
+    vx: number = 0;
     /** The y component of velocity of this mob - used for falling and jumping */
     vy: number = 0;
+    /** The amount of gravity to apply */
+    gravity: number = 1;
+    /** True if this mob blocks other mobs moving */
+    blocksMovement: boolean = false;
     /** True if this mob is flipped horizontally - flip = true is left */
     flip: boolean = false;
     /** The animation this mob is applying */
@@ -108,6 +114,8 @@ export class Mob {
     network: Network;
     /** We'll ignore blockages until this is zero or we pass this on the Y value */
     fallThroughUntil: number = 0;
+    /** Standing override - if we're standing on a mob */
+    standingOverride: boolean = false;
 
     /** The item in the mob's inventory */
     inventory: Item[] = ALL_ITEMS.map(d => {
@@ -141,7 +149,8 @@ export class Mob {
     state: MobState = {
         blockedLeft: false,
         blockedRight: false,
-        blockedBelow: false
+        blockedBelow: false,
+        blockedAbove: false
     };
     /** The function to be called to let this mob think each frame */
     thinkFunction?: MobThinkFunction;
@@ -165,6 +174,9 @@ export class Mob {
         this.gameMap = gameMap;
         this.network = network;
         const skin = getSkin(type);
+        if (!skin) {
+            throw "Skin not found: " + type;
+        }
         this.width = skin.width;
         this.height = skin.height;
         this.rootBone = skin.skeleton.copy();
@@ -454,9 +466,12 @@ export class Mob {
      * 
      * @returns True if this mob can't move down
      */
-    standingOnSomething(includeLadders: boolean = true): boolean {
+    standingOnSomething(includeLadders: boolean = true, includeOverride: boolean = true): boolean {
         if (this.vy < 0) {
             return false;
+        }
+        if (this.standingOverride && includeOverride) {
+            return true;
         }
         if (includeLadders && this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {
             return true;
@@ -540,7 +555,7 @@ export class Mob {
     private moveUp(): void {
         if (this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor(((this.y + (this.height / 2) / TILE_SIZE))))) {
             this.vy = -10;
-        } else if (this.vy === 0 && this.standingOnSomething()) {
+        } else if ((this.vy === 0 && this.standingOnSomething()) || (this.vy > 0 && this.standingOverride)) {
             this.vy = -20;
             if (this.isPlayerControlled()) {
                 playSfx("jump", 0.1);
@@ -615,7 +630,9 @@ export class Mob {
      * @param count The number of hte item to remove
      */
     removeItem(itemType: string, count: number): void {
-        console.log("Remove item");
+        if (count <= 0) {
+            return;
+        }
         if (this.gameMap.game.serverSettings.isCreativeMode()) {
             return;
         }
@@ -657,6 +674,9 @@ export class Mob {
      */
     addItem(itemType: string, count: number): void {
         if (this.gameMap.game.serverSettings.isCreativeMode()) {
+            return;
+        }
+        if (count <= 0) {
             return;
         }
 
@@ -703,6 +723,70 @@ export class Mob {
         this.lastUpdate = Date.now();
     }
 
+    evalBlockedRight(dx: number): boolean {
+        if (!this.blockedRight()) {
+            this.x += dx;
+            if (this.standingOnSomething() && this.seq % 15 === 0) {
+                if (this.isPlayerControlled()) {
+                    playSfx('footstep', 0.1, 5);
+                }
+            }
+        } else {
+            // if we're blocked then move us out of the collision
+            this.x = (Math.floor((this.x + this.width) / TILE_SIZE) * TILE_SIZE) - this.width;
+            this.anim = findAnimation(this.type, "idle");
+            this.state.blockedRight = true;
+            return true;
+        }
+
+        return false;
+    }
+
+    evalBlockedUp(): boolean {
+        if (this.hittingHead() && this.vy <= 0) {
+            this.state.blockedAbove = true;
+            this.vy = 0;
+            this.y = (Math.floor((this.y) / TILE_SIZE) * TILE_SIZE) + this.height;
+            return true;
+        }
+
+        return false;
+    }
+
+    evalBlockedDown(): boolean {
+        if (this.standingOnSomething(false, false) || !this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {
+            // if we have a grace fall from sliding down from a block
+            if (this.fallThroughUntil === 0) {
+                // otherwise move us out of the collision with the floor and stop falling
+                this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
+                this.state.blockedBelow = true;
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    evalBlockedLeft(dx: number): boolean {
+        if (!this.blockedLeft()) {
+            this.x += dx;
+            if (this.standingOnSomething() && this.seq % 15 === 0) {
+                if (this.isPlayerControlled()) {
+                    playSfx('footstep', 0.1, 5);
+                }
+            }
+        } else {
+            // if we're blocked then move us out of the collision
+            this.x = (Math.floor((this.x - this.width) / TILE_SIZE) * TILE_SIZE) + TILE_SIZE + this.width - 1;
+            this.anim = findAnimation(this.type, "idle");
+            this.state.blockedLeft = true;
+            return true;
+        }
+
+        return false
+    }
+
     /**
      * Update this mob by moving its animation forward and applying any controls being pressed
      * 
@@ -741,6 +825,7 @@ export class Mob {
 
         // reset the state for this frame
         this.state.blockedBelow = false;
+        this.state.blockedAbove = false;
         this.state.blockedLeft = false;
         this.state.blockedRight = false;
 
@@ -839,15 +924,12 @@ export class Mob {
 
         // if we're hitting our head on a block and moving updates
         // then stop and move us out of the collision
-        if (this.hittingHead() && this.vy < 0) {
-            this.vy = 0;
-            this.y = (Math.floor((this.y) / TILE_SIZE) * TILE_SIZE) + this.height;
-        }
+        this.evalBlockedUp();
 
         // if we're not standing on something then fall
         if (!this.standingOnSomething()) {
             if (this.vy < TILE_SIZE / 2) {
-                this.vy += 1;
+                this.vy += this.gravity;
             }
         }
 
@@ -857,64 +939,33 @@ export class Mob {
 
         // this is particularly poor, if we're using the WALK animation then
         // we consider ourself attempting to move - so apply the directional movement
-        if (this.moving) {
+        const dx = this.vx + (this.moving ? this.flip ? 7 : -7 : 0);
+
+        if (dx !== 0) {
             // we're trying to walk
-            if (this.flip) {
-                if (!this.blockedRight()) {
-                    this.x += 7;
-                    if (this.standingOnSomething() && this.seq % 15 === 0) {
-                        if (this.isPlayerControlled()) {
-                            playSfx('footstep', 0.1, 5);
-                        }
-                    }
-                } else {
-                    // if we're blocked then move us out of the collision
-                    this.x = (Math.floor((this.x + this.width) / TILE_SIZE) * TILE_SIZE) - this.width;
-                    this.anim = findAnimation(this.type, "idle");
-                    this.state.blockedRight = true;
-                }
+            if (dx > 0) {
+                this.evalBlockedRight(dx);
             } else {
-                if (!this.blockedLeft()) {
-                    this.x -= 7;
-                    if (this.standingOnSomething() && this.seq % 15 === 0) {
-                        if (this.isPlayerControlled()) {
-                            playSfx('footstep', 0.1, 5);
-                        }
-                    }
-                } else {
-                    // if we're blocked then move us out of the collision
-                    this.x = (Math.floor((this.x - this.width) / TILE_SIZE) * TILE_SIZE) + TILE_SIZE + this.width - 1;
-                    this.anim = findAnimation(this.type, "idle");
-                    this.state.blockedLeft = true;
-                }
+                this.evalBlockedLeft(dx);
             }
         }
 
         // apply vertical velocity (if there is any)
-        this.y += this.vy;
+        if (this.vy !== 0) {
+            this.y += this.vy;
 
-        if (this.standingOnSomething()) {
-            if (this.standingOnSomething(false) || !this.gameMap.isLadder(Math.floor(this.x / TILE_SIZE), Math.floor((this.y + this.height) / TILE_SIZE))) {
-                // if we have a grace fall from sliding down from a block
-                if (this.fallThroughUntil === 0) {
-                    // otherwise move us out of the collision with the floor and stop falling
-                    this.y = (Math.floor((this.y + this.height) / TILE_SIZE) * TILE_SIZE) - this.height;
-                    this.state.blockedBelow = true;
-                }
-            }
+            if (this.standingOnSomething(true, false)) {
+               this.evalBlockedDown();
 
-            // check to see if vy has been modified by a mod after a standing event
-            if (this.vy > 0) {
-                this.vy = 0;
+               // check to see if vy has been modified by a mod after a standing event
+               if (this.vy > 0) {
+                   this.vy = 0;
+               }
             }
         }
 
         if (this.y > this.fallThroughUntil) {
             this.fallThroughUntil = 0;
-        }
-
-        if (this.thinkFunction) {
-            this.thinkFunction(this.gameMap.game.mods.context, this);
         }
 
         // update the state of the  bones for animation
@@ -972,6 +1023,12 @@ export class Mob {
         }
     }
 
+    think(): void {
+        if (this.thinkFunction) {
+            this.thinkFunction(this.gameMap.game.mods.context, this);
+        }
+    }
+    
     /**
      * Draw a mob to the screen
      * 

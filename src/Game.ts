@@ -21,6 +21,7 @@ import { InventPanel } from "./InventPanel";
 import { DefaultBlockMod } from "./mods/defaultmods/DefaultGameMod";
 import { GameProperty, Layer, Recipe } from "./mods/ModApi";
 import { RecipePanel } from "./RecipePanel";
+import { TestGameMod } from "./mods/defaultmods/TestGameMode";
 
 //
 // The main game controller and state. This is catch-all for anything that didn't
@@ -176,7 +177,7 @@ export class Game implements ControllerListener {
      * The list of recipes configured by mods
      */
     recipes: Recipe[] = [];
-    
+
     constructor() {
         const params = new URLSearchParams(location.search);
         this.headless = params.get("headless") === "true";
@@ -245,6 +246,7 @@ export class Game implements ControllerListener {
 
         // bootstrap the default mods if enabled
         this.serverSettings.addDefaultMod(new DefaultBlockMod());
+        // this.serverSettings.addDefaultMod(new TestGameMod());
         this.serverSettings.load();
 
         // update UI state based on loaded config
@@ -523,7 +525,7 @@ export class Game implements ControllerListener {
                     }
                 }
             }
-            
+
             // if the user hits enter and we're connected to the game
             // then show the chat box
             if (this.network.connected()) {
@@ -1033,6 +1035,64 @@ export class Game implements ControllerListener {
                 // finally draw update and draw the mobs
                 for (const mob of [...this.mobs]) {
                     mob.update(this.animTime, !this.placingTilesOnFrontLayer);
+                    mob.standingOverride = false;
+                }
+                for (const mob of [...this.mobs]) {
+                    if (mob.blocksMovement) {
+                        continue;
+                    }
+
+                    // check if we're now intersecting with another mob
+                    const collisionMob = this.gameMap.collideMobs(mob);
+                    if (collisionMob) {
+                        // move out of the collision 
+                        const dy = Math.min(TILE_SIZE / 2, (collisionMob.height + mob.height) - Math.abs(collisionMob.y - mob.y));
+                        const dx = Math.min(TILE_SIZE / 2, (collisionMob.width + mob.width) - Math.abs(collisionMob.x - mob.x));
+
+                        // move the smallest amount to get out of the collision
+                        // or use the direction movement
+                        if (dx < dy && collisionMob.vy === 0) {
+                            let pushedLeft = collisionMob.x > mob.x;
+                            mob.y += collisionMob.vy;
+
+                            if (pushedLeft) {
+                                if (mob.evalBlockedLeft(-dx)) {
+                                    collisionMob.state.blockedLeft = true;
+                                }
+                            } else {
+                                if (mob.evalBlockedRight(dx)) {
+                                    collisionMob.state.blockedRight = true;
+                                }
+                            }
+                        } else {
+                            let pushedUp = collisionMob.y > mob.y;
+                            if (pushedUp) {
+                                mob.x += collisionMob.vx;
+                            }
+
+                            if (pushedUp) {
+                                mob.standingOverride = true;
+                                mob.y -= dy;
+                                if (mob.evalBlockedUp()) {
+                                    collisionMob.state.blockedAbove = true;
+                                }
+                                // when we're falling we want to jump a frame since the block
+                                // will have moved away from us
+                                mob.y += collisionMob.vy + mob.gravity;
+                                mob.vy = 0;
+                            } else {
+                                mob.y += dy;
+                                if (mob.evalBlockedDown()) {
+                                    collisionMob.state.blockedBelow = true;
+                                }
+                                mob.y += collisionMob.vy;
+                                mob.vy = 0;
+                            }
+                        }
+                    }
+                }
+                for (const mob of [...this.mobs]) {
+                    mob.think();
                 }
             }
         } else {

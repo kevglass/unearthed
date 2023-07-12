@@ -41,7 +41,7 @@ export class DefaultBlockMod implements ServerMod {
         game.addTool("tiles/brick_red", 4, undefined, true, false, 0, false, 1);
 
         game.addBlock(5, { sprite: "tiles/leaves", blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false });
-        this.produces[5] = { chance: 0.2, itemId: game.addTool("tiles/seed", 0, "seeds", false, true, 0, false, 0) };
+        this.produces[5] = { chance: 0.4, itemId: game.addTool("tiles/seed", 0, "seeds", false, true, 0, false, 0) };
         this.seedItemId = this.produces[5].itemId;
 
         game.addBlock(6, { sprite: "tiles/sand", blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true });

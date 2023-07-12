@@ -116,7 +116,7 @@ export class GameAsContext implements GameContext {
      */
     setMetaDataBlob(blob: any): void {
         if (this.currentMod) {
-            this.game.gameMap.metaData.modData[this.currentMod.mod.id];
+            this.game.gameMap.metaData.modData[this.currentMod.mod.id] = blob;
             this.game.network.sendMetaData(this.game.gameMap.metaData);
         }
     }
