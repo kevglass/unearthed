@@ -28,7 +28,7 @@ https://unearthedgame.net/
 ## Development Guidelines
 
 - Keep it Simple Smartie
-- Make the change you need to make, don't refector the world
+- Make the change you need to make, don't refactor the world
 - Assume its that way for a reason. No one that works on this project is stupid :)
 - Ask, and ask again!
   
