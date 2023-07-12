@@ -407,20 +407,17 @@ export class GameAsContext implements GameContext {
     }
 
     /**
-     * @see GameContext.setTimeout
+     * @see GameContext.startTimer
      */
-    setTimeout(callback: () => void, timeout: number): void {
-        // wrap any calls to setTimeout in a context aware
-        // callback
-        const mod = this.currentMod;
-
-        if (mod) {
-            setTimeout(() => {
-                this.startContext(mod);
-                callback();
-                this.endContext();
-            }, timeout);
-        }
+    startTimer(callback: string, timeout: number, tileX?: number, tileY?: number, layer?: number): void {
+        this.game.gameMap.timers.push({
+            tileX, 
+            tileY,
+            layer,
+            timer: timeout,
+            callbackName: callback
+        });
+        this.game.gameMap.saveMetaData();
     }
 
     /**
@@ -799,6 +796,29 @@ export class ConfiguredMods {
                 try {
                     this.context.startContext(record);
                     record.mod.onMobAdded(this.context, mob);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Notify all interested mods that a timer fired
+     * 
+     * @param callbackName The name of the callback that was registered with the timer
+     * @param tileX The x coordinate of the optional tile location this time was associated with
+     * @param tileY The y coordinate of the optional tile location this time was associated with
+     * @param layer The layer of optional tile location this time was associated with
+     */
+    timer(callbackName: string, tileX?: number, tileY?: number, layer?: number): void {
+        for (const record of this.mods) {
+            if (record.mod.onTimerFired) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onTimerFired(this.context, callbackName, tileX, tileY, layer);
                     this.context.endContext();
                 } catch (e) {
                     console.error("Error in Game Mod: " + record.mod.name);

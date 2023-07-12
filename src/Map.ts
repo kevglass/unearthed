@@ -154,7 +154,7 @@ export class GameMap {
             }
         }
     }
-    
+
     /**
      * Reset the map to a newly generated one
      */
@@ -345,6 +345,7 @@ export class GameMap {
             if (this.game.network && this.game.network.connected()) {
                 this.game.network.sendMetaData(this.metaData);
             }
+            localStorage.setItem("maptimers", JSON.stringify(this.timers));
         }
     }
 
@@ -357,6 +358,7 @@ export class GameMap {
         const existingMap = localStorage.getItem("map");
         const existingBG = localStorage.getItem("mapbg");
         const existingMeta = localStorage.getItem("mapmeta");
+        const existingTimers = localStorage.getItem("maptimers");
         if (existingMap) {
             const savedMap = JSON.parse(existingMap);
             if (savedMap.length >= DEFAULT_MAP.length) {
@@ -370,6 +372,10 @@ export class GameMap {
 
                     if (existingMeta) {
                         Object.assign(this.metaData, JSON.parse(existingMeta));
+                    }
+
+                    if (existingTimers) {
+                        this.timers = JSON.parse(existingTimers);
                     }
                 }
 
@@ -572,7 +578,7 @@ export class GameMap {
         }
 
         // Remove any timers on this tile
-        this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileIndex !== x + (y * MAP_WIDTH));
+        this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileX !== x || timer.tileY !== y);
 
         // Remove any portals on this tile
         this.metaData.portals = this.metaData.portals.filter(portal => portal.tileIndex !== x + (y * MAP_WIDTH));
@@ -585,10 +591,11 @@ export class GameMap {
         if (tileDef) {
             if (tileDef.timer) {
                 this.timers.push({
-                    tileIndex: x + (y * MAP_WIDTH),
+                    tileX: x, 
+                    tileY: y,
                     layer,
                     timer: tileDef.timer.timer,
-                    callback: tileDef.timer.callback,
+                    callbackName: tileDef.timer.callbackName
                 });
             }
 
@@ -722,7 +729,7 @@ export class GameMap {
         this.timers.forEach(timer => {
             timer.timer--;
             if (timer.timer <= 0) {
-                timer.callback(this, timer);
+                this.game.mods.timer(timer.callbackName, timer.tileX, timer.tileY, timer.layer);
             }
         });
         this.timers = this.timers.filter(timer => timer.timer > 0);

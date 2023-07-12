@@ -25,7 +25,7 @@ export interface Block {
     /** True if this block prevents lights passing */
     blocksLight: boolean;
     /** The timer object with the number of ticks it takes for the block's effect to happen and the callback that defines the effect */
-    timer?: { timer: number, callback: (map: GameMap, timer: Timer) => void }|null;
+    timer?: { timer: number, callbackName: string };
     /** Does this block light the area */
     light?: boolean;
     /** True if we can't place this block in the background */
@@ -33,14 +33,16 @@ export interface Block {
 }
 
 export interface Timer {
-    /** The tile index in the map */
-    tileIndex: number;
+    /** The x coordinate of the tile index in the map */
+    tileX?: number;
+    /** The y coordinate of the tile index in the map */
+    tileY?: number;
     /** The layer the timer is for */
-    layer: number;
+    layer?: number;
     /** The number of ticks until the timer triggers */
     timer: number;
-    /** The callback to call when the timer triggers */
-    callback: (map: GameMap, timer: Timer) => void;
+    /** The name of the callback to fire */
+    callbackName: string;
 }
 
 export interface Portal {

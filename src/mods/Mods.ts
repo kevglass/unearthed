@@ -125,10 +125,13 @@ export interface GameContext {
     /**
      * Equivalent to Javascript setTimeout but fired in the context of the mod
      * 
-     * @param callback The callback function to call
-     * @param timeout The timeout in milliseconds
+     * @param callback The callback name to call back with
+     * @param timeout The timeout in game ticks
+     * @param tileX The x coordinate of the optional tile location this time was associated with
+     * @param tileY The y coordinate of the optional tile location this time was associated with
+     * @param layer The layer of optional tile location this time was associated with
      */
-    setTimeout(callback: () => void, timeout: number): void;
+    startTimer(callback: string, timeout: number, tileX?: number, tileY?: number, layer?: number): void;
 
     /**
      * Remove a tool from the game configuration based on its tool ID. This is useful for
@@ -536,6 +539,16 @@ export interface ServerMod {
      */
     onMobAdded?(game: GameContext, mob: MobContext): void;
 
+    /**
+     * Notification that a previously scheduled timer fired
+     * 
+     * @param game The game to callback on to to make changes
+     * @param callbackName The name of the callback that was registered with the timer
+     * @param tileX The x coordinate of the optional tile location this time was associated with
+     * @param tileY The y coordinate of the optional tile location this time was associated with
+     * @param layer The layer of optional tile location this time was associated with
+     */
+    onTimerFired?(game: GameContext, callbackName: string, tileX?: number, tileY?: number, layer?: number): void;
 }
 
 /**

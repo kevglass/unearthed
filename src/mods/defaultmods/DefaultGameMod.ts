@@ -1,8 +1,6 @@
-import { GameMap, Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT, TILE_SIZE } from "src/Map";
+import { Layer, MAP_DEPTH, MAP_WIDTH, SKY_HEIGHT } from "src/Map";
 import { GameContext, MobContext, ServerMod } from "../Mods";
-import { Portal, Timer } from "src/Block";
-import { addParticle, createDirtParticle } from "src/engine/Particles";
-import { playSfx } from "src/engine/Resources";
+import { Portal } from "src/Block";
 
 export class DefaultBlockMod implements ServerMod {
     id: string = "default-blockTools";
@@ -14,27 +12,19 @@ export class DefaultBlockMod implements ServerMod {
     produces: Record<number, { chance: number, itemId: string }> = {};
     seedItemId: string = "";
 
-    /**
-     * A callback to explode a tile location 
-     * 
-     * @param map The map the explosion is taking place on
-     * @param timer The timer that triggered the explosion
-     */
-    explosionMutator = (map: GameMap, timer: Timer): void => {
-        for (let x = timer.tileIndex % MAP_WIDTH - 1; x <= timer.tileIndex % MAP_WIDTH + 1; x++) {
-            for (let y = Math.floor(timer.tileIndex / MAP_WIDTH) - 1; y <= Math.floor(timer.tileIndex / MAP_WIDTH) + 1; y++) {
+    explosionMutator = (game: GameContext, tileX: number, tileY: number, layer: number): void => {
+        for (let x =tileX - 1; x <= tileX + 1; x++) {
+            for (let y = tileY - 1; y <= tileY + 1; y++) {
                 if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
                     continue;
                 }
-                if (map.getTile(x, y, timer.layer) !== 0) {
-                    map.setTile(x, y, 0, timer.layer);
-                    for (let i = 0; i < 5; i++) {
-                        addParticle(createDirtParticle((x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
-                    }
+                if (game.getBlock(x, y, layer) !== 0) {
+                    game.setBlock(x, y, layer, 0);
+                    game.addParticlesAtTile("particles/red", x, y, 5);
                 }
             }
         }
-        playSfx("explosion", 1);
+        game.playSfx("explosion", 1);
     }
 
     onGameStart(game: GameContext): void {
@@ -98,14 +88,15 @@ export class DefaultBlockMod implements ServerMod {
         game.addBlock(24, { sprite: "tiles/platform", blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false });
         const platformId = game.addTool("tiles/platform", 24, undefined, true, false, 0, false, 1);
 
-        game.addBlock(25, { sprite: "tiles/tnt", blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: this.explosionMutator } });
+        game.addBlock(25, { sprite: "tiles/tnt", blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callbackName: "tntTimer" } });
         const tntId = game.addTool("tiles/tnt", 25, undefined, true, false, 0, false, 1);
 
         game.addBlock(26, { sprite: "tiles/torchtile", blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true });
         const torchId = game.addTool("holding/torch", 26, undefined, true, false, 0, false, 1);
 
         game.addBlock(27, {
-            sprite: "tiles/portal", blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => {
+            sprite: "tiles/portal", blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, 
+            portal: (portal: Portal) => {
                 const url = new URL(location.href);
                 url.searchParams.set('portal', '1');
                 url.searchParams.set('server', portal?.code ?? '');
@@ -201,6 +192,31 @@ export class DefaultBlockMod implements ServerMod {
         }
     }
 
+    onTimerFired(game: GameContext, callbackName: string, tileX?: number | undefined, tileY?: number | undefined, layer?: number | undefined): void {
+        if (callbackName === "tntTimer") {
+            this.explosionMutator(game, tileX!, tileY!, layer!);
+        }
+
+        if (callbackName === "growTree") {
+            const x = tileX!;
+            const y = tileY!;
+            if (game.getBlock(x, y - 1, Layer.FOREGROUND) === 29) {
+                game.setBlock(x, y - 1, Layer.FOREGROUND, 16);
+                if (game.getBlock(x, y - 2, Layer.FOREGROUND) === 0) {
+                    game.setBlock(x, y - 2, Layer.FOREGROUND, 17);
+
+                    for (let xo = -1; xo < 2; xo++) {
+                        for (let yo = -1; yo < 2; yo++) {
+                            if (game.getBlock(x + xo, y - 4 + yo, Layer.FOREGROUND) === 0) {
+                                game.setBlock(x + xo, y - 4 + yo, Layer.FOREGROUND, 5);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     onUseTool(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, toolId: string): void {
         if (toolId === "iron-pick" || toolId === "stone-pick" || toolId === "hands") {
             game.setBlock(x, y, layer, 0);
@@ -214,22 +230,7 @@ export class DefaultBlockMod implements ServerMod {
                     game.setBlock(x, y - 1, Layer.FOREGROUND, 29);
                     game.takeItem(mob, 1, this.seedItemId);
 
-                    game.setTimeout(() => {
-                        if (game.getBlock(x, y - 1, Layer.FOREGROUND) === 29) {
-                            game.setBlock(x, y - 1, Layer.FOREGROUND, 16);
-                            if (game.getBlock(x, y - 2, Layer.FOREGROUND) === 0) {
-                                game.setBlock(x, y - 2, Layer.FOREGROUND, 17);
-
-                                for (let xo = -1; xo < 2; xo++) {
-                                    for (let yo = -1; yo < 2; yo++) {
-                                        if (game.getBlock(x + xo, y - 4 + yo, Layer.FOREGROUND) === 0) {
-                                            game.setBlock(x + xo, y - 4 + yo, Layer.FOREGROUND, 5);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }, 5000);
+                    game.startTimer("growTree", 360, x, y, Layer.FOREGROUND);
                 }
             }
         }
