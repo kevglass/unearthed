@@ -205,6 +205,10 @@ export class Network {
             return;
         }
 
+        this.room.on(RoomEvent.ParticipantConnected, (participant) => {
+            console.log("Participant connected: " + participant.name);
+        });
+
         this.room.on(RoomEvent.ParticipantDisconnected, (participant) => {
             // if the hosting participant disconnects then go into frozen mode
             // until we get one back
@@ -596,7 +600,6 @@ export class Network {
      * @param serverSettings The server settings that should be sent over.
      */
     sendServerSettings(serverSettings: ServerConfig, target?: string): void {
-        console.log("Sending server settings");
         if (this.isConnected) {
             const toSend = JSON.parse(JSON.stringify(serverSettings));
             // don't send binary lumps across, we'll blow the message stack
@@ -742,15 +745,17 @@ export class Network {
                 return;
             }
         }
-        if (this.thisIsTheHostServer || this.gameMap.isGenerating()) {
-            // if we're the host then forward the update to all players
-            // only set zero if we're using the default pick
-            if (tile !== 0 || this.game.mods.inModContext()) {
-                // note if the mod changed the background tile then we don't want to apply the default leaveBackground
-                // flag
-                this.gameMap.setTile(x, y, tile, layer, oldBackground === this.gameMap.getTile(x, y, Layer.BACKGROUND));
-            }
+        // if we're the host then forward the update to all players
+        // only set zero if we're using the default pick
+        if (tile !== 0 || this.game.mods.inModContext()) {
+            // note if the mod changed the background tile then we don't want to apply the default leaveBackground
+            // flag
+
+            // NOTE: If the tile is a remote client it'll set but then be undone by the server 
+            // if incorrectly placed etc
+            this.gameMap.setTile(x, y, tile, layer, oldBackground === this.gameMap.getTile(x, y, Layer.BACKGROUND));
         }
+
         if (this.thisIsTheHostServer) {
             // if we're the server we're authoritative so the mods can run based on the change
             this.game.mods.tile(player, x, y, layer, tile, oldBlock);

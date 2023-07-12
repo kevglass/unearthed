@@ -615,6 +615,7 @@ export class Mob {
      * @param count The number of hte item to remove
      */
     removeItem(itemType: string, count: number): void {
+        console.log("Remove item");
         if (this.gameMap.game.serverSettings.isCreativeMode()) {
             return;
         }
@@ -629,9 +630,8 @@ export class Mob {
                         this.quickSlots[i] = null;
                     }
                 }
-
-                this.saveItems();
             }
+            this.saveItems();
         } else {
             console.error("Couldn't find item to remove: " + itemType);
         }
