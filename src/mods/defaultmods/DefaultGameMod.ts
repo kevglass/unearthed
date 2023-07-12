@@ -10,6 +10,7 @@ export class DefaultBlockMod implements ServerMod {
 
     produces: Record<number, { chance: number, itemId: string }> = {};
     seedItemId: string = "";
+    generatingWorld: boolean = false;
 
     explosionMutator = (game: GameContext, tileX: number, tileY: number, layer: number): void => {
         for (let x =tileX - 1; x <= tileX + 1; x++) {
@@ -180,7 +181,7 @@ export class DefaultBlockMod implements ServerMod {
     }
 
     onSetTile(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, block: number, oldBlock: number): void {
-        if (!game.inCreativeMode()) {
+        if (!game.inCreativeMode() && !this.generatingWorld) {
             if ((block === 0) && (layer == Layer.FOREGROUND)) {
                 if (this.produces[oldBlock]) {
                     if (Math.random() < this.produces[oldBlock].chance) {
@@ -244,6 +245,7 @@ export class DefaultBlockMod implements ServerMod {
     generateWorld(game: GameContext, width: number, height: number): void {
         console.log("Generating map");
 
+        this.generatingWorld = true;
         // map generation
         let h = 0;
         let offset = 0;
@@ -336,6 +338,9 @@ export class DefaultBlockMod implements ServerMod {
         for (let i = 0; i < 20; i++) {
             this.placeSeam(game, 23, 3, SKY_HEIGHT + 150, MAP_DEPTH - 15, 2);
         }
+        
+        this.generatingWorld = false;
+        console.log("Done Generating Map");
     }
 
     private placeSeam(game: GameContext, tile: number, size: number, upper: number, lower: number, cutBase: number): void {
@@ -388,4 +393,5 @@ export class DefaultBlockMod implements ServerMod {
             y = nextCenter[1];
         }
     }
+
 }
