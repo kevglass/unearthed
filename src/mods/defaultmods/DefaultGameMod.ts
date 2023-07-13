@@ -27,6 +27,9 @@ export class DefaultBlockMod implements ServerMod {
         game.playSfx("explosion", 1);
     }
 
+    onSelectTool(game: GameContext, mob: MobContext, toolId: string): void {
+        alert(toolId);
+    }
     onGameStart(game: GameContext): void {
         const ironPickId = game.addTool("holding/pick_iron", 0, "iron-pick", false, true, 60, true, 0.01);
         const stonePickId = game.addTool("holding/pick_stone", 0, "stone-pick", false, true, 75, true, 0.01);

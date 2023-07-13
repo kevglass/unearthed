@@ -697,15 +697,16 @@ export class ConfiguredMods {
      * @returns True if a mod was found or false to use default generation
      */
     generate(): boolean {
+        const seed = Math.floor(Math.random() * 100000);
+        let useDefaultGeneration = true;
+
         for (const record of this.mods) {
             if (record.mod.generateWorld) {
                 try {
+                    useDefaultGeneration = false;
                     this.context.startContext(record);
-                    this.context.log("Generating World...");
-                    record.mod.generateWorld(this.context, MAP_WIDTH, MAP_DEPTH);
+                    record.mod.generateWorld(this.context, MAP_WIDTH, MAP_DEPTH, seed);
                     this.context.endContext();
-
-                    return true;
                 } catch (e) {
                     console.error("Error in Game Mod: " + record.mod.name);
                     console.error(e);
@@ -713,7 +714,20 @@ export class ConfiguredMods {
             }
         }
 
-        return false;
+        for (const record of this.mods) {
+            if (record.mod.onWorldGenerated) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onWorldGenerated(this.context, MAP_WIDTH, MAP_DEPTH, seed);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+
+        return useDefaultGeneration;
     }
 
     /**
@@ -817,6 +831,27 @@ export class ConfiguredMods {
                 try {
                     this.context.startContext(record);
                     record.mod.onTimerFired(this.context, callbackName, tileX, tileY, layer);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Notify all interested mods that a tool has been selected
+     * 
+     * @param mob The mob using the tool.
+     * @param tool The ID of the tool being used
+     */
+    toolSelected(mob: Mob, tool: string): void {
+        for (const record of this.mods) {
+            if (record.mod.onSelectTool) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onSelectTool(this.context, mob, tool);
                     this.context.endContext();
                 } catch (e) {
                     console.error("Error in Game Mod: " + record.mod.name);

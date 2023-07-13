@@ -440,8 +440,9 @@ export interface ServerMod {
      * @param game The context on which the mod can callback to modify the game.
      * @param width The width of the map being generated
      * @param height The height of the map being generated
+     * @param seed The seed being used
      */
-    generateWorld?(game: GameContext, width: number, height: number): void;
+    generateWorld?(game: GameContext, width: number, height: number, seed: number): void;
 
     /**
      * Notification of when the game starts altogether. This is a good place to add/change assets, tools and blocks since
@@ -450,6 +451,16 @@ export interface ServerMod {
      * @param game The context on which the mod can callback to modify the game.
      */
     onGameStart?(game: GameContext): void;
+
+    /**
+     * Notification that a new world has been generated
+     * 
+     * @param game The context on which the mod can callback to modify the game.
+     * @param width The width of the map being generated
+     * @param height The height of the map being generated
+     * @param seed The seed being used
+     */
+    onWorldGenerated?(game: GameContext, width: number, height: number, seed: number): void;
 
     /**
      * Notification that the player(s) are being added to the world. This is useful to show messages and do setup that 
@@ -481,6 +492,15 @@ export interface ServerMod {
      */
     onSetTile?(game: GameContext, mob: MobContext | undefined, x: number, y: number, layer: Layer, block: number, oldBlock: number): void;
 
+    /**
+     * Notification that a player has selected a tool
+     * 
+     * @param game The game in which the player existing
+     * @param mob The player in the world
+     * @param toolId The ID of the tool selected
+     */
+    onSelectTool?(game: GameContext, mob: MobContext, toolId: string): void;
+    
     /**
      * Notification that a mob used a tool on a given location
      * 

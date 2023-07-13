@@ -319,7 +319,7 @@ export class Game implements ControllerListener {
             this.mobs.push(this.player);
         }
         this.network.updatePlayerList(this.mobs);
-        this.player.itemHeld = this.player.quickSlots[0];
+        this.holdItem(this.player.quickSlots[0]);
 
         // honour a server parameter if its there so we can pass links
         // to each other
@@ -515,11 +515,11 @@ export class Game implements ControllerListener {
             for (let i = 1; i < 10; i++) {
                 if (this.keyDown["Digit" + i]) {
                     if (this.player.itemHeld !== this.player.quickSlots[i - 1]) {
-                        this.player.itemHeld = this.player.quickSlots[i - 1];
+                        this.holdItem(this.player.quickSlots[i - 1]);
                         this.quickSlotSelected = i - 1;
                         playSfx('click', 1);
                     } else {
-                        this.player.itemHeld = null;
+                        this.holdItem(null);
                         this.quickSlotSelected = -1;
                         playSfx('click', 1);
                     }
@@ -653,7 +653,7 @@ export class Game implements ControllerListener {
         if (this.quickSlotSelected < -1) {
             this.quickSlotSelected = (rows * 4) - 1;
         }
-        this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
+        this.holdItem(this.player.quickSlots[this.quickSlotSelected]);
         playSfx('click', 1);
     }
 
@@ -666,7 +666,7 @@ export class Game implements ControllerListener {
         if (this.quickSlotSelected >= (rows * 4)) {
             this.quickSlotSelected = 0;
         }
-        this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
+        this.holdItem(this.player.quickSlots[this.quickSlotSelected]);
         playSfx('click', 1);
     }
 
@@ -720,10 +720,10 @@ export class Game implements ControllerListener {
                     foundInventButton = true;
                     if (this.player.itemHeld !== this.player.quickSlots[index]) {
                         this.quickSlotSelected = index;
-                        this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
+                        this.holdItem(this.player.quickSlots[this.quickSlotSelected]);
                         playSfx('click', 1);
                     } else {
-                        this.player.itemHeld = null;
+                        this.holdItem(null);
                         this.quickSlotSelected = -1;
                         playSfx('click', 1);
                     }
@@ -956,7 +956,7 @@ export class Game implements ControllerListener {
         this.gamepad.update();
 
         if (this.network.connected() && this.controllerSetupStep === -1) {
-            this.player.itemHeld = this.player.quickSlots[this.quickSlotSelected];
+            this.holdItem(this.player.quickSlots[this.quickSlotSelected]);
 
             for (let loop = 0; loop < delta / Math.floor(1000 / 60); loop++) {
                 if (this.isHostingTheServer) {
@@ -1484,7 +1484,7 @@ export class Game implements ControllerListener {
             const index = xp + (yp * 4);
             if ((index >= 0) && (index <= this.player.quickSlots.length)) {
                 this.player.quickSlots[index] = item;
-                this.player.itemHeld = item;
+                this.holdItem(item);
                 this.quickSlotSelected = index;
                 this.player.saveQuickSlots();
             }
@@ -1503,9 +1503,24 @@ export class Game implements ControllerListener {
         }
         if (index >= 0) {
             this.player.quickSlots[index] = item;
-            this.player.itemHeld = item;
+            this.holdItem(item);
             this.quickSlotSelected = index;
             this.player.saveQuickSlots();
+        }
+    }
+
+    holdItem(item: Item | null): void {
+        if (this.player.itemHeld !== item) {
+            this.player.itemHeld = item;
+
+            if (item) {
+                if (item.def.toolId) {
+                    this.mods.toolSelected(this.player, item.def.toolId);
+                }
+                if (item.def.place > 0) {
+                    this.mods.toolSelected(this.player, "place-" + item.def.place);
+                }
+            }
         }
     }
 }
