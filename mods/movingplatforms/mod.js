@@ -4,6 +4,12 @@ new class {
     chatName = "test";
     version = 1;
     apiVersion = 1;
+    dependencies = [
+        {
+            modId: "default-blockTools",
+            minVersion: 0
+        }
+    ];
 
     platformMob;
     platformMob2;

@@ -1,5 +1,5 @@
 import { SKY_HEIGHT, TILE_SIZE } from "src/Map";
-import { GameContext, MobContext, ServerMod } from "../ModApi";
+import { GameContext, MobContext, ModDependency, ServerMod } from "../ModApi";
 
 export class TestGameMod implements ServerMod {
     id: string = "default-Test";
@@ -7,7 +7,6 @@ export class TestGameMod implements ServerMod {
     chatName: string = "test";
     version: number = 1;
     apiVersion: number = 1;
-
     platformMob?: MobContext;
     platformMob2?: MobContext;
     down: boolean = false;

@@ -396,6 +396,17 @@ export enum GameProperty {
 }
 
 /**
+ * Definition of a dependency
+ */
+export interface ModDependency {
+    /** The ID of the mod we're dependent on */
+    modId: string;
+    /** The minimum version of that mod required */
+    minVersion: number;
+    /** The maximum version of that mod allowed if any */
+    maxVersion?: number;
+}
+/**
  * This is the interface that mods can implement to get notification of events in games. Note
  * that mods only run on the server at the current time.
  */
@@ -410,6 +421,8 @@ export interface ServerMod {
     version: number;
     /** API version this mod uses - not present = 0 */
     apiVersion: number;
+    /** Optional dependencies on other mods */
+    dependencies?: ModDependency[];
     
     /**
      * Notification when the mod has been loaded/installed. Be careful what you call here since most of the 

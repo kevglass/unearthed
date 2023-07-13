@@ -203,6 +203,33 @@ export class ServerSettings {
                         return;
                     }
 
+                    // validate mod dependencies
+                    if (potentialMod.dependencies) {
+                        let missing = false;
+
+                        for (const dependency of potentialMod.dependencies) {
+                            const targetMod = this.serverMods.mods.find(r => r.mod.id === dependency.modId);
+                            if (!targetMod) {
+                                missing = true;
+                                console.log(potentialMod.name + " depends on mod with ID: " + dependency.modId + " and this is not installed");
+                            } else {
+                                if (targetMod.mod.version < dependency.minVersion) {
+                                    missing = true;
+                                    console.log(potentialMod.name + " depends on mod with ID: " + dependency.modId + " minimum version " + dependency.minVersion + " (we only have " + targetMod.mod.version + " deployed)");
+                                }
+                                if (dependency.maxVersion !== undefined && targetMod.mod.version > dependency.maxVersion) {
+                                    missing = true;
+                                    console.log(potentialMod.name + " depends on mod with ID: " + dependency.modId + " maximum version " + dependency.maxVersion + " (we have " + targetMod.mod.version + " deployed)");
+                                }
+                            }
+                        }
+                    
+                        if (missing) {
+                            alert("Mod " + potentialMod.name + " could not be installed due to missing dependencies. Check Javascript Console for more details");
+                            return;
+                        }
+                    }
+
                     const existing = this.serverMods.mods.find(m => m.mod.id === potentialMod.id);
                     if (existing) {
                         this.removeMod(existing);
