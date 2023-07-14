@@ -28,6 +28,7 @@ input {
 }
 
 .setting {
+    width: 40%;
     margin-top: 20px;
     margin-left: 20px;
     margin-right: 20px;
@@ -40,6 +41,7 @@ input {
 .settingLabel {
     text-align: left;    
     line-height: 2rem;
+    font-size: 1rem;
 }
 
 #serverLink {
@@ -497,7 +499,9 @@ input {
 }
 
 .settingButton {
-    width: 60px;
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
 }
 
 #mods {
