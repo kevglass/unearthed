@@ -16,5 +16,6 @@ zip -r ../dist.zip . >/dev/null
 cd ..
 
 scp dist.zip kevglass@cokeandcode.com:cokeandcode.com/demos/unearthed
+scp version.json kevglass@cokeandcode.com:cokeandcode.com/demos/unearthed
 ssh kevglass@cokeandcode.com "cd cokeandcode.com/demos/unearthed; pwd; unzip -o dist.zip; rm -f dist.zip" >/dev/null 2>/dev/null
 rm dist.zip
