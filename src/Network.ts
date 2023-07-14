@@ -160,6 +160,7 @@ export class Network {
             "&serverPassword=" + encodeURIComponent(this.game.serverPassword) + 
             "&password=" + encodeURIComponent(NETWORK_PASSWORD) +
             "&publish=" + encodeURIComponent(this.game.serverSettings.isPublish()) +
+            "&playerCount=" + encodeURIComponent(this.game.mobs.filter(m => m.isPlayer()).length) +
             "&serverName=" + encodeURIComponent(this.game.serverSettings.getServerName())+
             "&accessPassword=" + encodeURIComponent(accessPassword), false);
         request.send();
