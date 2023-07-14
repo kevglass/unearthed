@@ -2,6 +2,7 @@
 	"editable": true,
 	"useDefaultMods": true,
 	"creativeMode": true,
+	"publish": false,
 	"accessPassword": "",
 	"serverName": ""
 }
