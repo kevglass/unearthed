@@ -149,7 +149,7 @@ export class Network {
         return (this.hostParticipantId !== undefined) || this.thisIsTheHostServer;
     }
 
-    accessRoomService(accessPassword: string): { host: boolean, token: string } | null {
+    accessRoomService(accessPassword: string, async: boolean = false): { host: boolean, token: string } | null {
         this.lastPingToRoomService = Date.now();
 
         // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
@@ -163,7 +163,7 @@ export class Network {
             "&playerCount=" + encodeURIComponent(this.game.mobs.filter(m => m.isPlayer()).length) +
             "&serverName=" + encodeURIComponent(this.game.serverSettings.getServerName()) +
             "&version=" + encodeURIComponent("_VERSION_") +
-            "&accessPassword=" + encodeURIComponent(accessPassword), false);
+            "&accessPassword=" + encodeURIComponent(accessPassword), async);
         request.send();
 
         if (request.responseText === "Access Denied") {
@@ -172,7 +172,7 @@ export class Network {
                 return null;
             }
 
-            return this.accessRoomService(password);
+            return this.accessRoomService(password, async);
         }
 
         if (request.responseText === "Invalid Password") {
@@ -218,7 +218,7 @@ export class Network {
         console.log("Connecting to room server");
 
         try {
-            const roomAccessDetails = this.accessRoomService(this.game.serverSettings.getAccessPassword());
+            const roomAccessDetails = this.accessRoomService(this.game.serverSettings.getAccessPassword(), false);
             if (roomAccessDetails === null) {
                 // an error occurred and we didn't get room access details, give up
                 return;
@@ -901,7 +901,7 @@ export class Network {
         }
 
         if (Date.now() - this.lastPingToRoomService > ROOM_SERVICE_PING_INTERVAL && this.thisIsTheHostServer) {
-            this.accessRoomService(this.game.serverSettings.getAccessPassword());
+            this.accessRoomService(this.game.serverSettings.getAccessPassword(), true);
         }
         if (Date.now() - this.lastMapRequest > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
             this.lastMapRequest = Date.now();
