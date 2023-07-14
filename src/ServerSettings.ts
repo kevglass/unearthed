@@ -19,6 +19,12 @@ export interface ServerConfig {
     useDefaultMods: boolean;
     /** True if we're in creative mode */
     creativeMode: boolean;
+    /** True if we're publishing our server for others to find */
+    publish: boolean;
+    /** The name given for this server */
+    serverName: string;
+    /** The access password configured for this server */
+    accessPassword: string;
     /** The collection of resources made available through mods */
     modScripts: (Record<string, string>)[];
 }
@@ -35,6 +41,9 @@ export class ServerSettings {
         modScripts: [],
         useDefaultMods: true,
         creativeMode: true,
+        publish: false,
+        accessPassword: "",
+        serverName: ""
     }
 
     /** The game these settings will apply to */
@@ -338,8 +347,45 @@ export class ServerSettings {
      * 
      * @returns True if we're in creative mode 
      */
+    isPublish(): boolean {
+        return this.config.publish;
+    }
+
+    /**
+     * Set whether we're in creative mode
+     * 
+     * @param c True to be in creative mode
+     */
+    setPublish(c: boolean): void {
+        this.config.publish = c;
+        this.save();
+    }
+
+    /**
+     * Check if we're in creative mode
+     * 
+     * @returns True if we're in creative mode 
+     */
     isCreativeMode(): boolean {
         return this.config.creativeMode;
+    }
+
+    getAccessPassword(): string {
+        return this.config.accessPassword;
+    }
+
+    setAccessPassword(password: string): void {
+        this.config.accessPassword = password;
+        this.save();
+    }
+
+    getServerName(): string {
+        return this.config.serverName;
+    }
+
+    setServerName(name: string): void {
+        this.config.serverName = name;
+        this.save();
     }
 
     /**

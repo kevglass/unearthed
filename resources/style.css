@@ -27,6 +27,29 @@ input {
     height: 100%;
 }
 
+.simpleSettings {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 25px;
+}
+
+.settingInputField {
+    font-size: 1.4rem;
+    margin-top: initial;
+    margin-bottom: initial;
+    width: initial;
+}
+
+.settingInput {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    height: 1.2rem;
+    margin-top: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
 .setting {
     width: 40%;
     margin-top: 20px;
@@ -35,12 +58,12 @@ input {
     margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
-    height: 2rem;
+    height: 1.2rem;
 }
 
 .settingLabel {
     text-align: left;    
-    line-height: 2rem;
+    line-height: 1.4rem;
     font-size: 1rem;
 }
 
@@ -499,9 +522,10 @@ input {
 }
 
 .settingButton {
-    width: 30px;
+    width: 40px;
     height: 30px;
     font-size: 1rem;
+    line-height: 30px;
 }
 
 #mods {

@@ -1,5 +1,7 @@
 {
 	"editable": true,
 	"useDefaultMods": true,
-	"creativeMode": true
+	"creativeMode": true,
+	"accessPassword": "",
+	"serverName": ""
 }

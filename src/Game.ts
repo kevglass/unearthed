@@ -253,6 +253,8 @@ export class Game implements ControllerListener {
         this.ui.renderChangeWorldButton();
         this.ui.renderDefaultModsButton();
         this.ui.renderChangeCreativeButton();
+        this.ui.renderChangePublishButton();
+        this.ui.renderAccessAndName();
 
         this.gameMap.resetDiscoveryAndLights();
 

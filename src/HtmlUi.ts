@@ -327,11 +327,25 @@ export class HtmlUi {
             }, 2000)
         });
         
+        document.getElementById("serverName")!.addEventListener('change', () => {
+            this.game.serverSettings.setServerName((document.getElementById("serverName") as HTMLInputElement).value);
+        });
+        
+        document.getElementById("accessPassword")!.addEventListener('change', () => {
+            this.game.serverSettings.setAccessPassword((document.getElementById("accessPassword") as HTMLInputElement).value);
+        });
+        this.renderAccessAndName();
+
         document.getElementById("changeCreativeMode")!.addEventListener('click', () => {
             this.game.serverSettings.setCreativeMode(!this.game.serverSettings.isCreativeMode());
             this.renderChangeCreativeButton();
         });
         this.renderChangeCreativeButton();
+        document.getElementById("changePublish")!.addEventListener('click', () => {
+            this.game.serverSettings.setPublish(!this.game.serverSettings.isPublish());
+            this.renderChangePublishButton();
+        });
+        this.renderChangePublishButton();
         document.getElementById("changeDefaultMods")!.addEventListener('click', () => {
             this.game.serverSettings.setUseDefaultMods(!this.game.serverSettings.useDefaultMods());
             this.renderDefaultModsButton();
@@ -388,6 +402,11 @@ export class HtmlUi {
         });
     }
 
+    renderAccessAndName(): void {
+        (document.getElementById("serverName") as HTMLInputElement).value = this.game.serverSettings.getServerName();
+        (document.getElementById("accessPassword")as HTMLInputElement).value = this.game.serverSettings.getAccessPassword();
+    }
+    
     loadMapFromBuffer(rawData: Uint8Array) {
         if (rawData[0] === 255) {
             // new file format with room for meta
@@ -436,6 +455,10 @@ export class HtmlUi {
 
     renderChangeWorldButton() {
         document.getElementById("changeWorldButton")!.innerHTML = this.game.serverSettings.isEditable() ? "Yes" : "No";
+    }
+
+    renderChangePublishButton() {
+        document.getElementById("changePublish")!.innerHTML = this.game.serverSettings.isPublish() ? "Yes" : "No";
     }
 
     renderChangeCreativeButton() {

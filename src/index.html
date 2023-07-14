@@ -113,17 +113,31 @@
     <div id="serverSettingsPanel" class="panel">
         <button id="closeServerSettingsButton" class="button">X</button>
         <div class="label">Server Setup</div>
-        <div class="setting label">
-            <div class="settingLabel">Edit World</div>
-            <div id="changeWorldButton" class="settingButton mapButton">Yes</div>
-        </div>
-        <div class="setting label">
-            <div class="settingLabel">Default Mods</div>
-            <div id="changeDefaultMods" class="settingButton mapButton">Yes</div>
-        </div>
-        <div class="setting label">
-            <div class="settingLabel">Creative Mode</div>
-            <div id="changeCreativeMode" class="settingButton mapButton">Yes</div>
+        <div class="simpleSettings">
+            <div class="setting label">
+                <div class="settingLabel">Edit World</div>
+                <div id="changeWorldButton" class="settingButton mapButton">Yes</div>
+            </div>
+            <div class="setting label">
+                <div class="settingLabel">Default Mods</div>
+                <div id="changeDefaultMods" class="settingButton mapButton">Yes</div>
+            </div>
+            <div class="setting label">
+                <div class="settingLabel">Creative Mode</div>
+                <div id="changeCreativeMode" class="settingButton mapButton">Yes</div>
+            </div>
+            <div class="setting label">
+                <div class="settingLabel">Publish</div>
+                <div id="changePublish" class="settingButton mapButton">Yes</div>
+            </div>
+            <div class="settingInput">
+                <div class="settingLabel">Server Name</div>
+                <input id="serverName" class="settingInputField"></input>
+            </div>
+            <div class="settingInput">
+                <div class="settingLabel">Access Password</div>
+                <input type="password" id="accessPassword" class="settingInputField"></input>
+            </div>
         </div>
         <div id="mapBar">
             <div id="resetMapButton" class="mapButton">Reset Map</div>

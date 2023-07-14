@@ -22,6 +22,9 @@ import { Layer } from './mods/ModApi';
 const UPDATE_INTERVAL_MS: number = 100;
 /** Interval between asking for the map if we haven't had it yet - once a second */
 const MAP_REQUEST_INTERVAL: number = 5000;
+/** How often we ping the room server to let it know the server is alive */
+const ROOM_SERVICE_PING_INTERVAL: number = 60 * 1000;
+
 /** 
  * The network password using to access cokeandcode's service - 
  * this is set from your local.properties.json - if you don't have one a blank value means no network 
@@ -100,6 +103,8 @@ export class Network {
     itemsToAdd: NetworkItem[] = [];
     /** True if we have enough information to render */
     readyToRender: boolean = false;
+    /** Last ping of room server */
+    lastPingToRoomService: number = 0;
 
     /**
      * Create a new network session
@@ -144,6 +149,44 @@ export class Network {
         return (this.hostParticipantId !== undefined) || this.thisIsTheHostServer;
     }
 
+    accessRoomService(accessPassword: string): { host: boolean, token: string } | null {
+        this.lastPingToRoomService = Date.now();
+
+        // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
+        // provider that uses kev's hidden livekit key. 
+        const request = new XMLHttpRequest();
+        request.open("GET", "https://unearthedgame.net/room3.php?username=" + encodeURIComponent(this.game.username!) +
+            "&room=" + encodeURIComponent(this.game.serverId) + 
+            "&serverPassword=" + encodeURIComponent(this.game.serverPassword) + 
+            "&password=" + encodeURIComponent(NETWORK_PASSWORD)+
+            "&serverName=" + encodeURIComponent(this.game.serverSettings.getServerName())+
+            "&accessPassword=" + encodeURIComponent(accessPassword), false);
+        request.send();
+
+        if (request.responseText === "Access Denied") {
+            const password = prompt("This server requires a password:");
+            if (!password) {
+                return null;
+            }
+
+            return this.accessRoomService(password);
+        }
+
+        if (request.responseText === "Invalid Password") {
+            console.log("Invalid password was specified to access the room directory. Check local.properties");
+            this.started = false;
+            this.connectionFailed = true;
+            this.connectionFailedReason = "Invalid Room Directory Password";
+            return null;
+        }
+
+        const token = request.responseText.split("&")[0];
+        const host = request.responseText.split("&")[1] === "true";
+        console.log("Central Server confirms this is host: " + host);
+
+        return { token, host }
+    }
+
     /**
      * Start the networking service 
      * 
@@ -172,30 +215,17 @@ export class Network {
         console.log("Connecting to room server");
 
         try {
-            // request a token for accessing a LiveKit.io room. This is currently hard wired to the cokeandcode 
-            // provider that uses kev's hidden livekit key. 
-            const request = new XMLHttpRequest();
-            request.open("GET", "https://unearthedgame.net/room3.php?username=" + encodeURIComponent(this.game.username!) +
-                "&room=" + this.game.serverId + "&serverPassword=" + this.game.serverPassword + "&password=" + NETWORK_PASSWORD, false);
-            request.send();
-
-            if (request.responseText === "Invalid Password") {
-                console.log("Invalid password was specified to access the room directory. Check local.properties");
-                this.started = false;
-                this.connectionFailed = true;
-                this.connectionFailedReason = "Invalid Room Directory Password";
+            const roomAccessDetails = this.accessRoomService(this.game.serverSettings.getAccessPassword());
+            if (roomAccessDetails === null) {
+                // an error occurred and we didn't get room access details, give up
                 return;
             }
-
-            const token = request.responseText.split("&")[0];
-            const host = request.responseText.split("&")[1];
-            console.log("Central Server confirms this is host: " + host);
 
             this.thisIsTheHostServer = hosting;
             const wsURL = "wss://talesofyore.livekit.cloud"
 
             // connect to the live kit room
-            await this.room.connect(wsURL, token);
+            await this.room.connect(wsURL, roomAccessDetails.token);
         } catch (e) {
             console.log("Connecting failed");
             console.error(e);
@@ -867,6 +897,9 @@ export class Network {
             return;
         }
 
+        if (Date.now() - this.lastPingToRoomService > ROOM_SERVICE_PING_INTERVAL && this.thisIsTheHostServer) {
+            this.accessRoomService(this.game.serverSettings.getAccessPassword());
+        }
         if (Date.now() - this.lastMapRequest > MAP_REQUEST_INTERVAL && this.hostParticipantId) {
             this.lastMapRequest = Date.now();
             if (!this.thisIsTheHostServer && !this.hadMap) {
