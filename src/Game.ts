@@ -500,6 +500,9 @@ export class Game implements ControllerListener {
                 document.activeElement === this.ui.portalInput || document.activeElement === this.ui.serverIdInput) {
                 return;
             }
+            if (document.activeElement !== this.canvas && document.activeElement) {
+                return;
+            }
 
             if (event.code === this.keyControls.invent) {
                 this.inventPanel.showing() ? this.inventPanel.hide() : this.inventPanel.show();

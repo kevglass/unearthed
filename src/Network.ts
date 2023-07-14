@@ -162,6 +162,7 @@ export class Network {
             "&publish=" + encodeURIComponent(this.game.serverSettings.isPublish()) +
             "&playerCount=" + encodeURIComponent(this.game.mobs.filter(m => m.isPlayer()).length) +
             "&serverName=" + encodeURIComponent(this.game.serverSettings.getServerName()) +
+            "&serverInfo=" + encodeURIComponent(this.game.serverSettings.getServerInfo()) +
             "&version=" + encodeURIComponent("_VERSION_") +
             "&accessPassword=" + encodeURIComponent(accessPassword), async);
         request.send();
@@ -263,6 +264,8 @@ export class Network {
                     console.log("No Mob found for participant");
                 }
             }
+            
+            console.log("Participant disconnected: " + participant.name);
         });
 
         // process messages received 

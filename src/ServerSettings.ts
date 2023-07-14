@@ -25,6 +25,8 @@ export interface ServerConfig {
     serverName: string;
     /** The access password configured for this server */
     accessPassword: string;
+    /** The server's info to be displayed */
+    serverInfo: string;
     /** The collection of resources made available through mods */
     modScripts: (Record<string, string>)[];
 }
@@ -43,7 +45,8 @@ export class ServerSettings {
         creativeMode: true,
         publish: false,
         accessPassword: "",
-        serverName: ""
+        serverName: "",
+        serverInfo: ""
     }
 
     /** The game these settings will apply to */
@@ -376,6 +379,15 @@ export class ServerSettings {
 
     setAccessPassword(password: string): void {
         this.config.accessPassword = password;
+        this.save();
+    }
+
+    getServerInfo(): string {
+        return this.config.serverInfo;
+    }
+
+    setServerInfo(info: string): void {
+        this.config.serverInfo = info;
         this.save();
     }
 

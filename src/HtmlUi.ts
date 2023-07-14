@@ -334,6 +334,9 @@ export class HtmlUi {
         document.getElementById("accessPassword")!.addEventListener('change', () => {
             this.game.serverSettings.setAccessPassword((document.getElementById("accessPassword") as HTMLInputElement).value);
         });
+        document.getElementById("serverInfo")!.addEventListener('change', () => {
+            this.game.serverSettings.setServerInfo((document.getElementById("serverInfo") as HTMLInputElement).value);
+        });
         this.renderAccessAndName();
 
         document.getElementById("changeCreativeMode")!.addEventListener('click', () => {
@@ -404,9 +407,10 @@ export class HtmlUi {
 
     renderAccessAndName(): void {
         (document.getElementById("serverName") as HTMLInputElement).value = this.game.serverSettings.getServerName();
+        (document.getElementById("serverInfo") as HTMLInputElement).value = this.game.serverSettings.getServerInfo();
         (document.getElementById("accessPassword")as HTMLInputElement).value = this.game.serverSettings.getAccessPassword();
     }
-    
+
     loadMapFromBuffer(rawData: Uint8Array) {
         if (rawData[0] === 255) {
             // new file format with room for meta
