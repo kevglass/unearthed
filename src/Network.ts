@@ -158,7 +158,8 @@ export class Network {
         request.open("GET", "https://unearthedgame.net/room3.php?username=" + encodeURIComponent(this.game.username!) +
             "&room=" + encodeURIComponent(this.game.serverId) + 
             "&serverPassword=" + encodeURIComponent(this.game.serverPassword) + 
-            "&password=" + encodeURIComponent(NETWORK_PASSWORD)+
+            "&password=" + encodeURIComponent(NETWORK_PASSWORD) +
+            "&publish=" + encodeURIComponent(this.game.serverSettings.isPublish()) +
             "&serverName=" + encodeURIComponent(this.game.serverSettings.getServerName())+
             "&accessPassword=" + encodeURIComponent(accessPassword), false);
         request.send();
