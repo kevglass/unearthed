@@ -500,7 +500,7 @@ export class Game implements ControllerListener {
                 document.activeElement === this.ui.portalInput || document.activeElement === this.ui.serverIdInput) {
                 return;
             }
-            if (document.activeElement !== this.canvas && document.activeElement) {
+            if (document.activeElement !== this.canvas && document.activeElement !== document.body && document.activeElement) {
                 return;
             }
 
