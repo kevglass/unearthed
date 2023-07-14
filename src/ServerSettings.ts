@@ -52,7 +52,7 @@ export class ServerSettings {
     }
 
     addDefaultMod(mod: ServerMod, force: boolean = false) {
-        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [], skinsAdded: [], recipesAdded: []};
+        const modRecord = { mod: mod, inited: false, resources: {}, toolsAdded: [], blocksAdded: [], skinsAdded: [], recipesAdded: [], prefix: ""};
         this.defaultMods.push(modRecord);
 
         if (this.useDefaultMods() || force) {
@@ -183,6 +183,13 @@ export class ServerSettings {
         }
     }
 
+    loadCompositeMod(modData: Record<string, string>, updateUiAndConfig: boolean, logging: boolean = true) {
+        const manifest = JSON.parse(modData["manifest.json"]);
+        for (const modName of manifest.mods) {
+            this.addMod(modData, updateUiAndConfig, logging, modName + "/");
+        }
+    }
+
     /**
      * Add a new mod to the server. A mod consists of a set of resources keyed by 
      * name.
@@ -190,9 +197,19 @@ export class ServerSettings {
      * @param modData The resources provided by the mod, keyed by name
      * @param updateUiAndConfig True if we should update the UI (false on startup)
      */
-    addMod(modData: Record<string, string>, updateUiAndConfig: boolean, logging: boolean = true): void {
+    addMod(modData: Record<string, string>, updateUiAndConfig: boolean, logging: boolean = true, prefix: string = ""): void {
         try {
-            const script = modData["mod.js"];
+            if (prefix === "") {
+                // look for a composite manifest
+                const manifest = modData["manifest.json"];
+                if (manifest) {
+                    console.log("Loading composite mod");
+                    this.loadCompositeMod(modData, updateUiAndConfig, logging);
+                    return;
+                }
+            }
+
+            const script = modData[prefix + "mod.js"];
             if (script) {
                 const potentialMod = eval(script) as ServerMod;
 
@@ -235,7 +252,7 @@ export class ServerSettings {
                         this.removeMod(existing);
                     }
 
-                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [], skinsAdded: [], recipesAdded: [] };
+                    const modRecord = { mod: potentialMod, inited: false, resources: modData, toolsAdded: [], blocksAdded: [], skinsAdded: [], recipesAdded: [], prefix };
                     console.log("[" + potentialMod.name + "] Installing");
                     this.serverMods.mods.push(modRecord);
 

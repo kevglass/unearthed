@@ -503,6 +503,8 @@ export interface ModRecord {
     skinsAdded: Skin[];
     /** Recipes that were added by this mod so they can be removed on uninstall */
     recipesAdded: Recipe[];
+    /** The prefix for any resources if this was loaded from a composite */
+    prefix: string;
 }
 
 /**
