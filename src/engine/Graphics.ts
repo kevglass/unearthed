@@ -424,11 +424,19 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
 
     drawLine(x1: number, y1: number, x2: number, y2: number): void {
         this.g.lineWidth = 10;
-        this.g.strokeStyle = "rgba(255,0,255,0.9)";
+        this.g.strokeStyle = "rgba(80,80,100,1)";
+        this.g.setLineDash([]);
         this.g.beginPath();
         this.g.moveTo(x1, y1);
-        this.g.lineTo(x2, y2);
+        this.g.quadraticCurveTo((x1+x2)/2, ((y1+y2)/2) + 128, x2, y2);
         this.g.stroke();
+        this.g.strokeStyle = "rgba(200,200,230,1)";
+        this.g.setLineDash([20,20]);
+        this.g.beginPath();
+        this.g.moveTo(x1, y1);
+        this.g.quadraticCurveTo((x1+x2)/2, ((y1+y2)/2) + 128, x2, y2);
+        this.g.stroke();
+        this.g.setLineDash([]);
     }
 
     /**
@@ -656,7 +664,7 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
 
     drawLine(x1: number, y1: number, x2: number, y2: number): void {
     }
-    
+
     /**
      * Call this after all the images are done loading.
      */

@@ -138,7 +138,7 @@ export class Game implements ControllerListener {
     uniquePlayerId: string = "";
 
     /** True if we're showing wiring */
-    showWiring: boolean = true;
+    showWiring: boolean = false;
     /** The view location */
     viewX: number = 0;
     /** The view location */
@@ -253,7 +253,7 @@ export class Game implements ControllerListener {
 
         // bootstrap the default mods if enabled
         this.serverSettings.addDefaultMod(new DefaultBlockMod());
-        this.serverSettings.addDefaultMod(new TestGameMod());
+        // this.serverSettings.addDefaultMod(new TestGameMod());
         this.serverSettings.load();
 
         // update UI state based on loaded config

@@ -1043,31 +1043,6 @@ export class GameMap {
                     if (sprite) {
                         g.drawImage(getSprite(sprite), x * TILE_SIZE, y * TILE_SIZE);
                     }
-
-                    if (this.game.showWiring) {
-                        const block = BLOCKS[this.getTile(x, y, this.game.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND)]
-                        if (block) {
-                            if (block.wireInputs && block.wireInputs > 0) {
-                                const wx = 0;
-                                const wy = 0;
-                                for (let i = 0; i < block.wireInputs; i++) {
-                                    const px = wx + ((i % 4) * 32);
-                                    const py = wy + (Math.floor(i / 4) * 32);
-                                    g.drawImage(getSprite("tiles/input"), (x * TILE_SIZE) + px, (y * TILE_SIZE) + py);
-                                }
-                            }
-                            if (block.wireOutputs && block.wireOutputs > 0) {
-                                const wx = 0;
-                                const wy = 0;
-                                for (let i = 0; i < block.wireOutputs; i++) {
-                                    const px = wx + ((i % 4) * 32);
-                                    const py = 64 + wy + (Math.floor(i / 4) * 32);
-                                    g.drawImage(getSprite("tiles/output"), (x * TILE_SIZE) + px, (y * TILE_SIZE) + py);
-                                }
-                            }
-                        }
-                    }
-
                     // draw the mouse highlight
                     if (x === overX && y === overY && canAct) {
                         g.setFillColor(255, 255, 255, .3);
@@ -1091,6 +1066,52 @@ export class GameMap {
         }
 
         if (this.game.showWiring) {
+            for (let x = xp; x < xp + tilesAcross; x++) {
+                for (let y = yp; y < yp + tilesDown; y++) {
+                    if (this.isDiscovered(x, y)) {
+                        const block = BLOCKS[this.getTile(x, y, this.game.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND)]
+                        if (block) {
+                            const space = 25;
+                            if (block.wireInputs && block.wireInputs > 0) {
+                                const wx = 0;
+                                const wy = 0;
+                                g.setFillColor(0, 0, 0, 0.5);
+                                g.fillRect((x * TILE_SIZE), (y * TILE_SIZE) - space, TILE_SIZE, (TILE_SIZE / 2) + space);
+                                g.setFillColor(255, 255, 255, 1);
+                                g.fillRect((x * TILE_SIZE), ((y * TILE_SIZE) + (TILE_SIZE / 2)) - 2, TILE_SIZE, 4);
+                                g.setFillColor(200, 200, 200, 1);
+                                g.setTextAlign("center");
+                                g.setFont("25px KenneyFont");
+                                g.fillText("INPUTS", (x * TILE_SIZE) + (TILE_SIZE / 2), (y * TILE_SIZE) - 1);
+
+                                for (let i = 0; i < block.wireInputs; i++) {
+                                    const px = wx + ((i % 4) * 32);
+                                    const py = wy + (Math.floor(i / 4) * 32);
+                                    g.drawImage(getSprite("tiles/input"), (x * TILE_SIZE) + px, (y * TILE_SIZE) + py);
+                                }
+                            }
+                            if (block.wireOutputs && block.wireOutputs > 0) {
+                                const wx = 0;
+                                const wy = 0;
+                                g.setFillColor(0, 0, 0, 0.5);
+                                g.fillRect((x * TILE_SIZE), (y * TILE_SIZE) + (TILE_SIZE / 2), TILE_SIZE, (TILE_SIZE / 2) + space);
+                                g.setFillColor(255, 255, 255, 1);
+                                g.fillRect((x * TILE_SIZE), ((y * TILE_SIZE) + (TILE_SIZE / 2)) - 2, TILE_SIZE, 4);
+                                g.setFillColor(200, 200, 200, 1);
+                                g.setTextAlign("center");
+                                g.setFont("25px KenneyFont");
+                                g.fillText("OUTPUTS", (x * TILE_SIZE) + (TILE_SIZE / 2), (y * TILE_SIZE) + TILE_SIZE+ space - 5);
+                                for (let i = 0; i < block.wireOutputs; i++) {
+                                    const px = wx + ((i % 4) * 32);
+                                    const py = 64 + wy + (Math.floor(i / 4) * 32);
+                                    g.drawImage(getSprite("tiles/output"), (x * TILE_SIZE) + px, (y * TILE_SIZE) + py);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             if (this.currentWire) {
                 if (this.currentWire.input.index === -1) {
                     g.drawLine((this.currentWire.output.tileX * TILE_SIZE) + (((this.currentWire.output.index % 4) + 0.5) * (TILE_SIZE / 4)),

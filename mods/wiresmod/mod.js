@@ -1,14 +1,11 @@
-import { SKY_HEIGHT, TILE_SIZE } from "src/Map";
-import { GameContext, Layer, MobContext, ModDependency, ServerMod } from "../ModApi";
+new class  {
+    id = "wiremod";
+    name = "Wiring Mod";
+    chatName = "wiring";
+    version = 1;
+    apiVersion = 1;
 
-export class TestGameMod implements ServerMod {
-    id: string = "default-Test";
-    name: string = "Test-Default";
-    chatName: string = "test";
-    version: number = 1;
-    apiVersion: number = 1;
-
-    onWorldStart(game: GameContext): void {
+    onWorldStart(game) {
         game.addBlock(500, {
             sprite: "tiles/switch-on",
             blocks: false,
@@ -67,7 +64,7 @@ export class TestGameMod implements ServerMod {
         game.addTool("holding/wiring", 0, "wiring-tool", false, true, 0, false, 1);
     }
 
-    onSelectTool(game: GameContext, mob: MobContext, toolId: string): void {
+    onSelectTool(game, mob, toolId) {
         if (toolId === "wiring-tool") {
             game.setShowWiring(true);
         } else {
@@ -75,7 +72,7 @@ export class TestGameMod implements ServerMod {
         }
     }
 
-    considerTrigger(game: GameContext, x: number, y: number, layer: Layer, b: number) {
+    considerTrigger(game, x, y, layer, b) {
         // toggle a switch that is on
         if (b === 500) {
             game.setBlock(x, y, layer, 501);
@@ -86,7 +83,7 @@ export class TestGameMod implements ServerMod {
         }
     }
 
-    onInputChanged(game: GameContext, tileX: number, tileY: number, layer: number, index: number, oldValue: number, newValue: number): void {
+    onInputChanged(game, tileX, tileY, layer, index, oldValue, newValue) {
         const block = game.getBlock(tileX, tileY, layer);
         if (block === 502 && newValue === 0) {
             game.setBlock(tileX, tileY, layer, 503);
@@ -97,9 +94,8 @@ export class TestGameMod implements ServerMod {
         console.log("Input changed: " + oldValue + " -> " + newValue);
     }
 
-    onTrigger(game: GameContext, mob: MobContext, x: number, y: number): void {
+    onTrigger(game, mob, x, y) {
         this.considerTrigger(game, x, y, Layer.FOREGROUND, game.getBlock(x, y, Layer.FOREGROUND));
         this.considerTrigger(game, x, y, Layer.BACKGROUND, game.getBlock(x, y, Layer.BACKGROUND));
-        
     }
 }
