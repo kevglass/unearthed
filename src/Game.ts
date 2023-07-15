@@ -137,6 +137,13 @@ export class Game implements ControllerListener {
     /** The unique player ID other servers can use to determine the same user */
     uniquePlayerId: string = "";
 
+    /** True if we're showing wiring */
+    showWiring: boolean = true;
+    /** The view location */
+    viewX: number = 0;
+    /** The view location */
+    viewY: number = 0;
+
     /** The collection of global properties configurable from mods */
     globalProperties: Record<GameProperty, string | number | boolean> = {
         [GameProperty.BACKGROUND_COLOR]: "#445253FF",
@@ -246,7 +253,7 @@ export class Game implements ControllerListener {
 
         // bootstrap the default mods if enabled
         this.serverSettings.addDefaultMod(new DefaultBlockMod());
-        // this.serverSettings.addDefaultMod(new TestGameMod());
+        this.serverSettings.addDefaultMod(new TestGameMod());
         this.serverSettings.load();
 
         // update UI state based on loaded config
@@ -757,6 +764,24 @@ export class Game implements ControllerListener {
         // finally if we haven't hit any UI (either inventory or controls) then
         // treat this mousedown as a main area click/press/touch
         if (!foundInventButton && !foundControlButton && this.mainAreaTouchId === 0) {
+            // consider wiring blocks
+            if (this.showWiring) {
+                const tx = ((this.mouseX + Math.floor(this.viewX)) / TILE_SIZE);
+                const ty = ((this.mouseY + Math.floor(this.viewY)) / TILE_SIZE);
+
+                const sx = Math.floor((tx - Math.floor(tx)) * 4);
+                const sy = Math.floor((ty - Math.floor(ty)) * 4);
+                const index = sx + (sy * 4);
+
+                if ((index >= 0) && (index < 8)) {
+                    // input socket
+                    this.gameMap.inputSocketSelected(Math.floor(tx), Math.floor(ty), this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND, index);
+                } else if (index < 16) {
+                    this.gameMap.outputSocketSelected(Math.floor(tx), Math.floor(ty), this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND, index -8);
+                }
+            }
+
+
             this.mainAreaTouchId = touchId;
             this.mouseButtonDown[0] = true;
         }
@@ -974,6 +999,9 @@ export class Game implements ControllerListener {
                 ox = Math.min(Math.max(0, ox), (MAP_WIDTH * TILE_SIZE) - this.canvas.width);
 
                 // update the mouse over indicator
+                this.viewX = ox;
+                this.viewY = oy;
+
                 this.player.overX = Math.floor((this.mouseX + Math.floor(ox)) / TILE_SIZE);
                 this.player.overY = Math.floor((this.mouseY + Math.floor(oy)) / TILE_SIZE);
 
@@ -1525,6 +1553,8 @@ export class Game implements ControllerListener {
                 if (item.def.place > 0) {
                     this.mods.toolSelected(this.player, "place-" + item.def.place);
                 }
+            } else {
+                this.mods.toolSelected(this.player, null);
             }
         }
     }

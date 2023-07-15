@@ -42,6 +42,34 @@ export class GameAsContext implements GameContext {
     }
 
     /**
+     * @see GameContext.setShowWiring
+     */
+    setShowWiring(wiring: boolean): void {
+        this.game.showWiring = wiring;
+    }
+
+    /**
+     * @see GameContext.getInputValue
+     */
+    getInputValue(tileX: number, tileY: number, layer: Layer, index: number): void {
+        this.game.gameMap.getInputValue(tileX, tileY, layer, index);
+    }
+
+    /**
+     * @see GameContext.getOutputValue
+     */
+    getOutputValue(tileX: number, tileY: number, layer: Layer, index: number): void {
+        this.game.gameMap.getOutputValue(tileX, tileY, layer, index);
+    }
+
+    /**
+     * @see GameContext.setOutputValue
+     */
+    setOutputValue(tileX: number, tileY: number, layer: Layer, index: number, value: number): void {
+        this.game.gameMap.setOutputValue(tileX, tileY, layer, index, value);
+    }
+
+    /**
      * @see GameContext.takeItem
      */
     takeItem(mob: MobContext, count: number, typeId: string): void {
@@ -848,12 +876,37 @@ export class ConfiguredMods {
      * @param mob The mob using the tool.
      * @param tool The ID of the tool being used
      */
-    toolSelected(mob: Mob, tool: string): void {
+    toolSelected(mob: Mob, tool: string | null): void {
         for (const record of this.mods) {
             if (record.mod.onSelectTool) {
                 try {
                     this.context.startContext(record);
                     record.mod.onSelectTool(this.context, mob, tool);
+                    this.context.endContext();
+                } catch (e) {
+                    console.error("Error in Game Mod: " + record.mod.name);
+                    console.error(e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Notify all interested mods that the input to a block changed
+     * 
+     * @param tileX The x coordinate of the block whose input has changed
+     * @param tileY The y coordinate of the block whose input has changed
+     * @param layer The layer of the block whose input has changed
+     * @param index The index of the input that has changed value
+     * @param oldValue The old value of the input
+     * @param newValue The new value of the input
+     */
+    inputChanged(tileX: number, tileY: number, layer: number, index: number, oldValue: number, newValue: number): void {
+        for (const record of this.mods) {
+            if (record.mod.onInputChanged) {
+                try {
+                    this.context.startContext(record);
+                    record.mod.onInputChanged(this.context, tileX, tileY, layer, index, oldValue, newValue);
                     this.context.endContext();
                 } catch (e) {
                     console.error("Error in Game Mod: " + record.mod.name);

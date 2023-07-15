@@ -377,6 +377,44 @@ export interface GameContext {
      * @param name The name of the recipe to be removed
      */
     removeRecipe(name: string): void;
+
+    /**
+     * Indicator whether we should show wiring or not
+     * 
+     * @param wiring True if we should show wiring
+     */
+    setShowWiring(wiring: boolean): void;
+
+    /**
+     * Get the input value currently being received to a particular block
+     * 
+     * @param tileX The x coordinate of the position of the tile to check
+     * @param tileY The y coordinate of the position of the tile to check
+     * @param layer The layer of tile check
+     * @param index The index on the input value to check
+     */
+    getInputValue(tileX: number, tileY: number, layer: Layer, index: number): void;
+
+    /**
+     * Get the output value currently being sent from a particular block
+     * 
+     * @param tileX The x coordinate of the position of the tile to check
+     * @param tileY The y coordinate of the position of the tile to check
+     * @param layer The layer of tile check
+     * @param index The index on the output value to check
+     */
+    getOutputValue(tileX: number, tileY: number, layer: Layer, index: number): void;
+
+    /**
+     * Set the output value currently being send from a particular block
+     * 
+     * @param tileX The x coordinate of the position of the tile to send from
+     * @param tileY The y coordinate of the position of the tile to send from
+     * @param layer The layer of tile send from
+     * @param index The index on the output value to send from
+     * @param value The value to send on the output
+     */
+    setOutputValue(tileX: number, tileY: number, layer: Layer, index: number, value: number): void;
 }
 
 /**
@@ -499,7 +537,7 @@ export interface ServerMod {
      * @param mob The player in the world
      * @param toolId The ID of the tool selected
      */
-    onSelectTool?(game: GameContext, mob: MobContext, toolId: string): void;
+    onSelectTool?(game: GameContext, mob: MobContext, toolId: string | null): void;
     
     /**
      * Notification that a mob used a tool on a given location
@@ -583,6 +621,19 @@ export interface ServerMod {
      * @param layer The layer of optional tile location this time was associated with
      */
     onTimerFired?(game: GameContext, callbackName: string, tileX?: number, tileY?: number, layer?: number): void;
+
+    /**
+     * Notification that the input to a particular block has changed
+     * 
+     * @param game The game to callback on to to make changes
+     * @param tileX The x coordinate of the block whose input has changed
+     * @param tileY The y coordinate of the block whose input has changed
+     * @param layer The layer of the block whose input has changed
+     * @param index The index of the input that has changed value
+     * @param oldValue The old value of the input
+     * @param newValue The new value of the input
+     */
+    onInputChanged?(game: GameContext, tileX: number, tileY: number, layer: number, index: number, oldValue: number, newValue: number): void;
 }
 
 /**
@@ -697,6 +748,10 @@ export interface Block {
     light?: boolean;
     /** True if we can't place this block in the background */
     backgroundDisabled?: boolean;
+    /** The number of wire inputs (zero if not specified) */
+    wireInputs?: number;
+    /** The number of wire outputs (zero if not specified) */
+    wireOutputs?: number;
 }
 
 /**

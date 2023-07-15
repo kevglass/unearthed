@@ -1,5 +1,5 @@
 import { SKY_HEIGHT, TILE_SIZE } from "src/Map";
-import { GameContext, MobContext, ModDependency, ServerMod } from "../ModApi";
+import { GameContext, Layer, MobContext, ModDependency, ServerMod } from "../ModApi";
 
 export class TestGameMod implements ServerMod {
     id: string = "default-Test";
@@ -7,54 +7,99 @@ export class TestGameMod implements ServerMod {
     chatName: string = "test";
     version: number = 1;
     apiVersion: number = 1;
-    platformMob?: MobContext;
-    platformMob2?: MobContext;
-    down: boolean = false;
 
     onWorldStart(game: GameContext): void {
-        game.addSkin("platform", {
-            width: 50,
-            height: 37,
-            skeleton: {
-                name: "root",
-                centerX: 0,
-                centerY: 0,
-                angle: 0,
-                layer: 0,
-                image: "skins/fox/body",
-                spriteOffsetX: -50,
-                spriteOffsetY: -37
-            },
-            animation: {
-                idle: {
-                    "root": [{ time: 0, angle: 0}]
-                },
-                walk: {
-                    "root": [{ time: 0, angle: 0}]
-                },
-            }
-        })
-
-        this.platformMob = game.createMob("", "platform", 300, (SKY_HEIGHT - 2) * TILE_SIZE, (game, mob) => {
-            if (mob.state.blockedRight) {
-                mob.vx = -3;
-            } else if (mob.state.blockedLeft) {
-                mob.vx = 3;
-            }
+        game.addBlock(500, {
+            sprite: "tiles/switch-on",
+            blocks: false,
+            ladder: false,
+            needsGround: false,
+            blocksDiscovery: false,
+            leaveBackground: false,
+            blocksDown: false,
+            blocksLight: false,
+            wireInputs: 0,
+            wireOutputs: 1
         });
-        this.platformMob.gravity = 0;
-        this.platformMob.vx = 3;
-        this.platformMob.blocksMovement = true;
 
-        this.platformMob2 = game.createMob("", "platform", 300, (SKY_HEIGHT - 3) * TILE_SIZE, (game, mob) => {
-            if (mob.state.blockedBelow) {
-                mob.vy = -3;
-            } else if (mob.y < (SKY_HEIGHT - 7) * TILE_SIZE || mob.state.blockedAbove) {
-                mob.vy = 3;
-            }
+        game.addBlock(501, {
+            sprite: "tiles/switch-off",
+            blocks: false,
+            ladder: false,
+            needsGround: false,
+            blocksDiscovery: false,
+            leaveBackground: false,
+            blocksDown: false,
+            blocksLight: false,
+            wireInputs: 0,
+            wireOutputs: 1
         });
-        this.platformMob2.gravity = 0;
-        this.platformMob2.vy = -3;
-        this.platformMob2.blocksMovement = true;
+        game.addTool("tiles/switch-off", 501, undefined, true, false, 0, false, 1);
+
+        game.addBlock(502, {
+            sprite: "tiles/light-on",
+            blocks: false,
+            ladder: false,
+            needsGround: false,
+            blocksDiscovery: false,
+            leaveBackground: false,
+            blocksDown: false,
+            blocksLight: false,
+            light: true,
+            wireInputs: 1,
+            wireOutputs: 0
+        });
+
+        game.addBlock(503, {
+            sprite: "tiles/light-off",
+            blocks: false,
+            ladder: false,
+            needsGround: false,
+            blocksDiscovery: false,
+            leaveBackground: false,
+            blocksDown: false,
+            blocksLight: false,
+            wireInputs: 1,
+            wireOutputs: 0
+        });
+        game.addTool("tiles/light-off", 503, undefined, true, false, 0, false, 1);
+
+        game.addTool("holding/wiring", 0, "wiring-tool", false, true, 0, false, 1);
+    }
+
+    onSelectTool(game: GameContext, mob: MobContext, toolId: string): void {
+        if (toolId === "wiring-tool") {
+            game.setShowWiring(true);
+        } else {
+            game.setShowWiring(false);
+        }
+    }
+
+    considerTrigger(game: GameContext, x: number, y: number, layer: Layer, b: number) {
+        // toggle a switch that is on
+        if (b === 500) {
+            game.setBlock(x, y, layer, 501);
+            game.setOutputValue(x, y, layer, 0, 0);
+        } else if (b === 501) {
+            game.setBlock(x, y, layer, 500);
+            game.setOutputValue(x, y, layer, 0, 1);
+        }
+    }
+
+    onInputChanged(game: GameContext, tileX: number, tileY: number, layer: number, index: number, oldValue: number, newValue: number): void {
+        const block = game.getBlock(tileX, tileY, layer);
+        if (block === 502 && newValue === 0) {
+            game.setBlock(tileX, tileY, layer, 503);
+        }  
+        if (block === 503 && newValue === 1) {
+            game.setBlock(tileX, tileY, layer, 502);
+        }  
+        console.log("Input changed: " + oldValue + " -> " + newValue);
+    }
+
+    onTrigger(game: GameContext, mob: MobContext, x: number, y: number): void {
+        this.considerTrigger(game, x, y, Layer.FOREGROUND, game.getBlock(x, y, Layer.FOREGROUND));
+        this.considerTrigger(game, x, y, Layer.BACKGROUND, game.getBlock(x, y, Layer.BACKGROUND));
+        
     }
 }

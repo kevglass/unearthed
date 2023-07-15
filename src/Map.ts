@@ -37,12 +37,29 @@ for (let i = 0; i < totalSize; i++) {
     DEFAULT_MAP.push(1);
 }
 
+export interface WireConnection {
+    tileX: number;
+    tileY: number;
+    layer: number;
+    index: number;
+}
+
+export interface Wire {
+    input: WireConnection;
+    output: WireConnection;
+}
+
 export interface GameMapMetaData {
     /** A list of all portals */
     portals: Portal[];
     /** Data that mods have stored */
     modData: Record<string, any>;
+    /** A list of wires connected across the world */
+    wires: Wire[];
+    /** Output values set on tiles */
+    outputValues: number[];
 }
+
 /**
  * The game map consists of two tile layers (foreground and background) and a cached
  * sprite mapping from tile to sprite (to help with rendering). The map also tracks which
@@ -72,7 +89,9 @@ export class GameMap {
     /** The meta data associated with this map */
     metaData: GameMapMetaData = {
         portals: [],
-        modData: {}
+        modData: {},
+        wires: [],
+        outputValues: []
     };
     /** The light overall image */
     lightingImage?: HTMLCanvasElement;
@@ -93,6 +112,8 @@ export class GameMap {
 
     /** List of items floating in the world */
     items: InGameItem[] = [];
+    /** The current wire being created */
+    currentWire?: Wire;
 
     constructor(game: Game) {
         this.game = game;
@@ -118,13 +139,13 @@ export class GameMap {
      * @param itemId The ID to assign the item or if not specified, generated one
      * @returns The ID of the item that was added
      */
-    addItem(x: number, y: number, count: number, itemType: string, itemId?: string): string{
+    addItem(x: number, y: number, count: number, itemType: string, itemId?: string): string {
         if (!itemId) {
             itemId = uuidv4();
         }
 
         const def = ALL_ITEMS.find(m => m.type === itemType);
-        
+
         if (def) {
             const newItem: InGameItem = {
                 x, y, count, def, id: itemId, vy: 0
@@ -190,6 +211,209 @@ export class GameMap {
     }
 
     /**
+     * Add wiring to the map
+     * 
+     * @param wire The wire to add
+     */
+    addWire(wire: Wire): void {
+        // if we already have a wire between the two points then remove the wire
+        const existingWire = this.metaData.wires.find(w => JSON.stringify(w) === JSON.stringify(wire));
+        if (existingWire) {
+            this.removeWire(existingWire);
+            return;
+        }
+
+        const oldValue = this.getInputValue(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index);
+        this.metaData.wires.push(wire);
+        const newValue = this.getInputValue(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index);
+
+        if (newValue !== oldValue) {
+            this.game.mods.inputChanged(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index, oldValue, newValue);
+        }
+
+        this.saveMetaData();
+    }
+
+    /**
+     * Remove wiring from the map
+     * 
+     * @param wire The wire to remove
+     */
+    removeWire(wire: Wire): void {
+        if (this.metaData.wires.indexOf(wire) < 0) {
+            return;
+        }
+
+        const oldValue = this.getInputValue(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index);
+        this.metaData.wires.splice(this.metaData.wires.indexOf(wire), 1);
+        const newValue = this.getInputValue(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index);
+
+        if (newValue !== oldValue) {
+            this.game.mods.inputChanged(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index, oldValue, newValue);
+        }
+
+        this.saveMetaData();
+    }
+
+    outputSocketSelected(tileX: number, tileY: number, layer: Layer, index: number): void {
+        const block = this.getTile(tileX, tileY, layer);
+        if (block === 0) {
+            return;
+        }
+        const def = BLOCKS[block];
+        if (!def) {
+            return;
+        }
+        if (index >= (def.wireOutputs ?? 0)) {
+            return;
+        }
+
+        if (!this.currentWire) {
+            console.log("Creating new wire");
+            this.currentWire = {
+                input: {
+                    tileX: tileX,
+                    tileY: tileY,
+                    layer: layer,
+                    index: index
+                },
+                output: {
+                    tileX: 0,
+                    tileY: 0,
+                    layer: 0,
+                    index: -1
+                }
+            }
+        } else {
+            // current wire looking for an input
+            if (this.currentWire.input.index === -1) {
+                this.currentWire.input.tileX = tileX;
+                this.currentWire.input.tileY = tileY;
+                this.currentWire.input.layer = layer;
+                this.currentWire.input.index = index;
+
+                this.addWire(this.currentWire);
+                this.currentWire = undefined;
+            }
+        }
+    }
+
+    inputSocketSelected(tileX: number, tileY: number, layer: Layer, index: number): void {
+        const block = this.getTile(tileX, tileY, layer);
+        if (block === 0) {
+            return;
+        }
+        const def = BLOCKS[block];
+        if (!def) {
+            return;
+        }
+        if (index >= (def.wireInputs ?? 0)) {
+            return;
+        }
+
+        if (!this.currentWire) {
+            this.currentWire = {
+                output: {
+                    tileX: tileX,
+                    tileY: tileY,
+                    layer: layer,
+                    index: index
+                },
+                input: {
+                    tileX: 0,
+                    tileY: 0,
+                    layer: 0,
+                    index: -1
+                }
+            }
+        } else {
+            // current wire looking for an input
+            if (this.currentWire.output.index === -1) {
+                this.currentWire.output.tileX = tileX;
+                this.currentWire.output.tileY = tileY;
+                this.currentWire.output.layer = layer;
+                this.currentWire.output.index = index;
+
+                this.addWire(this.currentWire);
+                this.currentWire = undefined;
+            }
+        }
+    }
+
+    /**
+     * Store an output value from a block
+     * 
+     * @param tileX The x coordinate of the tile to set the output on
+     * @param tileY The y coordinate of the tile to set the output on
+     * @param layer The layer of the tile to set the output on
+     * @param index The input of the output to set
+     * @param value The value to record
+     */
+    setOutputValue(tileX: number, tileY: number, layer: Layer, index: number, value: number) {
+        if (this.getOutputValue(tileX, tileY, layer, index) !== value) {
+            const wires = this.metaData.wires.filter(w => w.input.tileX === tileX && w.input.tileY === tileY && w.input.layer === layer && w.input.index === index);
+            // record the values before the change
+            const originalValues = [];
+            for (const wire of wires) {
+                originalValues.push(this.getInputValue(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index));
+            }
+
+            // if it's changed
+            const tileIndex = tileX + (tileY * MAP_WIDTH) + (layer * MAP_WIDTH * MAP_DEPTH) + (index * MAP_WIDTH * MAP_DEPTH * 2);
+            this.metaData.outputValues[tileIndex] = value;
+
+            // find any wires connected to the output 
+            let c = 0;
+            for (const wire of wires) {
+                const newValue = this.getInputValue(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index);
+                const oldValue = originalValues[c];
+
+                if (newValue !== oldValue) {
+                    this.game.mods.inputChanged(wire.output.tileX, wire.output.tileY, wire.output.layer, wire.output.index, oldValue, newValue);
+                }
+                c++;
+            }
+
+            this.saveMetaData();
+        }
+    }
+
+    /**
+     * Get the input value from the index provided
+     * 
+     * @param tileX The x coordinate of the tile to get the input from
+     * @param tileY The y coordinate of the tile to get the input from
+     * @param layer The layer of the tile to get the input from
+     * @param index The index of hte input to check
+     */
+    getInputValue(tileX: number, tileY: number, layer: Layer, index: number) {
+        const wires = this.metaData.wires.filter(w => w.output.tileX === tileX && w.output.tileY === tileY && w.output.layer === layer && w.output.index === index);
+        let result = 0;
+        for (const wire of wires) {
+            result += this.getOutputValue(wire.input.tileX, wire.input.tileY, wire.input.layer, wire.input.index);
+        }
+        return result;
+    }
+
+    /**
+     * Get the output value from the index provided
+     * 
+     * @param tileX The x coordinate of the tile to get the output from
+     * @param tileY The y coordinate of the tile to get the output from
+     * @param layer The layer of the tile to get the output from
+     * @param index The index of hte output to check
+     */
+    getOutputValue(tileX: number, tileY: number, layer: Layer, index: number) {
+        const tileIndex = tileX + (tileY * MAP_WIDTH) + (layer * MAP_WIDTH * MAP_DEPTH) + (index * MAP_WIDTH * MAP_DEPTH * 2);
+        const outputValue = this.metaData.outputValues[tileIndex];
+        if (outputValue) {
+            return outputValue;
+        }
+
+        return 0;
+    }
+
+    /**
      * Clear the map resetting it to the default state
      */
     clear() {
@@ -202,7 +426,9 @@ export class GameMap {
 
         this.metaData = {
             portals: [],
-            modData: {}
+            modData: {},
+            outputValues: [],
+            wires: []
         };
         for (let i = 0; i < DEFAULT_MAP.length; i++) {
             this.foreground.push(0);
@@ -448,7 +674,7 @@ export class GameMap {
     setBackgroundMapData(b: number[]) {
         this.clearOnSet();
         this.background = b;
-        
+
         this.resetDiscoveryAndLights();
     }
 
@@ -586,6 +812,16 @@ export class GameMap {
             this.saveMap();
         }
 
+        if (tile === 0) {
+            // clear any wires when we destroy a block
+            const before = this.metaData.wires.length;
+            this.metaData.wires = this.metaData.wires.filter(w => (w.input.tileX !== x || w.input.tileY !== y || w.input.layer !== layer) &&
+                (w.output.tileX !== x || w.output.tileY !== y || w.output.layer !== layer));
+            if (this.metaData.wires.length !== before) {
+                this.saveMetaData();
+            }
+        }
+
         // Remove any timers on this tile
         this.timers = this.timers.filter(timer => timer.layer !== layer || timer.tileX !== x || timer.tileY !== y);
 
@@ -600,7 +836,7 @@ export class GameMap {
         if (tileDef) {
             if (tileDef.timer) {
                 this.timers.push({
-                    tileX: x, 
+                    tileX: x,
                     tileY: y,
                     layer,
                     timer: tileDef.timer.timer,
@@ -712,6 +948,10 @@ export class GameMap {
     }
 
     update(): void {
+        if (!this.game.showWiring) {
+            this.currentWire = undefined;
+        }
+
         this.updateTimers();
 
         // some very clunky item falling code
@@ -723,10 +963,10 @@ export class GameMap {
                 if (this.isBlocked(Math.floor(item.x / TILE_SIZE), Math.floor((item.y / TILE_SIZE) + 0.5))) {
                     item.y = oldy;
                     item.vy = 0;
-                } else if (this.isBlocked(Math.floor((item.x / TILE_SIZE) - 0.25),  Math.floor((item.y / TILE_SIZE) + 0.5))) {
+                } else if (this.isBlocked(Math.floor((item.x / TILE_SIZE) - 0.25), Math.floor((item.y / TILE_SIZE) + 0.5))) {
                     item.y = oldy;
                     item.vy = 0;
-                } else if (this.isBlocked(Math.floor((item.x / TILE_SIZE) + 0.25),  Math.floor((item.y / TILE_SIZE) + 0.5))) {
+                } else if (this.isBlocked(Math.floor((item.x / TILE_SIZE) + 0.25), Math.floor((item.y / TILE_SIZE) + 0.5))) {
                     item.y = oldy;
                     item.vy = 0;
                 }
@@ -804,6 +1044,30 @@ export class GameMap {
                         g.drawImage(getSprite(sprite), x * TILE_SIZE, y * TILE_SIZE);
                     }
 
+                    if (this.game.showWiring) {
+                        const block = BLOCKS[this.getTile(x, y, this.game.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND)]
+                        if (block) {
+                            if (block.wireInputs && block.wireInputs > 0) {
+                                const wx = 0;
+                                const wy = 0;
+                                for (let i = 0; i < block.wireInputs; i++) {
+                                    const px = wx + ((i % 4) * 32);
+                                    const py = wy + (Math.floor(i / 4) * 32);
+                                    g.drawImage(getSprite("tiles/input"), (x * TILE_SIZE) + px, (y * TILE_SIZE) + py);
+                                }
+                            }
+                            if (block.wireOutputs && block.wireOutputs > 0) {
+                                const wx = 0;
+                                const wy = 0;
+                                for (let i = 0; i < block.wireOutputs; i++) {
+                                    const px = wx + ((i % 4) * 32);
+                                    const py = 64 + wy + (Math.floor(i / 4) * 32);
+                                    g.drawImage(getSprite("tiles/output"), (x * TILE_SIZE) + px, (y * TILE_SIZE) + py);
+                                }
+                            }
+                        }
+                    }
+
                     // draw the mouse highlight
                     if (x === overX && y === overY && canAct) {
                         g.setFillColor(255, 255, 255, .3);
@@ -822,8 +1086,31 @@ export class GameMap {
             g.translate(item.x, item.y);
             g.scale(0.5, 0.5);
             g.rotate(this.floatTimer / 3);
-            g.drawImage(sprite,  - (sprite.getWidth() / 2), - (sprite.getHeight() / 2));
+            g.drawImage(sprite, - (sprite.getWidth() / 2), - (sprite.getHeight() / 2));
             g.restore();
+        }
+
+        if (this.game.showWiring) {
+            if (this.currentWire) {
+                if (this.currentWire.input.index === -1) {
+                    g.drawLine((this.currentWire.output.tileX * TILE_SIZE) + (((this.currentWire.output.index % 4) + 0.5) * (TILE_SIZE / 4)),
+                        (this.currentWire.output.tileY * TILE_SIZE) + ((Math.floor(this.currentWire.output.index / 4) + 0.5) * (TILE_SIZE / 4)),
+                        this.game.player.x,
+                        this.game.player.y);
+                } else {
+                    g.drawLine(this.game.player.x,
+                        this.game.player.y,
+                        (this.currentWire.input.tileX * TILE_SIZE) + (((this.currentWire.input.index % 4) + 0.5) * (TILE_SIZE / 4)),
+                        (this.currentWire.input.tileY * TILE_SIZE) + (TILE_SIZE / 2) + ((Math.floor(this.currentWire.input.index / 4) + 0.5) * (TILE_SIZE / 4)));
+                }
+            }
+
+            for (const wire of this.metaData.wires) {
+                g.drawLine((wire.output.tileX * TILE_SIZE) + (((wire.output.index % 4) + 0.5) * (TILE_SIZE / 4)),
+                    (wire.output.tileY * TILE_SIZE) + ((Math.floor(wire.output.index / 4) + 0.5) * (TILE_SIZE / 4)),
+                    (wire.input.tileX * TILE_SIZE) + (((wire.input.index % 4) + 0.5) * (TILE_SIZE / 4)),
+                    (wire.input.tileY * TILE_SIZE) + (TILE_SIZE / 2) + ((Math.floor(wire.input.index / 4) + 0.5) * (TILE_SIZE / 4)));
+            }
         }
 
         // loop through all the tiles and cover up areas that haven't been discovered yet
@@ -843,8 +1130,8 @@ export class GameMap {
             g.fillText(portal?.code ?? '', portal.tileIndex % MAP_WIDTH * TILE_SIZE + TILE_SIZE / 2, Math.floor(portal.tileIndex / MAP_WIDTH) * TILE_SIZE - 16);
         });
     }
-	
-	getDarkValue(x: number, y: number): number {
+
+    getDarkValue(x: number, y: number): number {
         // light all the mobs
         const lightDistance = TILE_SIZE * 3.75;
         let closestMobDistance = lightDistance * 2;
@@ -863,8 +1150,8 @@ export class GameMap {
             mobLight = Math.floor((closestMobDistance / lightDistance) * 255);
         }
 
-		return Math.floor(Math.min(mobLight, 255 - (this.getLightMap(x, y) * 255)));
-	}
+        return Math.floor(Math.min(mobLight, 255 - (this.getLightMap(x, y) * 255)));
+    }
 
     drawLightMap(g: Graphics, overX: number, overY: number, canAct: boolean,
         screenX: number, screenY: number, screenWidth: number, screenHeight: number) {
@@ -879,7 +1166,7 @@ export class GameMap {
         if (g.getType() === GraphicsType.WEBGL) {
             const px = Math.floor(this.game.player.x / TILE_SIZE);
             const py = Math.floor(this.game.player.y / TILE_SIZE);
-			g.setFillColor(0, 0, 0, 1);
+            g.setFillColor(0, 0, 0, 1);
             for (let x = xp; x < xp + tilesAcross; x++) {
                 for (let y = yp; y < yp + tilesDown; y++) {
                     g.fillRectWithCornerAlphas(

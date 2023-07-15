@@ -250,6 +250,8 @@ export interface Graphics {
      */
     createRadialGradient(x0: number, y0: number, r0: number, x1: number, y1: number, r1: number): GraphicsGradient;
 
+    drawLine(x1: number, y1: number, x2: number, y2: number): void;
+
     /**
      * Fill the shape thats been described
      */
@@ -418,6 +420,15 @@ export class HtmlGraphics implements Graphics, OffscreenGraphicsImage {
      */
     drawImage(img: GraphicsImage, x: number, y: number) {
         this.g.drawImage(img.get(), x, y);
+    }
+
+    drawLine(x1: number, y1: number, x2: number, y2: number): void {
+        this.g.lineWidth = 10;
+        this.g.strokeStyle = "rgba(255,0,255,0.9)";
+        this.g.beginPath();
+        this.g.moveTo(x1, y1);
+        this.g.lineTo(x2, y2);
+        this.g.stroke();
     }
 
     /**
@@ -643,6 +654,9 @@ export class WebglGraphics implements Graphics, OffscreenGraphicsImage {
         this.draws = 0;
     }
 
+    drawLine(x1: number, y1: number, x2: number, y2: number): void {
+    }
+    
     /**
      * Call this after all the images are done loading.
      */
