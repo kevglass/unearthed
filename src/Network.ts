@@ -129,7 +129,7 @@ export class Network {
         for (const mob of mobs) {
             if (mob.isPlayerControlled()) {
                 const div = document.createElement("div");
-                div.innerHTML = mob.name.substring(0, 12);
+                div.innerText = mob.name.substring(0, 12);
                 div.classList.add("nametag");
                 listDiv.appendChild(div);
             }
@@ -584,10 +584,10 @@ export class Network {
         line.classList.add("chatline");
         const name = document.createElement("div");
         name.classList.add("chatname");
-        name.innerHTML = who.substring(0, 12);
+        name.innerText = who.substring(0, 12);
         const msg = document.createElement("div");
         msg.classList.add("chattext");
-        msg.innerHTML = message.substring(0, 100);
+        msg.innerText = message.substring(0, 100);
         line.appendChild(name);
         line.appendChild(msg);
 
