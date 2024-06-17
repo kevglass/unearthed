@@ -874,15 +874,6 @@ export class Game implements ControllerListener {
     private mouseUp(x: number, y: number, touchId: number) {
         confirmAudioContext();
 
-        if (this.inventPanel.showing()) {
-            this.inventPanel.mouseUp(x, y);
-            return;
-        }
-        if (this.recipePanel.showing()) {
-            this.recipePanel.mouseUp(x, y);
-            return;
-        }
-
         if (touchId === this.mainAreaTouchId) {
             this.mainAreaTouchId = 0;
             this.mouseButtonDown[0] = false;
@@ -897,6 +888,15 @@ export class Game implements ControllerListener {
             this.keyDown[this.keyControls.left] = false;
             this.keyDown[this.keyControls.right] = false;
             this.controllerTouchId = 0;
+        }
+
+        if (this.inventPanel.showing()) {
+            this.inventPanel.mouseUp(x, y);
+            return;
+        }
+        if (this.recipePanel.showing()) {
+            this.recipePanel.mouseUp(x, y);
+            return;
         }
     }
 

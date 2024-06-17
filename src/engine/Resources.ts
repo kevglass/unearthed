@@ -208,10 +208,18 @@ export function playSfx(name: string, volume: number, variations: number | null 
         lastPlayed[variationName] = Date.now();
 
         if (!audioBuffers[variationName]) {
-            audioContext.decodeAudioData(effect).then((buffer: AudioBuffer) => {
+            const success = (buffer: AudioBuffer) => {
                 audioBuffers[variationName] = buffer;
                 playBuffer(buffer, volume);
-            });
+            };
+            const error = () => {
+                console.warn("Unable to decode audio", name);
+            };
+            if (typeof Promise !== "undefined" && audioContext.decodeAudioData.length === 1) {
+                audioContext.decodeAudioData(effect).then(success).catch(error);
+            } else {
+                audioContext.decodeAudioData(effect, success, error);
+            }
         } else {
             playBuffer(audioBuffers[variationName], volume);
         }
